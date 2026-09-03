@@ -1,0 +1,97 @@
+
+   Thank you for trying our [3mearly preview[23m of Next.js support on Firebase Hosting.
+   [31mDuring the preview, support is best-effort and breaking changes can be expected. Proceed with caution.[39m[33m
+   The integration is known to work with Next.js version [3m12 - 16.0[23m. You may encounter errors.[39m
+
+   [1mDocumentation:[22m https://firebase.google.com/docs/hosting/frameworks/nextjs
+   [1mFile a bug:[22m https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   [1mSubmit a feature request:[22m https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+▲ Next.js 16.3.1 (Turbopack)
+
+- Environments: .env.local
+
+✓ Running next.config.ts took 86ms
+
+
+
+  Creating an optimized production build ...
+
+✓ Compiled successfully in 6.1s
+
+  Running TypeScript ...
+
+  Finished TypeScript in 3.9s ...
+
+  Collecting page data using 7 workers ...
+
+  Generating static pages using 7 workers (0/3) ...
+
+✓ Generating static pages using 7 workers (3/3) in 134ms
+
+  Finalizing page optimization ...
+
+
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /admin
+├ ƒ /admin/canal
+├ ƒ /admin/canal/[id]
+├ ƒ /admin/clima
+├ ƒ /admin/configuracoes
+├ ƒ /admin/mural
+├ ƒ /admin/pesquisas
+├ ƒ /admin/pesquisas/[id]
+├ ƒ /admin/pesquisas/[id]/editar
+├ ƒ /admin/pesquisas/[id]/exportar
+├ ƒ /admin/pesquisas/[id]/painel
+├ ƒ /admin/pesquisas/nova
+├ ƒ /canal
+├ ƒ /canal/enviada
+├ ƒ /entrar
+├ ƒ /mural
+├ ƒ /p/[slug]
+├ ƒ /p/[slug]/obrigado
+└ ƒ /primeiro-acesso
+
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+Building a Cloud Function to run this application. This is needed due to:
+ • non-static component /admin/canal/[id]/page
+ • non-static component /admin/canal/page
+ • non-static component /admin/clima/page
+ • non-static component /admin/configuracoes/page
+ • non-static component /admin/mural/page
+ • and 15 other reasons, use --debug to see more
+
+Warning: Global esbuild version (0.28.2) does not match the required version (^0.19.2).
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'firebase-frameworks@0.11.8',
+npm warn EBADENGINE   required: { node: '^16.0.0 || ^18.0.0 || ^20.0.0 || ^22.0.0' },
+npm warn EBADENGINE   current: { node: 'v24.19.0', npm: '11.17.0' }
+npm warn EBADENGINE }
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated google-p12-pem@4.0.1: Package is no longer maintained
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+
+added 346 packages in 36s
+
+44 packages are looking for funding
+  run `npm fund` for details
+npm warn allow-scripts 2 packages have install scripts not yet covered by allowScripts:
+npm warn allow-scripts   protobufjs@7.6.5 (postinstall: node scripts/postinstall)
+npm warn allow-scripts   protobufjs@7.2.4 (postinstall: node scripts/postinstall)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+
+[1m[31mError:[39m[22m Failed to list functions for genteescuta

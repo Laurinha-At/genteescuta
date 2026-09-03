@@ -1,0 +1,483 @@
+@import 'tailwindcss';
+
+/* ===============================================================
+   GENTE ESCUTA — sistema de design
+
+   Direção: editorial e humano. Neutros levemente quentes, tipografia
+   com respiro, cantos generosos e sombra em vez de borda dura.
+
+   Duas metades com pesos diferentes de propósito:
+   · telas do colaborador — convidativas, texto grande, mais ar
+   · painéis da administração — densos, porque são lidos em reunião
+     e impressos em PDF
+
+   As cores de GRÁFICO não mudaram: foram validadas contra fundo
+   branco (contraste, daltonismo, bandas de luminosidade) e os
+   cartões seguem brancos justamente para não invalidar isso.
+   =============================================================== */
+
+@theme {
+  /* -------- neutros quentes -------- */
+  --color-plano: #faf9f7;
+  --color-superficie: #ffffff;
+  --color-superficie-2: #f7f5f2;
+  --color-borda: #ebe7e1;
+  --color-borda-forte: #d6d0c7;
+
+  --color-tinta: #1a1714;
+  --color-tinta-2: #57514a;
+  --color-tinta-3: #8a827a;
+
+  /* -------- marca Soulan --------
+     #2a7897 dá 4,96:1 com texto branco; #256f8b dá 5,64:1 sobre branco.
+     O verde do logotipo (#8cc63f) é decorativo: 2,05:1, nunca leva texto. */
+  --color-marca: #2a7897;
+  --color-marca-escura: #1f5c73;
+  --color-marca-texto: #256f8b;
+  --color-marca-clara: #eaf3f7;
+  --color-verde-marca: #8cc63f;
+  --color-verde-escuro: #557d26;
+
+  /* -------- status (fixos, nunca tematizados) -------- */
+  --color-bom: #0ca30c;
+  --color-atencao: #fab219;
+  --color-serio: #ec835a;
+  --color-critico: #d03b3b;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Degradê da marca. As duas pontas seguram texto branco:
+     #557d26 = 4,83:1 e #2a7897 = 4,96:1 */
+  --gradiente: linear-gradient(118deg, #557d26 0%, #2a7897 62%);
+  --gradiente-suave: linear-gradient(118deg, #8cc63f 0%, #2f8bb4 100%);
+
+  /* Sombras em camadas — substituem a borda dura dos cartões */
+  --sombra-1: 0 1px 2px rgba(26, 23, 20, 0.04), 0 1px 3px rgba(26, 23, 20, 0.05);
+  --sombra-2: 0 1px 3px rgba(26, 23, 20, 0.04), 0 4px 12px rgba(26, 23, 20, 0.06);
+  --sombra-3: 0 2px 6px rgba(26, 23, 20, 0.05), 0 10px 28px rgba(26, 23, 20, 0.09);
+
+  --raio: 0.75rem;
+  --raio-g: 1rem;
+
+  /* Rampa ordinal de risco — validada: monotônica, matiz único, ponta clara 2,27:1 */
+  --risco-1: #e59892;
+  --risco-2: #cf6b67;
+  --risco-3: #b5423f;
+  --risco-4: #87292c;
+
+  /* Rampa ordinal do funil, no matiz da marca — validada, ponta clara 2,07:1 */
+  --funil-1: #7fbdd4;
+  --funil-2: #4f9fbe;
+  --funil-3: #2f83a4;
+  --funil-4: #22637c;
+  --funil-5: #154556;
+
+  /* Séries categóricas — ordem fixa, nunca ciclada.
+     O slot 1 é o teal da marca saturado o bastante para não ler como cinza. */
+  --serie-1: #0b81ac;
+  --serie-2: #eb6834;
+  --serie-3: #1baf7a;
+  --serie-4: #eda100;
+  --serie-5: #e87ba4;
+
+  --grade: #edeae5;
+  --eixo: #d6d0c7;
+}
+
+body {
+  background: var(--color-plano);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #cfe6f0;
+  color: #123b4a;
+}
+
+/* --------------------------------------------------------------
+   Tipografia
+   -------------------------------------------------------------- */
+.titulo-hero {
+  font-size: clamp(2rem, 5.2vw, 2.75rem);
+  font-weight: 650;
+  letter-spacing: -0.032em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.titulo-secao {
+  font-size: 1.1875rem;
+  font-weight: 620;
+  letter-spacing: -0.021em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+/* Texto corrido das telas públicas: ~65 caracteres por linha */
+.texto-leitura {
+  font-size: 0.9688rem;
+  line-height: 1.62;
+  max-width: 62ch;
+  color: var(--color-tinta-2);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------
+   Cartões
+   -------------------------------------------------------------- */
+.cartao {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-1);
+}
+
+/* Variante das telas do colaborador: mais raio, mais presença */
+.cartao-g {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borda);
+  border-radius: var(--raio-g);
+  box-shadow: var(--sombra-2);
+}
+
+/* Cartão clicável — sobe de leve no hover */
+.cartao-clicavel {
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+.cartao-clicavel:hover {
+  box-shadow: var(--sombra-3);
+  transform: translateY(-2px);
+  border-color: #d3dee4;
+}
+
+.cartao-titulo {
+  font-size: 0.8125rem;
+  font-weight: 620;
+  color: var(--color-tinta-2);
+  letter-spacing: 0.004em;
+}
+
+/* --------------------------------------------------------------
+   Etiquetas de faixa — cor SEMPRE com ponto + texto
+   -------------------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.5625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1rem;
+  white-space: nowrap;
+}
+.chip::before {
+  content: '';
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  background: currentColor;
+  flex: none;
+}
+
+.chip-baixo    { background: #e7f4e7; color: #0b5d0b; }
+.chip-moderado { background: #fdf2dc; color: #6b4a00; }
+.chip-alto     { background: #fbe9e1; color: #7a3418; }
+.chip-critico  { background: #f9e1e1; color: #8a1f1f; }
+.chip-neutro   { background: #f0ede8; color: #4a453e; }
+.chip-marca    { background: var(--color-marca-clara); color: #17505f; }
+
+/* --------------------------------------------------------------
+   Botão com o degradê da marca (só onde há texto branco legível)
+   -------------------------------------------------------------- */
+.botao-gradiente {
+  background: var(--gradiente);
+  color: #fff;
+  border: 0;
+  box-shadow: 0 1px 2px rgba(26, 23, 20, 0.12);
+  transition: filter 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.botao-gradiente:hover {
+  filter: saturate(1.08) brightness(1.06);
+  box-shadow: 0 3px 10px rgba(42, 120, 151, 0.28);
+  transform: translateY(-1px);
+}
+.botao-gradiente:active {
+  transform: translateY(0);
+}
+
+/* Fio decorativo do degradê — sem texto em cima */
+.fio-marca {
+  height: 3px;
+  background: var(--gradiente-suave);
+  border-radius: 9999px;
+}
+
+/* --------------------------------------------------------------
+   Home do colaborador — entrada acolhedora
+   Cores do logotipo Soulan: azul (#2f8bb4) + verde (#8cc63f)
+   -------------------------------------------------------------- */
+.hero-acolhedor {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  border: 1px solid rgba(47, 139, 180, 0.14);
+  background:
+    radial-gradient(130% 120% at 100% -10%, rgba(140, 198, 63, 0.22) 0%, rgba(140, 198, 63, 0) 46%),
+    radial-gradient(120% 130% at -8% 112%, rgba(47, 139, 180, 0.22) 0%, rgba(47, 139, 180, 0) 52%),
+    linear-gradient(140deg, #f3f9f0 0%, #edf5f9 100%);
+  box-shadow: var(--sombra-2);
+}
+/* faixa de luz suave, dá profundidade sem pesar */
+.hero-acolhedor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(58% 52% at 80% 8%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+/* Texto com o degradê da marca — só em títulos grandes (contraste ok em bold) */
+.texto-gradiente {
+  background: linear-gradient(118deg, #2f8bb4 0%, #4b9e3a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Selo "canal aberto" com ponto que respira */
+.selo-canal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.8125rem 0.375rem 0.6875rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(47, 139, 180, 0.2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1f5c73;
+  box-shadow: var(--sombra-1);
+  backdrop-filter: blur(4px);
+}
+.selo-ponto {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #59a82f;
+  flex: none;
+}
+.selo-ponto::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  background: rgba(89, 168, 47, 0.4);
+  animation: pulso-canal 2.4s ease-out infinite;
+}
+@keyframes pulso-canal {
+  0%   { transform: scale(0.6); opacity: 0.85; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* --------------------------------------------------------------
+   Home — capa/banner com a equipe Soulan sobre o degradê da marca
+   -------------------------------------------------------------- */
+.hero-capa {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  color: #fff;
+  background:
+    radial-gradient(85% 75% at 90% 4%, rgba(140, 198, 63, 0.5) 0%, rgba(140, 198, 63, 0) 55%),
+    linear-gradient(135deg, #1c586e 0%, #2a7897 44%, #3f8a45 100%);
+  box-shadow: var(--sombra-3);
+}
+/* leve vinheta na base, para assentar a imagem no degradê */
+.hero-capa::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 55% at 50% 118%, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 60%);
+}
+
+/* Selo translúcido para ler bem sobre o degradê */
+.selo-capa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.8125rem 0.375rem 0.6875rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+
+/* A imagem é um recorte com fundo transparente: `contain` deixa o
+   degradê aparecer ao redor sem cortar ninguém; a sombra dá chão. */
+.hero-capa-img {
+  display: block;
+  width: 100%;
+  height: clamp(200px, 32vw, 380px);
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.28));
+}
+
+/* --------------------------------------------------------------
+   Banner full-bleed da home — foto da equipe sobre o degradê,
+   com texto sobreposto e legível (scrim para contraste).
+   -------------------------------------------------------------- */
+.banner-hero {
+  position: relative;
+  width: 100%;
+  min-height: clamp(460px, 62vw, 620px);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: #fff;
+}
+.banner-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(75% 90% at 88% 8%, rgba(140, 198, 63, 0.55) 0%, rgba(140, 198, 63, 0) 58%),
+    linear-gradient(120deg, #184c60 0%, #2a7897 46%, #3f8a45 100%);
+}
+.banner-img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+}
+/* Scrim: escurece a esquerda (onde fica o texto) e a base, garantindo contraste. */
+.banner-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(90deg, rgba(11, 38, 50, 0.82) 0%, rgba(11, 38, 50, 0.5) 38%, rgba(11, 38, 50, 0.08) 66%, rgba(11, 38, 50, 0) 82%),
+    linear-gradient(0deg, rgba(11, 38, 50, 0.45) 0%, rgba(11, 38, 50, 0) 45%);
+}
+.banner-conteudo {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem;
+}
+.banner-titulo {
+  font-size: clamp(2rem, 5.4vw, 3.25rem);
+  font-weight: 680;
+  letter-spacing: -0.032em;
+  line-height: 1.06;
+  max-width: 20ch;
+  text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+}
+.banner-apoio {
+  font-size: clamp(1rem, 1.6vw, 1.1875rem);
+  line-height: 1.6;
+  max-width: 54ch;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* --------------------------------------------------------------
+   Mural — cartões de post (reconhecimento / Gente Informa)
+   -------------------------------------------------------------- */
+.post-cartao {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--raio-g);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borda);
+  box-shadow: var(--sombra-2);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.post-cartao:hover {
+  box-shadow: var(--sombra-3);
+  transform: translateY(-1px);
+}
+.post-barra {
+  height: 4px;
+  width: 100%;
+}
+.post-barra-rec {
+  background: linear-gradient(90deg, #1baf7a 0%, #8cc63f 100%);
+}
+.post-barra-info {
+  background: linear-gradient(90deg, #1c586e 0%, #2a7897 100%);
+}
+
+/* --------------------------------------------------------------
+   Foco visível
+   -------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* --------------------------------------------------------------
+   Camada de hover dos gráficos
+   -------------------------------------------------------------- */
+.dica {
+  position: absolute;
+  z-index: 30;
+  pointer-events: none;
+  background: #221e1a;
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  padding: 0.5rem 0.6875rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 6px 20px rgba(26, 23, 20, 0.3);
+  max-width: 17rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Impressão: o painel precisa virar PDF sem perder as cores */
+/* Blocos que só aparecem no PDF/impressão (ex.: título do relatório) */
+.print-only { display: none; }
+
+@media print {
+  body { background: #fff; }
+  .sem-impressao { display: none !important; }
+  .print-only { display: block !important; }
+  .cartao, .cartao-g { break-inside: avoid; box-shadow: none; border-color: #d5d7da; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

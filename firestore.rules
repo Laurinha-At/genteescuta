@@ -1,0 +1,174 @@
+rules_version = '2';
+
+// =============================================================
+// GENTE ESCUTA — Regras de segurança do Firestore
+//
+// O site é estático; não há servidor. Estas regras SÃO a segurança.
+// Princípio: o público só lê o que precisa e só cria (envia); tudo
+// que é sensível (manifestações, respostas) só o admin logado lê.
+// =============================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function seed() {
+      return request.auth.token.email == 'gentecultura@soulan.com.br';
+    }
+    function temConta() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function conta() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+    // Admin = e-mail semente OU conta ATIVA em /admins com nível master/super.
+    // (Nível "Comum" NÃO é admin — mora em /funcionarios.)
+    function admin() {
+      return logado() && ( seed() || (temConta() && conta().ativo == true && conta().nivel in ['master', 'super']) );
+    }
+    // Super Admin = controle total (edita config, gerencia admins, cria níveis).
+    function souSuper() {
+      return logado() && ( seed() || (temConta() && conta().ativo == true && conta().nivel == 'super') );
+    }
+    // Gerente = master ou super (gerenciam funcionários e moderação).
+    function gerente() {
+      return admin();
+    }
+
+    // Funcionário ativo (colaborador que loga para reagir/comentar).
+    function funcionarioAtivo() {
+      return logado()
+        && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.ativo == true;
+    }
+    // Participante = admin ativo OU funcionário ativo (pode reagir/comentar).
+    function participante() {
+      return admin() || funcionarioAtivo();
+    }
+
+    // -------- Configuração da empresa: pública para ler.
+    // Só SUPER edita configurações; a classificação de humor (config/humor)
+    // é de dashboard, então master também pode salvar.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if souSuper() || (doc == 'humor' && admin());
+    }
+
+    // -------- Áreas/setores: público lê; só SUPER edita (é configuração).
+    match /areas/{id} {
+      allow read: if true;
+      allow write: if souSuper();
+    }
+
+    // -------- Usuários da administração (Master/Super). Só o SUPER cria,
+    // altera nível e remove. Admin lê a lista. A própria pessoa só pode
+    // baixar o flag de senha provisória (nada mais).
+    match /admins/{uid} {
+      allow read: if admin();
+      allow create, delete: if souSuper();
+      allow update: if souSuper()
+        || (logado() && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['senha_provisoria'])
+            && request.resource.data.senha_provisoria == false);
+    }
+
+    // -------- Funcionários (colaboradores que logam para participar do mural)
+    // Gerentes cadastram/gerenciam. A pessoa lê o próprio doc (para o perfil)
+    // e pode baixar só o próprio flag de senha provisória.
+    match /funcionarios/{uid} {
+      allow read: if admin() || (logado() && request.auth.uid == uid);
+      allow create: if gerente();
+      allow update: if gerente()
+        || (logado() && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['senha_provisoria'])
+            && request.resource.data.senha_provisoria == false);
+      allow delete: if gerente();
+    }
+
+    // -------- Auditoria de logs (login e ações do admin)
+    // Admin ativo LÊ; cada usuário autenticado só grava logs do próprio uid.
+    // Imutável: nunca edita nem apaga.
+    match /logs/{id} {
+      allow read: if souSuper();
+      allow create: if logado() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // -------- Pesquisas
+    // Público lê só as ABERTAS (para responder). Admin lê/escreve tudo.
+    match /pesquisas/{id} {
+      // Público lê as ABERTAS; admin (master/super) lê para os painéis.
+      // Só SUPER cria/edita/abre/fecha pesquisas (é configuração do sistema).
+      allow read: if resource.data.status == 'aberta' || admin();
+      allow create, update, delete: if souSuper();
+
+      // Respostas: qualquer um ENVIA; só o admin LÊ. Nunca edita/apaga.
+      match /respostas/{rid} {
+        allow create: if true;
+        allow read: if admin();
+        allow update, delete: if false;
+      }
+
+      // Trava de duplicata: o ID é o hash do e-mail. Só cria uma vez.
+      match /dedup/{hash} {
+        allow create: if true;
+        allow read, update, delete: if false;
+      }
+    }
+
+    // -------- Manifestações (contêm nome/e-mail/relato de assédio)
+    // Qualquer um CRIA; só o admin LÊ e trata. Público nunca lê.
+    match /manifestacoes/{id} {
+      allow create: if true;
+      allow read, update, delete: if admin();
+    }
+
+    // -------- Humor da equipe (clima) — CSV importado pelo admin.
+    // Contêm nome/matrícula: SÓ o admin lê e escreve. Público nunca acessa.
+    match /humor_registros/{id} {
+      allow read, write: if admin();
+    }
+
+    // -------- Mural público (legado "Você disse, nós fizemos")
+    match /mural/{id} {
+      allow read: if true;
+      allow create, update, delete: if admin();
+    }
+
+    // -------- Posts do mural: reconhecimentos aprovados + "Gente Informa"
+    // Público lê os PUBLICADOS. Admin cria/edita/remove.
+    // Reações: qualquer um soma no campo `reacoes` (e SÓ nesse campo),
+    // e apenas em posts já publicados. Nada mais o público pode alterar.
+    match /posts/{id} {
+      allow read: if resource.data.publicado == true || admin();
+      allow create, delete: if admin();
+      // Reações: só PARTICIPANTE logado altera o contador (e só o campo `reacoes`).
+      allow update: if admin() || (
+        participante() &&
+        resource.data.publicado == true &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reacoes'])
+      );
+
+      // Reação individual (identidade p/ moderação + trava de 1 por pessoa).
+      match /reacoes/{ruid} {
+        allow read: if admin() || (logado() && request.auth.uid == ruid);
+        allow create, update, delete: if participante() && request.auth.uid == ruid;
+      }
+
+      // Comentários: só participante logado cria, IDENTIFICADO e pendente.
+      // Público lê só os aprovados; admin lê todos, aprova e remove.
+      match /comentarios/{cid} {
+        allow read: if resource.data.aprovado == true || admin();
+        allow create: if participante()
+          && request.resource.data.aprovado == false
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.texto is string
+          && request.resource.data.texto.size() > 0
+          && request.resource.data.texto.size() <= 800;
+        allow update, delete: if admin();
+      }
+    }
+  }
+}

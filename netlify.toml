@@ -1,0 +1,23 @@
+# ---------------------------------------------------------------
+# Gente Escuta — configuração de publicação no Netlify
+#
+# O adaptador oficial do Next.js cuida dos Server Components e das
+# Server Actions (o app inteiro depende deles: formulários, login,
+# tratativa do canal). Sem ele o site sobe, mas nada que grava funciona.
+# ---------------------------------------------------------------
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# As duas chaves do Supabase NÃO ficam aqui — este arquivo vai para o
+# repositório. Elas entram em Site configuration → Environment variables:
+#   NEXT_PUBLIC_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   NEXT_PUBLIC_SITE_URL   (o endereço final, ex.: https://gente-escuta.netlify.app)
