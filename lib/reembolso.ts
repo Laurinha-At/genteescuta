@@ -36,6 +36,15 @@ export const CENTROS_CUSTO = [
   'Gente & Cultura/Cadastro e Suprimentos',
 ] as const
 
+// Valor especial de centro de custo: um Gestor Aprovador com "Todos os centros
+// de custo" enxerga e aprova reembolsos de QUALQUER área.
+export const TODOS_CENTROS = 'Todos os centros de custo'
+
+/** O centro do usuário abrange todas as áreas? (Gestor global.) */
+export function centroAbrangeTudo(centro?: string | null): boolean {
+  return (centro ?? '').trim() === TODOS_CENTROS
+}
+
 // -------- Categorias de despesa (lista controlada) --------
 export const CATEGORIAS = [
   'Alimentação',
@@ -52,10 +61,16 @@ export const CATEGORIAS = [
 ] as const
 
 // -------- Status do reembolso --------
+// Fluxo: pendente_gestor → (gestor aprova) → pendente_financeiro →
+// (financeiro registra pagamento) → agendado (data futura) ou pago (na data).
+// 'pendente_master' cobre o caso do próprio gestor pedir (não aprova o próprio).
+// 'aprovado' é legado (pedidos antigos) — tratado como equivalente a 'pago'.
 export type StatusReembolso =
   | 'pendente_gestor'
   | 'pendente_master'
   | 'pendente_financeiro'
+  | 'agendado'
+  | 'pago'
   | 'aprovado'
   | 'recusado'
 
@@ -63,6 +78,8 @@ export const STATUS_LABEL: Record<StatusReembolso, string> = {
   pendente_gestor: 'Aguardando gestor',
   pendente_master: 'Aguardando Master',
   pendente_financeiro: 'Aguardando Financeiro',
+  agendado: 'Pagamento agendado',
+  pago: 'Pago',
   aprovado: 'Aprovado',
   recusado: 'Recusado',
 }
@@ -73,6 +90,8 @@ export const STATUS_FAIXA: Record<StatusReembolso, FaixaChip> = {
   pendente_gestor: 'moderado',
   pendente_master: 'moderado',
   pendente_financeiro: 'alto',
+  agendado: 'moderado',
+  pago: 'baixo',
   aprovado: 'baixo',
   recusado: 'critico',
 }
@@ -90,12 +109,39 @@ export function statusInicial(papeis: string[]): StatusReembolso {
   return 'pendente_gestor'
 }
 
-/** Para onde o pedido vai quando a etapa atual APROVA. */
+/**
+ * Para onde o pedido vai quando a etapa de APROVAÇÃO (gestor/master) libera.
+ * A etapa do Financeiro NÃO usa isto — o Financeiro registra pagamento
+ * (agendado/pago) por uma função própria.
+ */
 export function proximoStatus(atual: StatusReembolso): StatusReembolso {
   if (atual === 'pendente_gestor') return 'pendente_financeiro'
   if (atual === 'pendente_master') return 'pendente_financeiro'
-  if (atual === 'pendente_financeiro') return 'aprovado'
   return atual
+}
+
+/** Status resultante de um pagamento conforme a data informada. */
+export function statusDoPagamento(dataPagamentoISO: string): StatusReembolso {
+  const hoje = new Date().toISOString().slice(0, 10)
+  const d = String(dataPagamentoISO || '').slice(0, 10)
+  return d > hoje ? 'agendado' : 'pago'
+}
+
+/**
+ * Status "efetivo" para exibição: um pagamento AGENDADO cuja data já chegou
+ * é mostrado como PAGO (não há servidor para virar o status sozinho).
+ */
+export function statusEfetivo(status: StatusReembolso, dataPagamento?: string | null): StatusReembolso {
+  if (status === 'agendado' && dataPagamento) {
+    const hoje = new Date().toISOString().slice(0, 10)
+    if (String(dataPagamento).slice(0, 10) <= hoje) return 'pago'
+  }
+  return status
+}
+
+/** A etapa atual é a do Financeiro (registrar pagamento)? */
+export function ehEtapaFinanceiro(status: StatusReembolso): boolean {
+  return status === 'pendente_financeiro'
 }
 
 /** Quem aprova a etapa atual (papel responsável). */
@@ -124,7 +170,8 @@ export function podeAprovar(
   if (!estaPendente(status)) return false
   if (papeis.includes('master')) return true
   if (status === 'pendente_gestor') {
-    return papeis.includes('gestor') && mesmoCentro(meuCentro, centroDoPedido)
+    // Gestor da área do pedido — ou Gestor com "Todos os centros de custo".
+    return papeis.includes('gestor') && (centroAbrangeTudo(meuCentro) || mesmoCentro(meuCentro, centroDoPedido))
   }
   if (status === 'pendente_master') return false // só master, tratado acima
   if (status === 'pendente_financeiro') return papeis.includes('financeiro')

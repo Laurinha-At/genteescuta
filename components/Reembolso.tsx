@@ -14,12 +14,12 @@ import {
 } from 'lucide-react'
 import {
   CENTROS_CUSTO, CATEGORIAS, STATUS_LABEL, STATUS_FAIXA, PAPEL_LABEL,
-  formatBRL, formatData, podeAprovar,
+  formatBRL, formatData, podeAprovar, statusEfetivo, ehEtapaFinanceiro,
   type StatusReembolso,
 } from '@/lib/reembolso'
 import {
   criarReembolso, prepararAnexo, listarMinhas, listarParaGestao,
-  aprovarReembolso, recusarReembolso, getAnexo,
+  aprovarReembolso, recusarReembolso, registrarPagamento, getAnexo,
   type Reembolso, type Anexo,
 } from '@/lib/fb/reembolso'
 import type { Perfil } from '@/lib/fb/funcionarios'
@@ -288,8 +288,9 @@ function ListaMinhas({ carregando, itens }: { carregando: boolean; itens: Reembo
   )
 }
 
-function StatusChip({ status }: { status: StatusReembolso }) {
-  return <Chip faixa={STATUS_FAIXA[status]}>{STATUS_LABEL[status]}</Chip>
+function StatusChip({ status, dataPagamento }: { status: StatusReembolso; dataPagamento?: string | null }) {
+  const s = statusEfetivo(status, dataPagamento)
+  return <Chip faixa={STATUS_FAIXA[s]}>{STATUS_LABEL[s]}</Chip>
 }
 
 function CardReembolso({ r }: { r: Reembolso }) {
@@ -305,7 +306,7 @@ function CardReembolso({ r }: { r: Reembolso }) {
           </span>
           <span className="mt-0.5 block text-xs text-tinta-3">{formatData(r.data_despesa)} · {r.centro_custo}</span>
         </span>
-        <StatusChip status={r.status} />
+        <StatusChip status={r.status} dataPagamento={r.data_pagamento} />
       </button>
 
       {aberto && (
@@ -341,6 +342,7 @@ function Timeline({ r }: { r: Reembolso }) {
               <strong className="font-semibold text-tinta">{STATUS_LABEL[h.status_novo]}</strong>
               {h.papel !== 'solicitante' && <> · por {h.por_nome || '—'}</>}
               <span className="text-tinta-3"> · {formatData(h.em)}</span>
+              {h.data_pagamento && <span className="text-tinta-3"> · pagamento em {formatData(h.data_pagamento)}</span>}
             </span>
           </li>
         )
@@ -448,7 +450,7 @@ function Aprovacoes({
                     <td className="px-4 py-2.5 text-tinta-2">{r.centro_custo}</td>
                     <td className="px-4 py-2.5 text-tinta-2">{r.categoria}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-medium text-tinta">{formatBRL(r.valor)}</td>
-                    <td className="px-4 py-2.5"><StatusChip status={r.status} /></td>
+                    <td className="px-4 py-2.5"><StatusChip status={r.status} dataPagamento={r.data_pagamento} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -472,15 +474,29 @@ function CardAprovacao({
   const [pendente, setPendente] = useState(false)
   const [recusando, setRecusando] = useState(false)
   const [motivo, setMotivo] = useState('')
+  const [dataPag, setDataPag] = useState(new Date().toISOString().slice(0, 10))
+
+  const etapaFinanceiro = ehEtapaFinanceiro(r.status)
 
   async function aprovar() {
     setPendente(true); setErro(null); setAviso(null)
     try {
-      const { status } = await aprovarReembolso(r.id, perfil)
-      setAviso(status === 'aprovado' ? 'Reembolso aprovado (final)!' : 'Aprovado e encaminhado para a próxima etapa.')
+      await aprovarReembolso(r.id, perfil)
+      setAviso('Aprovado e encaminhado ao Financeiro.')
       aoDecidir()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui aprovar.')
+    }
+    setPendente(false)
+  }
+  async function pagar() {
+    setPendente(true); setErro(null); setAviso(null)
+    try {
+      const { status } = await registrarPagamento(r.id, perfil, dataPag)
+      setAviso(status === 'agendado' ? 'Pagamento agendado para a data informada.' : 'Pagamento registrado!')
+      aoDecidir()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui registrar o pagamento.')
     }
     setPendente(false)
   }
@@ -503,7 +519,7 @@ function CardAprovacao({
           <p className="flex flex-wrap items-center gap-2">
             <span className="font-[620] text-tinta">{formatBRL(r.valor)}</span>
             <span className="text-sm text-tinta-3">· {r.categoria}</span>
-            <StatusChip status={r.status} />
+            <StatusChip status={r.status} dataPagamento={r.data_pagamento} />
           </p>
           <p className="mt-0.5 text-xs text-tinta-3">
             {r.solicitante_nome} · {r.centro_custo} · {formatData(r.data_despesa)}
@@ -514,14 +530,37 @@ function CardAprovacao({
       <p className="mt-2 text-sm leading-6 text-tinta-2">{r.descricao}</p>
 
       {!recusando ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Botao type="button" disabled={pendente} onClick={aprovar}>
-            <CheckCircle2 size={15} aria-hidden /> {pendente ? '…' : 'Aprovar'}
-          </Botao>
-          <Botao type="button" variante="secundario" disabled={pendente} onClick={() => setRecusando(true)}>
-            <XCircle size={15} aria-hidden /> Recusar
-          </Botao>
-        </div>
+        etapaFinanceiro ? (
+          <div className="mt-3 flex flex-wrap items-end gap-2">
+            <div className="w-full sm:w-auto">
+              <label className="block text-xs font-medium text-tinta-2">
+                Data do pagamento
+                <span className="mt-0.5 block text-[11px] font-normal text-tinta-3">Data futura fica “Agendado”; hoje/passada, “Pago”.</span>
+                <input
+                  type="date"
+                  value={dataPag}
+                  onChange={(e) => setDataPag(e.target.value)}
+                  className={`${ENTRADA} mt-1`}
+                />
+              </label>
+            </div>
+            <Botao type="button" disabled={pendente || !dataPag} onClick={pagar}>
+              <CheckCircle2 size={15} aria-hidden /> {pendente ? '…' : 'Registrar pagamento'}
+            </Botao>
+            <Botao type="button" variante="secundario" disabled={pendente} onClick={() => setRecusando(true)}>
+              <XCircle size={15} aria-hidden /> Recusar
+            </Botao>
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Botao type="button" disabled={pendente} onClick={aprovar}>
+              <CheckCircle2 size={15} aria-hidden /> {pendente ? '…' : 'Aprovar'}
+            </Botao>
+            <Botao type="button" variante="secundario" disabled={pendente} onClick={() => setRecusando(true)}>
+              <XCircle size={15} aria-hidden /> Recusar
+            </Botao>
+          </div>
+        )
       ) : (
         <div className="mt-3 space-y-2">
           <textarea
@@ -556,7 +595,8 @@ function linhasExport(itens: Reembolso[]) {
     Categoria: r.categoria,
     Descrição: r.descricao,
     Valor: formatBRL(r.valor),
-    Status: STATUS_LABEL[r.status],
+    Status: STATUS_LABEL[statusEfetivo(r.status, r.data_pagamento)],
+    Pagamento: r.data_pagamento ? formatData(r.data_pagamento) : '—',
   }))
 }
 

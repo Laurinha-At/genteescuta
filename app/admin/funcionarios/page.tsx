@@ -11,12 +11,12 @@ import {
   reenviarSenhaFuncionario,
   atualizarPapeisFuncionario,
 } from '@/lib/fb/funcionarios'
-import { CENTROS_CUSTO, PAPEL_LABEL } from '@/lib/reembolso'
+import { CENTROS_CUSTO, TODOS_CENTROS, PAPEL_LABEL, PAPEL_DESC } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
 
-// Papéis que um FUNCIONÁRIO pode acumular (colaborador é sempre incluído;
-// "master" mora na tela de Usuários, não aqui).
-const PAPEIS_FUNC = ['gestor', 'financeiro'] as const
+// Papéis que um FUNCIONÁRIO pode acumular (colaborador é sempre incluído).
+// "master" = admin completo (mesmo poder do e-mail semente).
+const PAPEIS_FUNC = ['master', 'gestor', 'financeiro'] as const
 
 export default function Funcionarios() {
   const [eu, setEu] = useState<Conta | null | undefined>(undefined)
@@ -195,10 +195,11 @@ export default function Funcionarios() {
         <div className="flex items-start gap-2.5 rounded-md border border-borda bg-white px-4 py-3">
           <Users size={16} className="mt-0.5 flex-none text-marca" aria-hidden />
           <p className="text-xs leading-4 text-tinta-2">
-            Funcionários entram pela opção <strong className="font-semibold text-tinta">“Sou funcionário”</strong> no
+            Funcionários entram pela opção <strong className="font-semibold text-tinta">“Acesso”</strong> no
             topo do site, com o e-mail e a senha padrão{' '}
             <strong className="rounded bg-superficie-2 px-1 font-mono text-tinta">{SENHA_PADRAO}</strong>, e criam a
-            própria senha no primeiro acesso. Depois de entrar, podem reagir e comentar no mural (identificados).
+            própria senha no primeiro acesso. O nível de acesso (Colaborador, Gestor, Financeiro ou Master) é definido
+            pelos papéis marcados acima.
           </p>
         </div>
       </div>
@@ -273,18 +274,17 @@ function EditorPapeis({
                   <input type="checkbox" checked={papeis.includes(p)} onChange={() => alterna(p)} className="mt-0.5 accent-[var(--color-marca)]" />
                   <span>
                     <span className="block font-medium text-tinta">{PAPEL_LABEL[p]}</span>
-                    <span className="block text-xs text-tinta-3">
-                      {p === 'gestor' ? 'Aprova reembolsos da própria área e vê os painéis (só leitura + exportar).' : 'Dá a aprovação final (pagamento) dos reembolsos.'}
-                    </span>
+                    <span className="block text-xs text-tinta-3">{PAPEL_DESC[p]}</span>
                   </span>
                 </label>
               ))}
             </div>
           </div>
 
-          <Campo rotulo="Centro de custo (área)" ajuda="Área da Soulan à qual a pessoa pertence. Obrigatório para o Gestor Aprovador.">
+          <Campo rotulo="Centro de custo (área)" ajuda="Área da Soulan à qual a pessoa pertence. Obrigatório para o Gestor Aprovador. Um gestor com “Todos os centros de custo” aprova reembolsos de qualquer área.">
             <select value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
               <option value="">Sem centro de custo</option>
+              <option value={TODOS_CENTROS}>{TODOS_CENTROS}</option>
               {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Campo>
@@ -353,6 +353,7 @@ function FormFunc({
         <Campo rotulo="Centro de custo (área)">
           <select value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
             <option value="">Sem centro de custo</option>
+            <option value={TODOS_CENTROS}>{TODOS_CENTROS}</option>
             {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </Campo>

@@ -54,7 +54,7 @@ export default function PrimeiroAcesso() {
     if (nova !== conf) return setErro('As duas senhas não são iguais.')
     setPendente(true)
     try {
-      await definirNovaSenhaInicial(nova, perfil!.tipo === 'admin' ? 'admins' : 'funcionarios')
+      await definirNovaSenhaInicial(nova, perfil!.origem === 'admins' ? 'admins' : 'funcionarios')
       router.replace(destino(perfil!))
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não consegui trocar a senha.')

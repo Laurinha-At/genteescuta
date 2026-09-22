@@ -31,7 +31,7 @@ import {
 } from 'firebase/firestore'
 import { db, auth, firebaseConfig } from '../firebase'
 
-const EMAIL_SEMENTE = 'gentecultura@soulan.com.br'
+export const EMAIL_SEMENTE = 'gentecultura@soulan.com.br'
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 /** Senha padrão do primeiro acesso — a pessoa é obrigada a trocar ao entrar. */
@@ -60,7 +60,14 @@ export interface Conta {
   senha_provisoria: boolean
 }
 
-/** Conta do usuário logado (o e-mail semente é sempre Super Admin ativo). */
+/**
+ * Conta do usuário logado para o PAINEL admin.
+ *  - e-mail semente → Super Admin;
+ *  - quem tem doc em /admins → o nível de lá;
+ *  - funcionário com o PAPEL "master" → tratado como Master do painel
+ *    (Master = admin completo, definido na tela Funcionários);
+ *  - qualquer outro → "nenhum" (não entra no painel).
+ */
 export async function minhaConta(): Promise<Conta | null> {
   const u = auth().currentUser
   if (!u) return null
@@ -68,16 +75,34 @@ export async function minhaConta(): Promise<Conta | null> {
     return { uid: u.uid, email: u.email!, nome: 'Administração', nivel: 'super', ativo: true, senha_provisoria: false }
   }
   const snap = await getDoc(doc(db(), 'admins', u.uid))
-  if (!snap.exists()) return { uid: u.uid, email: u.email ?? '', nome: '', nivel: 'nenhum', ativo: false, senha_provisoria: false }
-  const d = snap.data() as Record<string, unknown>
-  return {
-    uid: u.uid,
-    email: (d.email as string) ?? u.email ?? '',
-    nome: (d.nome as string) ?? '',
-    nivel: (d.nivel as Nivel) ?? 'comum',
-    ativo: d.ativo !== false,
-    senha_provisoria: d.senha_provisoria === true,
+  if (snap.exists()) {
+    const d = snap.data() as Record<string, unknown>
+    return {
+      uid: u.uid,
+      email: (d.email as string) ?? u.email ?? '',
+      nome: (d.nome as string) ?? '',
+      nivel: (d.nivel as Nivel) ?? 'comum',
+      ativo: d.ativo !== false,
+      senha_provisoria: d.senha_provisoria === true,
+    }
   }
+  // Sem doc em /admins: um funcionário com papel "master" também é Master.
+  const fSnap = await getDoc(doc(db(), 'funcionarios', u.uid)).catch(() => null)
+  if (fSnap && fSnap.exists()) {
+    const d = fSnap.data() as Record<string, unknown>
+    const papeis = Array.isArray(d.papeis) ? (d.papeis as string[]) : []
+    if (d.ativo !== false && papeis.includes('master')) {
+      return {
+        uid: u.uid,
+        email: (d.email as string) ?? u.email ?? '',
+        nome: (d.nome as string) ?? '',
+        nivel: 'master',
+        ativo: true,
+        senha_provisoria: d.senha_provisoria === true,
+      }
+    }
+  }
+  return { uid: u.uid, email: u.email ?? '', nome: '', nivel: 'nenhum', ativo: false, senha_provisoria: false }
 }
 
 export function ehGerente(c: Conta | null): boolean {

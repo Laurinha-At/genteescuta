@@ -23,10 +23,22 @@ service cloud.firestore {
     function conta() {
       return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
     }
-    // Admin = e-mail semente OU conta ATIVA em /admins com nível master/super.
-    // (Nível "Comum" NÃO é admin — mora em /funcionarios.)
+    // Funcionário ATIVO com o papel "master" (Master = admin completo,
+    // definido na tela Funcionários — mesmo poder do e-mail semente).
+    function funcMasterAtivo() {
+      return logado()
+        && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.ativo == true
+        && ('master' in get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.get('papeis', []));
+    }
+    // Admin = e-mail semente OU conta ATIVA em /admins (master/super) OU
+    // funcionário ativo com o papel "master".
     function admin() {
-      return logado() && ( seed() || (temConta() && conta().ativo == true && conta().nivel in ['master', 'super']) );
+      return logado() && (
+        seed()
+        || (temConta() && conta().ativo == true && conta().nivel in ['master', 'super'])
+        || funcMasterAtivo()
+      );
     }
     // Super Admin = controle total (edita config, gerencia admins, cria níveis).
     function souSuper() {
@@ -169,7 +181,8 @@ service cloud.firestore {
         return logado() && resource.data.solicitante_uid == request.auth.uid;
       }
       function gestorDoCentro() {
-        return temPapel('gestor') && resource.data.centro_custo == meuCentro();
+        return temPapel('gestor')
+          && (meuCentro() == 'Todos os centros de custo' || resource.data.centro_custo == meuCentro());
       }
       // Pode decidir na etapa atual? (Master em tudo; gestor no seu centro na
       // etapa do gestor; financeiro na etapa financeira.) Nunca o próprio
@@ -199,13 +212,15 @@ service cloud.firestore {
           || (!temPapel('gestor') && !ehMaster() && request.resource.data.status == 'pendente_gestor')
         );
 
-      // Atualização = decisão de aprovação/recusa. O núcleo é imutável; só
-      // status, histórico e a data de atualização podem mudar.
+      // Atualização = decisão de aprovação/recusa (gestor/master) OU registro
+      // de pagamento (financeiro/master). O núcleo é imutável; só status,
+      // histórico, data de atualização e os campos de pagamento podem mudar.
       allow update: if podeDecidir()
         && request.resource.data.solicitante_uid == resource.data.solicitante_uid
         && request.resource.data.valor == resource.data.valor
         && request.resource.data.centro_custo == resource.data.centro_custo
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'atualizado_em']);
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'historico', 'atualizado_em', 'data_pagamento', 'pago_por_nome', 'pago_em']);
 
       // Excluir só o Master (mantém a trilha de auditoria por padrão).
       allow delete: if ehMaster();

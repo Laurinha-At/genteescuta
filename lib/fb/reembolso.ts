@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore'
 import { db, auth } from '../firebase'
 import {
-  statusInicial, proximoStatus, papelDaEtapa, mesmoCentro,
+  statusInicial, proximoStatus, papelDaEtapa, mesmoCentro, centroAbrangeTudo, statusDoPagamento,
   type StatusReembolso,
 } from '../reembolso'
 import type { Perfil } from './funcionarios'
@@ -38,6 +38,7 @@ export interface EventoHistorico {
   papel: string
   em: string
   motivo?: string
+  data_pagamento?: string
 }
 
 export interface Reembolso {
@@ -55,6 +56,10 @@ export interface Reembolso {
   anexo_tipo: 'image' | 'pdf' | null
   anexo_nome: string | null
   historico: EventoHistorico[]
+  /** Preenchidos quando o Financeiro registra o pagamento. */
+  data_pagamento?: string | null
+  pago_por_nome?: string | null
+  pago_em?: string | null
   criado_em: string
   atualizado_em: string
 }
@@ -201,7 +206,10 @@ export async function listarMinhas(): Promise<Reembolso[]> {
  * (Colaborador puro usa listarMinhas.)
  */
 export async function listarParaGestao(perfil: Perfil): Promise<Reembolso[]> {
-  const veTodos = perfil.papeis.includes('master') || perfil.papeis.includes('financeiro')
+  const veTodos =
+    perfil.papeis.includes('master') ||
+    perfil.papeis.includes('financeiro') ||
+    (perfil.papeis.includes('gestor') && centroAbrangeTudo(perfil.centro_custo))
   let snap
   if (veTodos) {
     snap = await getDocs(collection(db(), 'reembolsos'))
@@ -238,9 +246,17 @@ async function decidir(id: string, perfil: Perfil, aprovar: boolean, motivo?: st
   const papelEtapa = papelDaEtapa(r.status)
   if (!papelEtapa) throw new Error('Esta solicitação já foi finalizada.')
 
+  // A etapa do Financeiro é PAGAMENTO, não "aprovação": aprovar aqui não faz
+  // sentido (recusar, sim). Direciona ao fluxo certo.
+  if (aprovar && r.status === 'pendente_financeiro') {
+    throw new Error('Nesta etapa, o Financeiro registra o pagamento (não "aprovar").')
+  }
+
   // Confere se este perfil responde por esta etapa.
   const ehMaster = perfil.papeis.includes('master')
-  const podeGestor = r.status === 'pendente_gestor' && perfil.papeis.includes('gestor') && mesmoCentro(perfil.centro_custo, r.centro_custo)
+  const podeGestor = r.status === 'pendente_gestor'
+    && perfil.papeis.includes('gestor')
+    && (centroAbrangeTudo(perfil.centro_custo) || mesmoCentro(perfil.centro_custo, r.centro_custo))
   const podeMasterEtapa = r.status === 'pendente_master' && ehMaster
   const podeFin = r.status === 'pendente_financeiro' && perfil.papeis.includes('financeiro')
   if (!(ehMaster || podeGestor || podeMasterEtapa || podeFin)) {
@@ -275,4 +291,47 @@ export function recusarReembolso(id: string, perfil: Perfil, motivo: string) {
   const m = String(motivo ?? '').trim()
   if (m.length < 3) throw new Error('Escreva o motivo da recusa.')
   return decidir(id, perfil, false, m)
+}
+
+// -------------------------------------------------------------
+// Financeiro: registrar pagamento (data futura = Agendado; hoje/passado = Pago)
+// -------------------------------------------------------------
+export async function registrarPagamento(id: string, perfil: Perfil, dataPagamento: string) {
+  const u = auth().currentUser
+  if (!u) throw new Error('Sua sessão expirou. Entre novamente.')
+  const data = String(dataPagamento ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error('Informe a data do pagamento.')
+
+  const podeFinanceiro = perfil.papeis.includes('financeiro') || perfil.papeis.includes('master')
+  if (!podeFinanceiro) throw new Error('Só o Financeiro (ou Master) registra pagamento.')
+
+  const ref = doc(db(), 'reembolsos', id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Solicitação não encontrada.')
+  const r = mapear(snap)
+  if (r.status !== 'pendente_financeiro') {
+    throw new Error('Este reembolso não está aguardando pagamento.')
+  }
+
+  const agora = new Date().toISOString()
+  const novoStatus: StatusReembolso = statusDoPagamento(data)
+  const evento: EventoHistorico = {
+    status_novo: novoStatus,
+    por_uid: u.uid,
+    por_nome: perfil.nome || u.email || '',
+    papel: 'financeiro',
+    em: agora,
+    data_pagamento: data,
+  }
+
+  await updateDoc(ref, {
+    status: novoStatus,
+    data_pagamento: data,
+    pago_por_nome: perfil.nome || u.email || '',
+    pago_em: agora,
+    historico: [...(r.historico ?? []), evento],
+    atualizado_em: agora,
+  })
+  await registrarLog('reembolso_pago', `${id} → ${novoStatus} (${data})`)
+  return { status: novoStatus }
 }

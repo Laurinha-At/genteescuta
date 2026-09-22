@@ -9,7 +9,7 @@ import { initializeApp, deleteApp } from 'firebase/app'
 import { getAuth, sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { db, auth, firebaseConfig } from '../firebase'
-import { minhaConta, registrarLog, obterUidParaCadastro } from './usuarios'
+import { minhaConta, registrarLog, obterUidParaCadastro, EMAIL_SEMENTE } from './usuarios'
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
@@ -34,37 +34,50 @@ export interface Perfil {
   papeis: string[]
   /** Centro de custo (área da Soulan) do usuário. */
   centro_custo: string
+  /** Onde mora o documento (para trocar a senha inicial na coleção certa). */
+  origem: 'admins' | 'funcionarios' | 'nenhum'
 }
 
-/** Quem é o usuário logado: admin, funcionário ou sem acesso. */
+/**
+ * Quem é o usuário logado.
+ *  - Painel admin "de verdade": e-mail semente OU doc em /admins → tipo 'admin'.
+ *  - Funcionário: doc em /funcionarios. Se acumular o papel 'master', também é
+ *    tratado como 'admin' (Master = admin completo), mas o doc segue em
+ *    /funcionarios (importante para a troca de senha inicial).
+ */
 export async function perfilAtual(): Promise<Perfil | null> {
   const u = auth().currentUser
   if (!u) return null
-  const conta = await minhaConta().catch(() => null)
-  if (conta && conta.nivel !== 'nenhum') {
-    // Admin do painel: Master/Super sempre têm o papel "master"; papéis e
-    // centro de custo extras ficam no doc /admins (o e-mail semente não tem doc).
-    const snap = await getDoc(doc(db(), 'admins', u.uid)).catch(() => null)
-    const d = (snap && snap.exists() ? snap.data() : {}) as Record<string, unknown>
+  const ehSeed = (u.email ?? '').toLowerCase() === EMAIL_SEMENTE
+
+  // Painel admin: e-mail semente ou doc em /admins.
+  const adminSnap = await getDoc(doc(db(), 'admins', u.uid)).catch(() => null)
+  if (ehSeed || (adminSnap && adminSnap.exists())) {
+    const d = (adminSnap && adminSnap.exists() ? adminSnap.data() : {}) as Record<string, unknown>
+    const conta = await minhaConta().catch(() => null)
     const papeis = Array.from(new Set(['master', ...limparPapeis(d.papeis)]))
     return {
       tipo: 'admin',
       uid: u.uid,
-      email: conta.email,
-      nome: conta.nome,
-      ativo: conta.ativo,
-      senha_provisoria: conta.senha_provisoria,
+      email: (d.email as string) ?? conta?.email ?? u.email ?? '',
+      nome: (d.nome as string) ?? conta?.nome ?? '',
+      ativo: conta?.ativo ?? true,
+      senha_provisoria: conta?.senha_provisoria ?? false,
       papeis,
       centro_custo: (d.centro_custo as string) ?? '',
+      origem: 'admins',
     }
   }
+
+  // Funcionário (colaborador e/ou gestor/financeiro/master).
   const snap = await getDoc(doc(db(), 'funcionarios', u.uid)).catch(() => null)
   if (snap && snap.exists()) {
     const d = snap.data() as Record<string, unknown>
     // Todo funcionário é, no mínimo, colaborador.
     const papeis = Array.from(new Set(['colaborador', ...limparPapeis(d.papeis)]))
     return {
-      tipo: 'funcionario',
+      // Papel "master" pela tela Funcionários = admin completo.
+      tipo: papeis.includes('master') ? 'admin' : 'funcionario',
       uid: u.uid,
       email: (d.email as string) ?? u.email ?? '',
       nome: (d.nome as string) ?? '',
@@ -72,11 +85,13 @@ export async function perfilAtual(): Promise<Perfil | null> {
       senha_provisoria: d.senha_provisoria === true,
       papeis,
       centro_custo: (d.centro_custo as string) ?? '',
+      origem: 'funcionarios',
     }
   }
+
   return {
     tipo: 'nenhum', uid: u.uid, email: u.email ?? '', nome: '', ativo: false,
-    senha_provisoria: false, papeis: [], centro_custo: '',
+    senha_provisoria: false, papeis: [], centro_custo: '', origem: 'nenhum',
   }
 }
 

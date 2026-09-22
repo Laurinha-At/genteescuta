@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { Lock, UserRound, LogOut, LayoutDashboard, Receipt, ChevronDown } from 'lucide-react'
+import { LogIn, LogOut, LayoutDashboard, Receipt, ChevronDown } from 'lucide-react'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 
@@ -92,22 +92,15 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
               </Link>
             )}
 
-            {/* Ninguém logado: entradas de login (admin acessa o ADM por aqui) */}
+            {/* Ninguém logado: um único acesso. O nível (colaborador, gestor,
+                financeiro, master) é decidido pelo e-mail autenticado. */}
             {!logado && (
-              <>
-                <Link
-                  href="/entrar"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-borda-forte bg-white px-3.5 py-1.5 font-semibold text-tinta transition-colors hover:border-marca hover:text-marca-texto"
-                >
-                  <UserRound size={15} aria-hidden /> Sou funcionário
-                </Link>
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#cfe0e8] bg-marca-clara px-3.5 py-1.5 font-semibold text-marca-escura transition-colors hover:border-marca hover:bg-white"
-                >
-                  <Lock size={14} aria-hidden /> Administrativo
-                </Link>
-              </>
+              <Link
+                href="/entrar"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#cfe0e8] bg-marca-clara px-3.5 py-1.5 font-semibold text-marca-escura transition-colors hover:border-marca hover:bg-white"
+              >
+                <LogIn size={15} aria-hidden /> Acesso
+              </Link>
             )}
 
             {/* Logado (Comum ou admin): aba de reembolso + sair. */}

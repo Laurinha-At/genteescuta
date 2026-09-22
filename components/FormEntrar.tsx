@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { entrar } from '@/lib/fb/auth'
 import { Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
 
 export function FormEntrar() {
-  const router = useRouter()
   const [erro, setErro] = useState<string | null>(null)
   const [pendente, setPendente] = useState(false)
 
@@ -16,9 +14,9 @@ export function FormEntrar() {
     setPendente(true)
     const f = new FormData(e.currentTarget)
     const r = await entrar(String(f.get('email') ?? ''), String(f.get('senha') ?? ''))
-    if (r.ok) {
-      router.push('/admin')
-    } else {
+    // O redirecionamento por papel é feito na página /entrar (observarLogin):
+    // colaborador → /mural, admin/master → /admin, senha provisória → primeiro acesso.
+    if (!r.ok) {
       setErro(r.erro ?? 'Não consegui entrar.')
       setPendente(false)
     }
