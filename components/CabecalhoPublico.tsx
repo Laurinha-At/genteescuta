@@ -1,10 +1,51 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { Lock, UserRound, LogOut, LayoutDashboard, Receipt } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Lock, UserRound, LogOut, LayoutDashboard, Receipt, ChevronDown } from 'lucide-react'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
+
+/** Menu suspenso "Sobre Nós" com as duas páginas institucionais. */
+function MenuSobre() {
+  const [aberto, setAberto] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!aberto) return
+    function fora(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false)
+    }
+    document.addEventListener('mousedown', fora)
+    return () => document.removeEventListener('mousedown', fora)
+  }, [aberto])
+
+  const item = 'block px-4 py-2.5 text-[0.8125rem] font-medium text-tinta-2 transition-colors hover:bg-superficie-2 hover:text-marca-texto'
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        aria-haspopup="menu"
+        className="inline-flex items-center gap-1 text-[0.8125rem] font-medium text-tinta-2 transition-colors hover:text-marca-texto"
+      >
+        Sobre Nós
+        <ChevronDown size={14} className={`transition-transform ${aberto ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {aberto && (
+        <div
+          role="menu"
+          className="absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-borda bg-white py-1 shadow-[0_8px_24px_rgba(26,23,20,0.12)]"
+        >
+          <Link href="/sobre" role="menuitem" onClick={() => setAberto(false)} className={item}>Gente e Cultura</Link>
+          <Link href="/missao-visao-valores" role="menuitem" onClick={() => setAberto(false)} className={item}>Missão, Visão e Valores</Link>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function CabecalhoPublico({ empresa }: { empresa: string }) {
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined)
@@ -22,13 +63,20 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
   return (
     <header className="sticky top-0 z-40 border-b border-borda bg-white/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
-        <Link href="/" className="flex items-center gap-3">
-          <img src="/logo-soulan.png" alt={empresa} className="h-9 w-auto sm:h-10" />
-          <span className="hidden items-center gap-3 sm:flex">
-            <span className="h-6 w-px bg-borda-forte" aria-hidden />
-            <span className="text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Cultura</span>
-          </span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo-soulan.png" alt={empresa} className="h-9 w-auto sm:h-10" />
+            <span className="hidden items-center gap-3 sm:flex">
+              <span className="h-6 w-px bg-borda-forte" aria-hidden />
+              <span className="text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Cultura</span>
+            </span>
+          </Link>
+
+          {/* Menu institucional "Sobre Nós", sempre visível no topo. */}
+          <nav className="flex items-center">
+            <MenuSobre />
+          </nav>
+        </div>
 
         {/* Só renderiza os botões depois de saber o perfil, para o Comum nunca
             enxergar (nem de relance) o botão do ADM. */}

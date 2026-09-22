@@ -27,31 +27,32 @@ export default function MissaoVisaoValores() {
         </Link>
         <h1 className="titulo-hero mt-4 text-[1.875rem] text-tinta">Missão, Visão e Valores</h1>
 
-        <div className="mt-6 grid items-center gap-6 rounded-2xl border border-borda bg-white p-6 shadow-[0_1px_3px_rgba(26,23,20,0.04),0_4px_12px_rgba(26,23,20,0.06)] sm:p-8 md:grid-cols-2 md:gap-8">
-          <div className="flex justify-center">
-            <img src="/foto-site.png" alt="Missão, Visão e Valores da Soulan" className="h-auto w-full max-w-[400px]" />
-          </div>
-
-          <ul className="space-y-5">
-            <li className="flex gap-3">
-              <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-marca-clara text-marca">
-                <Target size={19} aria-hidden />
-              </span>
-              <div>
-                <h2 className="text-[0.9375rem] font-semibold text-tinta">Missão</h2>
-                <p className="mt-0.5 text-sm leading-6 text-tinta-2">
-                  Oferecer uma escuta técnica, ética e segura no ambiente organizacional.
-                </p>
-              </div>
-            </li>
+        <div className="mt-6 overflow-hidden rounded-2xl border border-borda bg-white shadow-[0_1px_3px_rgba(26,23,20,0.04),0_4px_12px_rgba(26,23,20,0.06)]">
+          <div className="h-1.5 w-full" style={{ background: 'var(--gradiente-suave)' }} aria-hidden />
+          <ul className="space-y-6 p-6 sm:p-8">
             <li className="flex gap-3">
               <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#eaf3e1] text-verde-escuro">
                 <Eye size={19} aria-hidden />
               </span>
               <div>
                 <h2 className="text-[0.9375rem] font-semibold text-tinta">Visão</h2>
-                <p className="mt-0.5 text-sm leading-6 text-tinta-2">
-                  Ser referência em acolhimento profissional e prevenção de riscos psicossociais nas empresas.
+                <p className="mt-1 text-[0.9688rem] leading-7 text-tinta-2">
+                  Nossa visão é ser reconhecida como a principal Consultoria de RH, Líder em Gestão de Pessoas. Isso
+                  significa que nos dedicamos a fornecer as melhores práticas e soluções que promovem o sucesso de
+                  nossos clientes e colaboradores.
+                </p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-marca-clara text-marca">
+                <Target size={19} aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-[0.9375rem] font-semibold text-tinta">Missão</h2>
+                <p className="mt-1 text-[0.9688rem] leading-7 text-tinta-2">
+                  Nossa missão é oferecer produtos e serviços que apoiem a gestão de pessoas, buscando sempre a
+                  melhoria da performance e satisfação profissional. Queremos garantir que todos os membros de nossa
+                  equipe se sintam motivados e preparados para alcançar seus objetivos.
                 </p>
               </div>
             </li>
@@ -60,11 +61,20 @@ export default function MissaoVisaoValores() {
                 <Gem size={19} aria-hidden />
               </span>
               <div>
-                <h2 className="text-[0.9375rem] font-semibold text-tinta">Valores</h2>
-                <ul className="mt-1.5 flex flex-wrap gap-2">
-                  {['Sigilo', 'Ética', 'Respeito', 'Humanização', 'Transparência'].map((v) => (
-                    <li key={v} className="rounded-full border border-borda-forte bg-white px-3 py-1 text-xs font-medium text-tinta-2">
-                      {v}
+                <h2 className="text-[0.9375rem] font-semibold text-tinta">Valores Fundamentais</h2>
+                <p className="mt-1 text-[0.9688rem] leading-7 text-tinta-2">
+                  Para nós, ética é um valor tão fundamental que você inclusive já viu que temos um código inteiro só
+                  voltado a isso. Mas além dele, temos outros 4 valores que são essenciais no nosso dia a dia:
+                </p>
+                <ul className="mt-3 space-y-2.5">
+                  {[
+                    { nome: 'Trabalho Cooperativo', desc: 'Acreditamos no poder do trabalho colaborativo. Incentivamos uma abordagem que se concentra em ações realistas, autoconfiança e pensamento coletivo. Juntos, podemos alcançar resultados maiores do que alcançaríamos sozinhos.' },
+                    { nome: 'Atendimento ao Cliente', desc: 'O atendimento ao cliente é um dos pilares da nossa operação. Praticamos a escuta ativa e estamos sempre atentos a novas oportunidades dentro dos clientes, mantendo a flexibilidade necessária para adaptar nossas rotinas e entregar o melhor serviço.' },
+                    { nome: 'Inovação', desc: 'A inovação está no centro de nossa estratégia. Valorizamos a iniciativa na resolução de problemas e a proatividade na proposição de novas soluções. Buscamos constantemente melhorar nossos processos e nos adaptar às mudanças do mercado.' },
+                    { nome: 'Ímpeto por Excelência', desc: 'Comprometemo-nos com a excelência em tudo o que fazemos. Incentivamos a conscientização do papel de cada colaborador dentro da organização, o senso de responsabilidade e urgência, e um foco contínuo em medir, acompanhar e alcançar resultados.' },
+                  ].map(({ nome, desc }) => (
+                    <li key={nome} className="rounded-xl border border-borda bg-superficie-2 px-4 py-3 text-sm leading-6 text-tinta-2">
+                      <strong className="font-semibold text-tinta">{nome}</strong> — {desc}
                     </li>
                   ))}
                 </ul>

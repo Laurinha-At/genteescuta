@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, Info, Compass, LifeBuoy, Megaphone, GraduationCap, Receipt } from 'lucide-react'
+import { ArrowRight, ShieldCheck, LifeBuoy, Megaphone, GraduationCap, Receipt } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 
-type CardHome = { href: string; titulo: string; frase: string; Icone: typeof Info; cor: string }
+type CardHome = { href: string; titulo: string; frase: string; Icone: typeof LifeBuoy; cor: string }
 
+// "Sobre nós" e "Missão, Visão e Valores" saíram daqui e viraram itens do
+// rodapé (RodapePublico), acessíveis de qualquer página.
 const CARDS: CardHome[] = [
-  { href: '/sobre', titulo: 'Sobre o site', frase: 'Informação, conexão e participação — conheça o Gente Cultura.', Icone: Info, cor: 'linear-gradient(135deg, #2f8bb4 0%, #1c586e 100%)' },
-  { href: '/missao-visao-valores', titulo: 'Missão, Visão e Valores', frase: 'O que guia a Gente & Cultura da Soulan.', Icone: Compass, cor: 'linear-gradient(135deg, #4e9b2e 0%, #2f5f16 100%)' },
   { href: '/contato', titulo: 'Contato e Suporte', frase: 'Fale com a equipe de Gente & Cultura.', Icone: LifeBuoy, cor: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' },
   { href: '/mural', titulo: 'Nosso Mural', frase: 'Reconhecimentos e novidades do Gente Informa.', Icone: Megaphone, cor: 'linear-gradient(135deg, #2f9e8a 0%, #1c6350 100%)' },
   { href: '/treinamento', titulo: 'Treinamento e Desenvolvimento', frase: 'Trilhas de aprendizagem: leia, responda e conquiste.', Icone: GraduationCap, cor: 'linear-gradient(135deg, #3f7db0 0%, #223f6a 100%)' },
