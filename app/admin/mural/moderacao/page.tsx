@@ -38,7 +38,7 @@ export default function Moderacao() {
         voltar={{ href: '/admin/mural', rotulo: 'Voltar ao mural' }}
       />
 
-      <div className="max-w-3xl space-y-4 p-4 sm:p-6">
+      <div className="max-w-4xl space-y-4 p-4 sm:p-6">
         <Cartao titulo={`Reconhecimentos aguardando (${recs.length})`} apoio="Enviados pelo canal. Ao aprovar, viram post no mural — sem o nome de quem enviou.">
           {carregando ? (
             <p className="text-sm text-tinta-3">Carregando…</p>

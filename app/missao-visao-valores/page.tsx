@@ -21,7 +21,7 @@ export default function MissaoVisaoValores() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:py-10">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
           <ArrowLeft size={15} aria-hidden /> Início
         </Link>

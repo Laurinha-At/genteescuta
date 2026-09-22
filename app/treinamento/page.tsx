@@ -31,7 +31,7 @@ export default function Treinamento() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
         {perfil === undefined || prog === null ? (
           <p className="text-sm text-tinta-3">Carregando trilhas…</p>
         ) : (

@@ -43,7 +43,7 @@ export default function Canal() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-4xl px-4 py-10 sm:py-14">
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
         <div className="fio-marca mb-6 w-14" aria-hidden />
         <h1 className="titulo-hero text-[2rem] text-tinta">Compartilhe sua voz</h1>
         <p className="texto-leitura mt-3 text-[1.0625rem]">

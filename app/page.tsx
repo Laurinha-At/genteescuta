@@ -48,7 +48,7 @@ export default function Inicio() {
         </div>
       </section>
 
-      <main className="mx-auto max-w-5xl px-4 pt-10">
+      <main className="mx-auto max-w-7xl px-4 pt-10">
         {/* -------- Card em destaque: enviar manifestação -------- */}
         <section className="mb-8">
           <Link

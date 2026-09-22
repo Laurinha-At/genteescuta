@@ -62,7 +62,7 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-borda bg-white/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
           <Link href="/" className="flex items-center gap-3">
             <img src="/logo-soulan.png" alt={empresa} className="h-9 w-auto sm:h-10" />
@@ -131,7 +131,7 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
 export function RodapePublico() {
   return (
     <footer className="mt-20 border-t border-borda bg-white">
-      <div className="mx-auto max-w-5xl px-4 py-6 text-xs text-tinta-3">
+      <div className="mx-auto max-w-7xl px-4 py-6 text-xs text-tinta-3">
         <p>© {new Date().getFullYear()} Soulan Recursos Humanos</p>
       </div>
     </footer>

@@ -31,7 +31,7 @@ export default function InformacoesAdministrativas() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
         <div className="flex items-center gap-3.5">
           <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-marca-clara text-marca">
             <ClipboardList size={22} aria-hidden />

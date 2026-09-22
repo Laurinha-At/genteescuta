@@ -49,7 +49,7 @@ function NovoConteudo() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:py-10">
         <Link
           href="/canal"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca"

@@ -84,7 +84,7 @@ export default function Funcionarios() {
         descricao="Cadastre os colaboradores que poderão entrar para reagir e comentar no mural."
       />
 
-      <div className="max-w-4xl space-y-4 p-4 sm:p-6">
+      <div className="max-w-6xl space-y-4 p-4 sm:p-6">
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 

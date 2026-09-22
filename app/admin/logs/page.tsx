@@ -96,7 +96,7 @@ export default function Logs() {
         descricao="Quem acessou, quando e o que fez. Também mostra quem ainda não entrou pela primeira vez."
       />
 
-      <div className="max-w-4xl space-y-4 p-4 sm:p-6">
+      <div className="max-w-6xl space-y-4 p-4 sm:p-6">
         <Cartao
           titulo="Nunca acessaram"
           apoio="Usuários cadastrados que ainda não fizeram o primeiro login (não definiram a senha ou nunca entraram)."

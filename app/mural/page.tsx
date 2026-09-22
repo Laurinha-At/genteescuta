@@ -34,7 +34,7 @@ export default function Mural() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:py-10">
         <div className="mb-7 flex items-start gap-3">
           <span className="mt-1 flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-marca-clara text-marca">
             <Megaphone size={20} aria-hidden />

@@ -51,7 +51,7 @@ export default function MuralAdmin() {
         }
       />
 
-      <div className="max-w-4xl space-y-4 p-4 sm:p-6">
+      <div className="max-w-6xl space-y-4 p-4 sm:p-6">
         {(pendRec > 0 || pendCom > 0) && (
           <Aviso tom="alerta">
             Há{' '}

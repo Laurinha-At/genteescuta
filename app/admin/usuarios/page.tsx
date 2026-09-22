@@ -86,7 +86,7 @@ export default function Usuarios() {
         descricao="Administradores do sistema (Master e Super Admin). Colaboradores comuns ficam em Funcionários."
       />
 
-      <div className="max-w-4xl space-y-4 p-4 sm:p-6">
+      <div className="max-w-6xl space-y-4 p-4 sm:p-6">
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 

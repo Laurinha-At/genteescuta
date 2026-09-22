@@ -103,7 +103,7 @@ function Editor() {
         acoes={<Botao type="button" disabled={pendente} onClick={persistirEstrutura}><Save size={15} aria-hidden /> {pendente ? 'Salvando…' : 'Salvar estrutura'}</Botao>}
       />
 
-      <div className="max-w-4xl space-y-4 p-4 sm:p-6">
+      <div className="max-w-6xl space-y-4 p-4 sm:p-6">
         {salvo && <Aviso tom="sucesso">Alterações salvas.</Aviso>}
         {travado && (
           <Aviso tom="alerta" titulo="Esta pesquisa já tem respostas">

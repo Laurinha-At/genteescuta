@@ -393,7 +393,7 @@ body {
   position: relative;
   z-index: 3;
   width: 100%;
-  max-width: 64rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: 3rem 1.25rem;
 }

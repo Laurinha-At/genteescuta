@@ -22,7 +22,7 @@ function EnviadaConteudo() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-2xl px-4 py-10 sm:py-14">
+      <main className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
         <div className="cartao-g p-6 sm:p-8">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eff8ef] text-[#0b5d0b]">
             <CheckCircle2 size={24} aria-hidden />
