@@ -242,6 +242,14 @@ service cloud.firestore {
       allow write: if participante() && request.auth.uid == uid;
     }
 
+    // -------- Informações Administrativas --------
+    // Conteúdo curado (links, planilhas, textos e vídeos). Colaborador
+    // logado (admin OU funcionário ativo) LÊ; só o admin cria/edita/remove.
+    match /info_admin/{id} {
+      allow read: if participante();
+      allow create, update, delete: if admin();
+    }
+
     // -------- Mural público (legado "Você disse, nós fizemos")
     match /mural/{id} {
       allow read: if true;
