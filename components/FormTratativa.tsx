@@ -5,10 +5,13 @@ import { Save, Megaphone } from 'lucide-react'
 import { atualizarManifestacao, publicarMural } from '@/lib/fb/admin'
 import { usuarioAtual } from '@/lib/fb/auth'
 import { Aviso, Botao, Campo, Cartao, ENTRADA } from '@/components/ui'
-import { STATUS_MANIFESTACAO_LABEL, PRIORIDADE_LABEL, type ManifestacaoStatus, type Prioridade } from '@/lib/types'
+import { STATUS_MANIFESTACAO_LABEL, PRIORIDADE_LABEL, TIPO_MANIFESTACAO_LABEL, type ManifestacaoStatus, type ManifestacaoTipo, type Prioridade } from '@/lib/types'
 
 const STATUS: ManifestacaoStatus[] = ['recebida', 'em_analise', 'analisada', 'em_implementacao', 'implementada', 'nao_aplicavel', 'arquivada']
 const PRIORIDADES: Prioridade[] = ['baixa', 'media', 'alta']
+// Classificação: a equipe transforma uma "Contribuição" em Sugestão/Ideia/Melhoria.
+// Todos os tipos entram na lista para que o valor atual sempre tenha uma opção.
+const TIPOS: ManifestacaoTipo[] = ['contribuicao', 'sugestao', 'ideia', 'melhoria', 'reclamacao', 'reconhecimento']
 
 export function FormTratativa({ m, aoSalvar }: { m: any; aoSalvar?: () => void }) {
   const [status, setStatus] = useState<ManifestacaoStatus>(m.status)
@@ -27,6 +30,7 @@ export function FormTratativa({ m, aoSalvar }: { m: any; aoSalvar?: () => void }
         m.id,
         {
           status,
+          tipo: String(f.get('tipo') ?? m.tipo),
           prioridade: String(f.get('prioridade') ?? 'media'),
           responsavel: String(f.get('responsavel') ?? '').trim() || null,
           mensagem: String(f.get('mensagem') ?? '').trim(),
@@ -60,6 +64,12 @@ export function FormTratativa({ m, aoSalvar }: { m: any; aoSalvar?: () => void }
             </select>
           </Campo>
         </div>
+
+        <Campo rotulo="Classificação" ajuda="Enquadre a manifestação. Uma “Contribuição” pode virar Sugestão, Ideia ou Melhoria.">
+          <select name="tipo" defaultValue={m.tipo} className={ENTRADA}>
+            {TIPOS.map((t) => <option key={t} value={t}>{TIPO_MANIFESTACAO_LABEL[t]}</option>)}
+          </select>
+        </Campo>
 
         <Campo rotulo="Responsável" ajuda="Quem está conduzindo essa tratativa.">
           <input name="responsavel" defaultValue={m.responsavel ?? ''} className={ENTRADA} placeholder="Ex.: Ana — Gente & Cultura" />

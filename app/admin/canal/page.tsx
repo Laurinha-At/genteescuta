@@ -16,7 +16,7 @@ import {
 import { fmtRelativo } from '@/lib/format'
 
 const STATUS: ManifestacaoStatus[] = ['recebida', 'em_analise', 'analisada', 'em_implementacao', 'implementada', 'nao_aplicavel', 'arquivada']
-const TIPOS: ManifestacaoTipo[] = ['sugestao', 'reclamacao', 'ideia', 'melhoria', 'reconhecimento']
+const TIPOS: ManifestacaoTipo[] = ['contribuicao', 'sugestao', 'reclamacao', 'ideia', 'melhoria', 'reconhecimento']
 
 export default function CanalAdmin() {
   const [todas, setTodas] = useState<any[]>([])

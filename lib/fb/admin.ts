@@ -32,6 +32,7 @@ import {
 import { gerarSlug } from '../format'
 
 const TIPO_LABEL: Record<string, string> = {
+  contribuicao: 'Contribuição',
   sugestao: 'Sugestão',
   reclamacao: 'Reclamação',
   ideia: 'Ideia',
@@ -63,7 +64,7 @@ export async function getManifestacao(id: string) {
 
 export async function atualizarManifestacao(
   id: string,
-  p: { status: string; prioridade: string; responsavel: string | null; mensagem: string; visivel: boolean },
+  p: { status: string; prioridade: string; responsavel: string | null; mensagem: string; visivel: boolean; tipo?: string },
   autor: string,
 ) {
   const ref = doc(db(), 'manifestacoes', id)
@@ -78,6 +79,8 @@ export async function atualizarManifestacao(
     responsavel: p.responsavel,
     atualizado_em: agora,
   }
+  // Classificação feita pela equipe (ex.: uma "Contribuição" vira Sugestão/Ideia/Melhoria).
+  if (p.tipo) campos.tipo = p.tipo
   if (['analisada', 'em_implementacao', 'implementada'].includes(p.status) && !atual.analisada_em)
     campos.analisada_em = agora
   if (p.status === 'implementada' && !atual.implementada_em) campos.implementada_em = agora
@@ -132,7 +135,7 @@ export async function publicarMural(
 // -------------------------------------------------------------
 export function indicadoresCanal(todas: any[]) {
   const total = todas.length
-  const tipos = ['sugestao', 'reclamacao', 'ideia', 'melhoria', 'reconhecimento']
+  const tipos = ['contribuicao', 'sugestao', 'reclamacao', 'ideia', 'melhoria', 'reconhecimento']
   const porTipo = tipos.map((t) => ({ rotulo: TIPO_LABEL[t], valor: todas.filter((m) => m.tipo === t).length }))
 
   const areasMap = new Map<string, { valor: number; anonimas: number }>()

@@ -20,13 +20,14 @@ import { TIPO_MANIFESTACAO_DESC, TIPO_MANIFESTACAO_LABEL } from '@/lib/types'
 import type { ManifestacaoTipo } from '@/lib/types'
 
 const ICONES: Record<ManifestacaoTipo, typeof MessageSquarePlus> = {
+  contribuicao: MessageSquarePlus,
   sugestao: MessageSquarePlus,
   reclamacao: AlertTriangle,
   ideia: Lightbulb,
   melhoria: Wrench,
   reconhecimento: Award,
 }
-const ORDEM: ManifestacaoTipo[] = ['sugestao', 'ideia', 'melhoria', 'reconhecimento']
+const ORDEM: ManifestacaoTipo[] = ['contribuicao', 'reconhecimento']
 
 function NovoConteudo() {
   const params = useSearchParams()
@@ -41,7 +42,7 @@ function NovoConteudo() {
   const tipoParam = params.get('tipo')
   const tipo = ORDEM.includes(tipoParam as ManifestacaoTipo)
     ? (tipoParam as ManifestacaoTipo)
-    : 'sugestao'
+    : 'contribuicao'
   const Icone = ICONES[tipo]
   const i = ORDEM.indexOf(tipo)
 

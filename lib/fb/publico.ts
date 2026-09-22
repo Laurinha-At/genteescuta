@@ -122,7 +122,7 @@ export async function enviarManifestacao(p: {
   const area = String(p.area ?? '').trim()
   const anonima = p.anonima === true
 
-  const TIPOS = ['sugestao', 'ideia', 'melhoria', 'reconhecimento']
+  const TIPOS = ['contribuicao', 'sugestao', 'ideia', 'melhoria', 'reconhecimento']
   if (!TIPOS.includes(tipo)) throw new Error('Escolha o tipo da sua manifestação.')
   // Identificação é OPCIONAL: só valida nome/e-mail em envio identificado.
   if (!anonima) {
