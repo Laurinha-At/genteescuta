@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// =============================================================
+// GENTE CULTURA — Regras do Firebase Storage
+//
+// Uploads das "Informações Administrativas" (vídeo/foto/arquivo).
+// Só o admin (Master) grava; qualquer pessoa logada lê. A checagem de
+// admin espelha as Regras do Firestore, lendo os mesmos documentos.
+// =============================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function logado() {
+      return request.auth != null;
+    }
+    function seed() {
+      return request.auth.token.email == 'gentecultura@soulan.com.br';
+    }
+    // Conta ATIVA em /admins com nível master/super.
+    function adminDoc() {
+      return firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.get('ativo', true) == true
+        && (firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.get('nivel', '') in ['master', 'super']);
+    }
+    // Funcionário ATIVO com o papel "master" (Master = admin completo).
+    function funcMaster() {
+      return firestore.exists(/databases/(default)/documents/funcionarios/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/funcionarios/$(request.auth.uid)).data.get('ativo', true) == true
+        && ('master' in firestore.get(/databases/(default)/documents/funcionarios/$(request.auth.uid)).data.get('papeis', []));
+    }
+    function ehAdmin() {
+      return logado() && (seed() || adminDoc() || funcMaster());
+    }
+
+    // Arquivos das Informações Administrativas.
+    match /info_admin/{allPaths=**} {
+      allow read: if logado();
+      allow write: if ehAdmin() && request.resource.size < 220 * 1024 * 1024;
+    }
+
+    // Nada mais é acessível por padrão.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

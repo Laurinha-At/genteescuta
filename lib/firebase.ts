@@ -8,6 +8,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app'
 import { getFirestore, type Firestore } from 'firebase/firestore'
 import { getAuth, type Auth } from 'firebase/auth'
+import { getStorage, type FirebaseStorage } from 'firebase/storage'
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -28,6 +29,7 @@ export const firebaseConfig = config
 let app: FirebaseApp | undefined
 let _db: Firestore | undefined
 let _auth: Auth | undefined
+let _storage: FirebaseStorage | undefined
 
 function appFirebase(): FirebaseApp {
   if (!app) app = getApps().length ? getApp() : initializeApp(config as Record<string, string>)
@@ -42,4 +44,10 @@ export function db(): Firestore {
 export function auth(): Auth {
   if (!_auth) _auth = getAuth(appFirebase())
   return _auth
+}
+
+/** Firebase Storage (uploads de vídeo/foto/arquivo das Informações Administrativas). */
+export function storage(): FirebaseStorage {
+  if (!_storage) _storage = getStorage(appFirebase())
+  return _storage
 }

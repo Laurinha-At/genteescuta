@@ -258,9 +258,15 @@ service cloud.firestore {
     }
 
     // -------- Informações Administrativas --------
-    // Conteúdo curado (links, planilhas, textos e vídeos). Colaborador
-    // logado (admin OU funcionário ativo) LÊ; só o admin cria/edita/remove.
+    // (legado) itens avulsos.
     match /info_admin/{id} {
+      allow read: if participante();
+      allow create, update, delete: if admin();
+    }
+
+    // Tópicos (cards) com vários itens (link/vídeo/foto/arquivo/texto).
+    // Colaborador logado LÊ; só o admin (Master) cria/edita/remove.
+    match /info_topicos/{id} {
       allow read: if participante();
       allow create, update, delete: if admin();
     }
