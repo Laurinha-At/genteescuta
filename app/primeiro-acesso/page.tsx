@@ -67,7 +67,7 @@ export default function PrimeiroAcesso() {
       <div className="w-full max-w-md">
         <div className="mb-4 flex items-center gap-2.5">
           <img src="/simbolo-soulan.png" alt="Soulan" className="h-9 w-9 object-contain" />
-          <span className="text-base font-semibold text-tinta">Gente Escuta</span>
+          <span className="text-base font-semibold text-tinta">Gente Cultura</span>
         </div>
         <div className="cartao-g p-6 sm:p-7">
           <h1 className="text-lg font-semibold text-tinta">Bem-vindo(a)! Crie a sua senha</h1>

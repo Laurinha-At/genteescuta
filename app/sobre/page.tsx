@@ -31,7 +31,7 @@ export default function Sobre() {
           <div className="h-1.5 w-full" style={{ background: 'var(--gradiente-suave)' }} aria-hidden />
           <div className="space-y-3 p-6 text-[0.9688rem] leading-7 text-tinta-2 sm:p-8">
             <p>
-              O <strong className="font-semibold text-tinta">Gente Escuta</strong> é o canal permanente da {empresa}{' '}
+              O <strong className="font-semibold text-tinta">Gente Cultura</strong> é o canal permanente da {empresa}{' '}
               criado para fortalecer a comunicação, a escuta e a conexão entre a empresa e seus colaboradores.
             </p>
             <p>
@@ -39,7 +39,7 @@ export default function Sobre() {
               contribuindo ativamente para a construção de um ambiente cada vez melhor.
             </p>
             <p>
-              Além disso, o Gente Escuta será nosso espaço para compartilhar informações, novidades, campanhas,
+              Além disso, o Gente Cultura será nosso espaço para compartilhar informações, novidades, campanhas,
               comunicados, ações de Gente &amp; Cultura e conteúdos importantes para o dia a dia.
             </p>
             <p>

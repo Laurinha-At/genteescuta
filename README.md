@@ -1,4 +1,4 @@
-# Gente Escuta
+# Gente Cultura
 
 Canal de escuta do colaborador + avaliação de riscos psicossociais (NR-1),
 com painéis de clima. Next.js 16 + Supabase.

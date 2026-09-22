@@ -53,3 +53,6 @@ next-env.d.ts
 firebase-debug.log*
 firestore-debug.log*
 .firebaserc.local
+
+# Claude Code — configurações pessoais
+.claude/settings.local.json

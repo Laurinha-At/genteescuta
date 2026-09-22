@@ -143,6 +143,12 @@ export default function HumorEquipe() {
   const dist = useMemo(() => distribuicao(regsP), [regsP])
   const setores = useMemo(() => porSetor(regsP, classif), [regsP, classif])
   const cargos = useMemo(() => porCargo(regsP, classif), [regsP, classif])
+  // O formato novo (Data;Setor/Área;Funcionário;Humor) não tem coluna Cargo;
+  // nesse caso todo mundo cai em "Não informado" — então escondemos o gráfico.
+  const temCargo = useMemo(
+    () => cargos.some((c) => c.cargo && c.cargo !== 'Não informado'),
+    [cargos],
+  )
 
   const participacao = useMemo(() => [...setores].sort((a, b) => b.total - a.total), [setores])
 
@@ -382,10 +388,12 @@ export default function HumorEquipe() {
               </Cartao>
             </div>
 
-            {/* 4) Humor por cargo */}
-            <Cartao titulo="Clima por cargo" apoio="Índice de clima de cada cargo (ordenado do melhor ao pior). n = registros do grupo.">
-              <BarrasCargo dados={cargos} />
-            </Cartao>
+            {/* 4) Humor por cargo — só quando a planilha traz a coluna Cargo */}
+            {temCargo && (
+              <Cartao titulo="Clima por cargo" apoio="Índice de clima de cada cargo (ordenado do melhor ao pior). n = registros do grupo.">
+                <BarrasCargo dados={cargos} />
+              </Cartao>
+            )}
 
             <NotaPrivacidade />
           </>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, Info, Compass, LifeBuoy, Megaphone, GraduationCap } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Info, Compass, LifeBuoy, Megaphone, GraduationCap, Receipt } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
@@ -11,11 +11,12 @@ import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 type CardHome = { href: string; titulo: string; frase: string; Icone: typeof Info; cor: string }
 
 const CARDS: CardHome[] = [
-  { href: '/sobre', titulo: 'Sobre o site', frase: 'Informação, conexão e participação — conheça o Gente Escuta.', Icone: Info, cor: 'linear-gradient(135deg, #2f8bb4 0%, #1c586e 100%)' },
+  { href: '/sobre', titulo: 'Sobre o site', frase: 'Informação, conexão e participação — conheça o Gente Cultura.', Icone: Info, cor: 'linear-gradient(135deg, #2f8bb4 0%, #1c586e 100%)' },
   { href: '/missao-visao-valores', titulo: 'Missão, Visão e Valores', frase: 'O que guia a Gente & Cultura da Soulan.', Icone: Compass, cor: 'linear-gradient(135deg, #4e9b2e 0%, #2f5f16 100%)' },
   { href: '/contato', titulo: 'Contato e Suporte', frase: 'Fale com a equipe de Gente & Cultura.', Icone: LifeBuoy, cor: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' },
   { href: '/mural', titulo: 'Nosso Mural', frase: 'Reconhecimentos e novidades do Gente Informa.', Icone: Megaphone, cor: 'linear-gradient(135deg, #2f9e8a 0%, #1c6350 100%)' },
-  { href: '/treinamento', titulo: 'Treinamento e Desenvolvimento', frase: 'Conteúdos e trilhas de aprendizagem. Em breve.', Icone: GraduationCap, cor: 'linear-gradient(135deg, #3f7db0 0%, #223f6a 100%)' },
+  { href: '/treinamento', titulo: 'Treinamento e Desenvolvimento', frase: 'Trilhas de aprendizagem: leia, responda e conquiste.', Icone: GraduationCap, cor: 'linear-gradient(135deg, #3f7db0 0%, #223f6a 100%)' },
+  { href: '/reembolso', titulo: 'Solicitação de Reembolso', frase: 'Peça reembolsos, anexe o comprovante e acompanhe a aprovação.', Icone: Receipt, cor: 'linear-gradient(135deg, #2a7897 0%, #557d26 100%)' },
 ]
 
 export default function Inicio() {
@@ -69,7 +70,7 @@ export default function Inicio() {
 
         {/* -------- Grade de cards -------- */}
         <section className="mb-14">
-          <h2 className="titulo-secao text-tinta">Explore o Gente Escuta</h2>
+          <h2 className="titulo-secao text-tinta">Explore o Gente Cultura</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {CARDS.map(({ href, titulo, frase, Icone, cor }) => (
               <Link
@@ -102,7 +103,7 @@ export default function Inicio() {
               <h2 className="titulo-secao text-tinta">Privacidade e base legal (LGPD)</h2>
             </div>
             <p className="mt-3 max-w-[70ch] text-sm leading-6 text-tinta-2">
-              O Gente Escuta trata seus dados pessoais conforme a{' '}
+              O Gente Cultura trata seus dados pessoais conforme a{' '}
               <strong className="font-semibold text-tinta">Lei nº 13.709/2018 (LGPD)</strong>. As manifestações e as
               respostas de pesquisa são usadas exclusivamente para a gestão do canal de escuta e para o inventário de
               riscos psicossociais exigido pela{' '}

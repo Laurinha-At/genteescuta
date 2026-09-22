@@ -1,4 +1,4 @@
-# Gente Escuta — guia de instalação
+# Gente Cultura — guia de instalação
 
 Este guia é para quem **não é da área técnica**. São 6 etapas e leva cerca de
 40 minutos na primeira vez. Você não precisa saber programar em nenhuma delas.

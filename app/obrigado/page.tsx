@@ -40,7 +40,7 @@ export default function Obrigado() {
           <div className="mt-6 rounded-md border border-borda bg-superficie-2 p-4">
             <p className="text-sm font-medium text-tinta">A escuta não acaba aqui</p>
             <p className="mt-1 text-sm leading-5 text-tinta-2">
-              O canal Gente Escuta fica aberto o ano inteiro para sugestões, reclamações, ideias,
+              O canal Gente Cultura fica aberto o ano inteiro para sugestões, reclamações, ideias,
               melhorias e reconhecimentos.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">

@@ -15,7 +15,7 @@ export function TelaConfiguracao() {
 
         <h1 className="mt-4 text-xl font-semibold text-tinta">Falta conectar o banco de dados</h1>
         <p className="mt-2 text-sm leading-6 text-tinta-2">
-          O Gente Escuta está instalado, mas ainda não sabe onde guardar os dados. Isso leva
+          O Gente Cultura está instalado, mas ainda não sabe onde guardar os dados. Isso leva
           poucos minutos e é feito uma única vez.
         </p>
 

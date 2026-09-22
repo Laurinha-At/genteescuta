@@ -233,12 +233,16 @@ function mapearColunas(campos: string[]): MapaColunas | null {
 }
 
 /**
- * Formato (colunas identificadas pelo CABEÇALHO, então a ordem pode variar):
- *   Data ; Funcionário ; Cargo ; Setor ; Humor   (Matrícula é opcional)
- *  - 1ª linha "Humor" e o cabeçalho são ignorados;
- *  - linhas de dados começam com uma data válida (DD/MM/AAAA HH:MM:SS);
- *  - qualquer linha sem data no início (inclusive o JSON de erro) é ignorada.
- *  Se não achar cabeçalho, cai no layout antigo (Data;Matrícula;Funcionário;Cargo;Humor).
+ * Formato DEFINITIVO (separador ";", arquivo em Latin-1/Windows-1252):
+ *   Data ; Setor/Área ; Funcionário ; Humor
+ *  - 1ª linha "Humor;;;" (título) é ignorada;
+ *  - 2ª linha é o cabeçalho — colunas identificadas pelo NOME (Data, Setor/Área,
+ *    Funcionário, Humor), tolerando espaço/acento/caixa e ordem diferente;
+ *  - Data no formato DD/MM/AAAA HH:MM (segundos opcionais);
+ *  - linhas sem data válida no início (inclusive o JSON de erro) são ignoradas.
+ *  Arquivos antigos com colunas extras (Matrícula, Cargo) continuam funcionando:
+ *  usa-se o que casar pelo cabeçalho e ignora o resto. Sem cabeçalho reconhecível,
+ *  cai no layout antigo (Data;Matrícula;Funcionário;Cargo;Humor).
  */
 export function parseHumorCsv(texto: string): ResultadoParse {
   const linhas = texto.split(/\r?\n/)

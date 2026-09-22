@@ -70,7 +70,7 @@ export default function Entrar() {
             <>
               <span className="selo-canal mt-6">
                 <LogIn size={14} className="text-marca" aria-hidden />
-                Acesso ao Gente Escuta
+                Acesso ao Gente Cultura
               </span>
               <h1 className="titulo-hero mt-4 text-[1.625rem] text-tinta">Entrar</h1>
               <p className="mt-2 text-sm leading-6 text-tinta-2">
@@ -89,7 +89,7 @@ export default function Entrar() {
           href="/"
           className="mt-6 flex items-center justify-center gap-1.5 text-sm text-tinta-3 transition-colors hover:text-marca"
         >
-          <ArrowLeft size={15} aria-hidden /> Voltar para o Gente Escuta
+          <ArrowLeft size={15} aria-hidden /> Voltar para o Gente Cultura
         </Link>
       </div>
     </main>

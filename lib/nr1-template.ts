@@ -175,7 +175,7 @@ export const DIMENSOES_NR1: SecaoTemplate[] = [
     titulo: 'Assédio, violência e discriminação',
     dimensao: 'assedio',
     descricao:
-      'Estas perguntas tratam de situações graves. Suas respostas são tratadas com sigilo. Se você estiver passando por algo assim, use também o canal Gente Escuta para relatar o caso.',
+      'Estas perguntas tratam de situações graves. Suas respostas são tratadas com sigilo. Se você estiver passando por algo assim, use também o canal Gente Cultura para relatar o caso.',
     perguntas: [
       { enunciado: 'Fui alvo de humilhação, constrangimento ou hostilidade no trabalho.', critica: true },
       { enunciado: 'Sofri ou presenciei assédio moral (perseguição, isolamento, exposição ao ridículo).', critica: true },

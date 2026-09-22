@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, Search, KeyRound, Power, Trash2, Users } from 'lucide-react'
+import { UserPlus, Search, KeyRound, Power, Trash2, Users, SlidersHorizontal, X } from 'lucide-react'
 import { minhaConta, ehGerente, SENHA_PADRAO, type Conta } from '@/lib/fb/usuarios'
 import {
   listarFuncionarios,
@@ -9,8 +9,14 @@ import {
   definirAtivoFuncionario,
   excluirFuncionario,
   reenviarSenhaFuncionario,
+  atualizarPapeisFuncionario,
 } from '@/lib/fb/funcionarios'
+import { CENTROS_CUSTO, PAPEL_LABEL } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
+
+// Papéis que um FUNCIONÁRIO pode acumular (colaborador é sempre incluído;
+// "master" mora na tela de Usuários, não aqui).
+const PAPEIS_FUNC = ['gestor', 'financeiro'] as const
 
 export default function Funcionarios() {
   const [eu, setEu] = useState<Conta | null | undefined>(undefined)
@@ -19,6 +25,7 @@ export default function Funcionarios() {
   const [busca, setBusca] = useState('')
   const [aviso, setAviso] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [editando, setEditando] = useState<any | null>(null)
 
   function recarregar() {
     listarFuncionarios().then(setLista).catch(() => {}).finally(() => setCarregando(false))
@@ -112,6 +119,7 @@ export default function Funcionarios() {
                 <thead>
                   <tr className="border-b border-borda text-left text-xs font-semibold text-tinta-3">
                     <th className="px-4 py-2.5 font-semibold">Nome / E-mail</th>
+                    <th className="px-4 py-2.5 font-semibold">Papéis / Centro de custo</th>
                     <th className="px-4 py-2.5 font-semibold">Status</th>
                     <th className="px-4 py-2.5 text-right font-semibold">Ações</th>
                   </tr>
@@ -124,10 +132,30 @@ export default function Funcionarios() {
                         <span className="block text-xs text-tinta-3">{u.email}</span>
                       </td>
                       <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-1">
+                          {(Array.isArray(u.papeis) ? u.papeis : []).filter((p: string) => p !== 'colaborador').length === 0 ? (
+                            <Chip faixa="neutro">Colaborador</Chip>
+                          ) : (
+                            (u.papeis as string[])
+                              .filter((p) => p !== 'colaborador')
+                              .map((p) => <Chip key={p} faixa="marca">{PAPEL_LABEL[p as keyof typeof PAPEL_LABEL] ?? p}</Chip>)
+                          )}
+                        </div>
+                        <span className="mt-1 block text-xs text-tinta-3">{u.centro_custo || 'Sem centro de custo'}</span>
+                      </td>
+                      <td className="px-4 py-3">
                         {u.ativo !== false ? <Chip faixa="baixo">Ativo</Chip> : <Chip faixa="neutro">Inativo</Chip>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
+                          <button
+                            type="button"
+                            title="Editar papéis e centro de custo"
+                            onClick={() => setEditando(u)}
+                            className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                          >
+                            <SlidersHorizontal size={16} aria-hidden />
+                          </button>
                           <button
                             type="button"
                             title="Enviar link de redefinição por e-mail"
@@ -174,7 +202,100 @@ export default function Funcionarios() {
           </p>
         </div>
       </div>
+
+      {editando && (
+        <EditorPapeis
+          usuario={editando}
+          onFechar={() => setEditando(null)}
+          onSalvo={(msg) => { setEditando(null); setAviso(msg); recarregar() }}
+          setErro={setErro}
+        />
+      )}
     </>
+  )
+}
+
+function EditorPapeis({
+  usuario,
+  onFechar,
+  onSalvo,
+  setErro,
+}: {
+  usuario: any
+  onFechar: () => void
+  onSalvo: (msg: string) => void
+  setErro: (s: string | null) => void
+}) {
+  const iniciais: string[] = Array.isArray(usuario.papeis) ? usuario.papeis : []
+  const [papeis, setPapeis] = useState<string[]>(PAPEIS_FUNC.filter((p) => iniciais.includes(p)))
+  const [centro, setCentro] = useState<string>(usuario.centro_custo || '')
+  const [pendente, setPendente] = useState(false)
+
+  function alterna(p: string) {
+    setPapeis((atual) => (atual.includes(p) ? atual.filter((x) => x !== p) : [...atual, p]))
+  }
+
+  async function salvar() {
+    setPendente(true)
+    setErro(null)
+    try {
+      if (papeis.includes('gestor') && !centro) {
+        throw new Error('Um Gestor Aprovador precisa de um centro de custo (a área que ele aprova).')
+      }
+      await atualizarPapeisFuncionario(usuario.uid, papeis, centro, usuario.email)
+      onSalvo(`Papéis de ${usuario.email} atualizados.`)
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui salvar.')
+      setPendente(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onFechar}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-tinta">Papéis e centro de custo</h3>
+            <p className="mt-0.5 text-sm text-tinta-3">{usuario.nome || usuario.email}</p>
+          </div>
+          <button type="button" onClick={onFechar} className="rounded-lg p-1.5 text-tinta-3 hover:bg-superficie-2" aria-label="Fechar">
+            <X size={18} aria-hidden />
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          <div>
+            <p className="text-sm font-medium text-tinta">Papéis adicionais</p>
+            <p className="mt-0.5 text-xs text-tinta-3">Todo funcionário já é <strong>Colaborador</strong>. Marque o que a pessoa acumula.</p>
+            <div className="mt-2 space-y-2">
+              {PAPEIS_FUNC.map((p) => (
+                <label key={p} className={`flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${papeis.includes(p) ? 'border-marca bg-marca-clara' : 'border-borda-forte bg-white hover:border-marca'}`}>
+                  <input type="checkbox" checked={papeis.includes(p)} onChange={() => alterna(p)} className="mt-0.5 accent-[var(--color-marca)]" />
+                  <span>
+                    <span className="block font-medium text-tinta">{PAPEL_LABEL[p]}</span>
+                    <span className="block text-xs text-tinta-3">
+                      {p === 'gestor' ? 'Aprova reembolsos da própria área e vê os painéis (só leitura + exportar).' : 'Dá a aprovação final (pagamento) dos reembolsos.'}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <Campo rotulo="Centro de custo (área)" ajuda="Área da Soulan à qual a pessoa pertence. Obrigatório para o Gestor Aprovador.">
+            <select value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
+              <option value="">Sem centro de custo</option>
+              {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </Campo>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Botao type="button" variante="secundario" onClick={onFechar}>Cancelar</Botao>
+          <Botao type="button" onClick={salvar} disabled={pendente}>{pendente ? 'Salvando…' : 'Salvar'}</Botao>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -188,6 +309,12 @@ function FormFunc({
   setErro: (s: string | null) => void
 }) {
   const [pendente, setPendente] = useState(false)
+  const [centro, setCentro] = useState('')
+  const [papeis, setPapeis] = useState<string[]>([])
+
+  function alterna(p: string) {
+    setPapeis((atual) => (atual.includes(p) ? atual.filter((x) => x !== p) : [...atual, p]))
+  }
 
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -197,8 +324,10 @@ function FormFunc({
     const f = new FormData(e.currentTarget)
     const email = String(f.get('email') ?? '')
     try {
-      const res = await cadastrarFuncionario({ email, nome: String(f.get('nome') ?? '') })
+      const res = await cadastrarFuncionario({ email, nome: String(f.get('nome') ?? ''), centro_custo: centro, papeis })
       ;(e.target as HTMLFormElement).reset()
+      setCentro('')
+      setPapeis([])
       const e2 = email.trim().toLowerCase()
       setAviso(
         res.reaproveitada
@@ -213,14 +342,32 @@ function FormFunc({
   }
 
   return (
-    <form onSubmit={enviar} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
-      <Campo rotulo="Nome" obrigatorio>
-        <input name="nome" required minLength={2} className={ENTRADA} placeholder="Ex.: João Pereira" />
-      </Campo>
-      <Campo rotulo="E-mail institucional" obrigatorio>
-        <input name="email" type="email" required className={ENTRADA} placeholder="joao@soulan.com.br" />
-      </Campo>
-      <div className="flex items-end">
+    <form onSubmit={enviar} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Campo rotulo="Nome" obrigatorio>
+          <input name="nome" required minLength={2} className={ENTRADA} placeholder="Ex.: João Pereira" />
+        </Campo>
+        <Campo rotulo="E-mail institucional" obrigatorio>
+          <input name="email" type="email" required className={ENTRADA} placeholder="joao@soulan.com.br" />
+        </Campo>
+        <Campo rotulo="Centro de custo (área)">
+          <select value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
+            <option value="">Sem centro de custo</option>
+            {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Campo>
+        <Campo rotulo="Papéis adicionais" ajuda="Colaborador já vem incluído.">
+          <div className="flex flex-wrap gap-3 pt-1.5">
+            {PAPEIS_FUNC.map((p) => (
+              <label key={p} className="inline-flex items-center gap-1.5 text-sm text-tinta">
+                <input type="checkbox" checked={papeis.includes(p)} onChange={() => alterna(p)} className="accent-[var(--color-marca)]" />
+                {PAPEL_LABEL[p]}
+              </label>
+            ))}
+          </div>
+        </Campo>
+      </div>
+      <div>
         <Botao type="submit" disabled={pendente}>
           <UserPlus size={15} aria-hidden /> {pendente ? 'Cadastrando…' : 'Cadastrar'}
         </Botao>

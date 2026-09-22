@@ -226,6 +226,12 @@ body {
   border-radius: 9999px;
 }
 
+/* Faixa das trilhas de treinamento — degradê da marca (segura texto branco).
+   Usada na capa dos cards sem imagem e no cabeçalho do player. */
+.banner-trilha {
+  background: var(--gradiente);
+}
+
 /* --------------------------------------------------------------
    Home do colaborador — entrada acolhedora
    Cores do logotipo Soulan: azul (#2f8bb4) + verde (#8cc63f)

@@ -48,6 +48,35 @@ service cloud.firestore {
       return admin() || funcionarioAtivo();
     }
 
+    // -------- Papéis de acesso (uma pessoa pode ter vários) --------
+    // Os papéis e o centro de custo ficam no doc do usuário (admins OU
+    // funcionarios). Estas funções leem de onde a pessoa estiver.
+    function docAdmin() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+    function docFunc() {
+      return get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data;
+    }
+    function papeisDe() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        ? docAdmin().get('papeis', [])
+        : (exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
+            ? docFunc().get('papeis', []) : []);
+    }
+    function temPapel(p) {
+      return logado() && (p in papeisDe());
+    }
+    function meuCentro() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        ? docAdmin().get('centro_custo', '')
+        : (exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
+            ? docFunc().get('centro_custo', '') : '');
+    }
+    // Master = admin do painel (nível master/super ou semente) OU papel 'master'.
+    function ehMaster() {
+      return admin() || temPapel('master');
+    }
+
     // -------- Configuração da empresa: pública para ler.
     // Só SUPER edita configurações; a classificação de humor (config/humor)
     // é de dashboard, então master também pode salvar.
@@ -129,6 +158,88 @@ service cloud.firestore {
     // Contêm nome/matrícula: SÓ o admin lê e escreve. Público nunca acessa.
     match /humor_registros/{id} {
       allow read, write: if admin();
+    }
+
+    // -------- Solicitações de Reembolso --------
+    // Fluxo: colaborador cria → gestor da área (ou Master, se quem pede é
+    // gestor) → Financeiro. Visibilidade: o solicitante vê o seu; o gestor
+    // vê só o próprio centro de custo; Master e Financeiro veem todos.
+    match /reembolsos/{id} {
+      function ehSolicitante() {
+        return logado() && resource.data.solicitante_uid == request.auth.uid;
+      }
+      function gestorDoCentro() {
+        return temPapel('gestor') && resource.data.centro_custo == meuCentro();
+      }
+      // Pode decidir na etapa atual? (Master em tudo; gestor no seu centro na
+      // etapa do gestor; financeiro na etapa financeira.) Nunca o próprio
+      // pedido — exceto Master.
+      function podeDecidir() {
+        return (resource.data.solicitante_uid != request.auth.uid || ehMaster())
+          && (
+            ehMaster()
+            || (resource.data.status == 'pendente_gestor' && gestorDoCentro())
+            || (resource.data.status == 'pendente_financeiro' && temPapel('financeiro'))
+          );
+      }
+
+      allow read: if ehMaster() || temPapel('financeiro') || ehSolicitante() || gestorDoCentro();
+
+      // Criação: o solicitante grava o próprio pedido e NÃO pode escolher uma
+      // etapa que pule o fluxo (o status inicial depende dos papéis de quem pede).
+      allow create: if participante()
+        && request.resource.data.solicitante_uid == request.auth.uid
+        && request.resource.data.valor is number
+        && request.resource.data.valor > 0
+        && request.resource.data.centro_custo is string
+        && request.resource.data.centro_custo.size() > 0
+        && (
+          (temPapel('gestor') && request.resource.data.status == 'pendente_master')
+          || (!temPapel('gestor') && ehMaster() && request.resource.data.status == 'pendente_financeiro')
+          || (!temPapel('gestor') && !ehMaster() && request.resource.data.status == 'pendente_gestor')
+        );
+
+      // Atualização = decisão de aprovação/recusa. O núcleo é imutável; só
+      // status, histórico e a data de atualização podem mudar.
+      allow update: if podeDecidir()
+        && request.resource.data.solicitante_uid == resource.data.solicitante_uid
+        && request.resource.data.valor == resource.data.valor
+        && request.resource.data.centro_custo == resource.data.centro_custo
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'atualizado_em']);
+
+      // Excluir só o Master (mantém a trilha de auditoria por padrão).
+      allow delete: if ehMaster();
+    }
+
+    // -------- Anexos dos reembolsos (comprovantes) --------
+    // Mesmo id do reembolso. Só quem pode ver o reembolso vê o comprovante.
+    match /reembolso_anexos/{id} {
+      function reembolso() {
+        return get(/databases/$(database)/documents/reembolsos/$(id)).data;
+      }
+      function existeReembolso() {
+        return exists(/databases/$(database)/documents/reembolsos/$(id));
+      }
+      allow read: if existeReembolso() && (
+        ehMaster()
+        || temPapel('financeiro')
+        || reembolso().solicitante_uid == request.auth.uid
+        || (temPapel('gestor') && reembolso().centro_custo == meuCentro())
+      );
+      // Criado junto com o reembolso, pelo próprio solicitante.
+      allow create: if participante()
+        && request.resource.data.solicitante_uid == request.auth.uid
+        && existeReembolso()
+        && reembolso().solicitante_uid == request.auth.uid;
+      allow update, delete: if ehMaster();
+    }
+
+    // -------- Progresso de Treinamento e Desenvolvimento (por usuário)
+    // Cada participante (funcionário Comum ou admin) só lê e grava o SEU
+    // próprio documento (id = uid). Admin pode ler todos para relatórios.
+    match /treino_progresso/{uid} {
+      allow read: if admin() || (logado() && request.auth.uid == uid);
+      allow write: if participante() && request.auth.uid == uid;
     }
 
     // -------- Mural público (legado "Você disse, nós fizemos")

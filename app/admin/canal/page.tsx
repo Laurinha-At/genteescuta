@@ -39,7 +39,7 @@ export default function CanalAdmin() {
 
   return (
     <>
-      <CabecalhoPagina titulo="Canal Gente Escuta" descricao="Tudo o que chegou pelo canal permanente. Cada movimentação vira retorno para quem enviou." />
+      <CabecalhoPagina titulo="Canal Gente Cultura" descricao="Tudo o que chegou pelo canal permanente. Cada movimentação vira retorno para quem enviou." />
 
       <div className="space-y-4 p-4 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

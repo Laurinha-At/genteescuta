@@ -97,8 +97,14 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
         >
           <Menu size={22} aria-hidden />
         </button>
-        <img src="/simbolo-soulan.png" alt="Soulan" className="h-7 w-7 flex-none object-contain" />
-        <span className="text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Escuta</span>
+        <Link
+          href="/"
+          title="Ir para a página inicial do site"
+          className="flex items-center gap-3 rounded-lg transition-opacity hover:opacity-80"
+        >
+          <img src="/simbolo-soulan.png" alt="Soulan" className="h-7 w-7 flex-none object-contain" />
+          <span className="text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Cultura</span>
+        </Link>
       </header>
 
       {/* Sombra por trás do menu no celular */}
@@ -117,11 +123,18 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
         }`}
       >
         <div className="flex items-center gap-2.5 border-b border-borda px-4 py-4">
-          <img src="/simbolo-soulan.png" alt="Soulan" className="h-8 w-8 flex-none object-contain" />
-          <span className="min-w-0 leading-tight">
-            <span className="block truncate text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Escuta</span>
-            <span className="block truncate text-xs text-tinta-3">{empresa}</span>
-          </span>
+          <Link
+            href="/"
+            onClick={() => setMenuAberto(false)}
+            title="Ir para a página inicial do site"
+            className="flex min-w-0 items-center gap-2.5 rounded-lg transition-opacity hover:opacity-80"
+          >
+            <img src="/simbolo-soulan.png" alt="Soulan" className="h-8 w-8 flex-none object-contain" />
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Cultura</span>
+              <span className="block truncate text-xs text-tinta-3">{empresa}</span>
+            </span>
+          </Link>
           <button
             type="button"
             onClick={() => setMenuAberto(false)}
@@ -197,7 +210,7 @@ function TrocaSenhaInicial({
       <div className="w-full max-w-md">
         <div className="mb-4 flex items-center gap-2.5">
           <img src="/simbolo-soulan.png" alt="Soulan" className="h-9 w-9 object-contain" />
-          <span className="text-base font-semibold text-tinta">Gente Escuta</span>
+          <span className="text-base font-semibold text-tinta">Gente Cultura</span>
         </div>
         <div className="cartao-g p-6 sm:p-7">
           <h1 className="text-lg font-semibold text-tinta">Bem-vindo(a)! Crie a sua senha</h1>

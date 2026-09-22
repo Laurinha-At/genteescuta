@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Lock, UserRound, LogOut, LayoutDashboard } from 'lucide-react'
+import { Lock, UserRound, LogOut, LayoutDashboard, Receipt } from 'lucide-react'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 
@@ -26,7 +26,7 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
           <img src="/logo-soulan.png" alt={empresa} className="h-9 w-auto sm:h-10" />
           <span className="hidden items-center gap-3 sm:flex">
             <span className="h-6 w-px bg-borda-forte" aria-hidden />
-            <span className="text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Escuta</span>
+            <span className="text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Cultura</span>
           </span>
         </Link>
 
@@ -62,15 +62,23 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
               </>
             )}
 
-            {/* Logado (Comum ou admin): sair. O Comum NÃO vê botão de ADM. */}
+            {/* Logado (Comum ou admin): aba de reembolso + sair. */}
             {logado && (
-              <button
-                type="button"
-                onClick={() => sair()}
-                className="inline-flex items-center gap-1.5 rounded-full border border-borda-forte bg-white px-3.5 py-1.5 font-semibold text-tinta transition-colors hover:text-critico"
-              >
-                <LogOut size={14} aria-hidden /> Sair
-              </button>
+              <>
+                <Link
+                  href="/reembolso"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-borda-forte bg-white px-3.5 py-1.5 font-semibold text-tinta transition-colors hover:border-marca hover:text-marca-texto"
+                >
+                  <Receipt size={14} aria-hidden /> Reembolso
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => sair()}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-borda-forte bg-white px-3.5 py-1.5 font-semibold text-tinta transition-colors hover:text-critico"
+                >
+                  <LogOut size={14} aria-hidden /> Sair
+                </button>
+              </>
             )}
           </nav>
         )}
