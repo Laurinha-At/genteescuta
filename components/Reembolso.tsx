@@ -46,6 +46,7 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
   const [carregando, setCarregando] = useState(true)
   const [aviso, setAviso] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [sucesso, setSucesso] = useState(false)
 
   async function recarregar() {
     setCarregando(true)
@@ -122,7 +123,7 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 
         {aba === 'solicitar' && (
-          <FormReembolso perfil={perfil} aoEnviar={() => { setErro(null); recarregar(); setAba('minhas') }} setAviso={setAviso} setErro={setErro} />
+          <FormReembolso perfil={perfil} aoEnviar={() => { setErro(null); recarregar(); setAba('minhas'); setSucesso(true) }} setAviso={setAviso} setErro={setErro} />
         )}
         {aba === 'minhas' && <ListaMinhas carregando={carregando} itens={minhas} />}
         {aba === 'fila' && (
@@ -132,7 +133,35 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
           <Central perfil={perfil} carregando={carregando} registros={gestao} />
         )}
       </div>
+
+      {sucesso && <ModalSucesso onFechar={() => setSucesso(false)} />}
     </>
+  )
+}
+
+// -------------------------------------------------------------
+// Mensagem de sucesso após enviar a solicitação
+// -------------------------------------------------------------
+function ModalSucesso({ onFechar }: { onFechar: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onFechar}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl sm:p-7" onClick={(e) => e.stopPropagation()}>
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#eef7e3] text-verde-escuro">
+          <CheckCircle2 size={34} aria-hidden />
+        </span>
+        <h3 className="mt-4 text-lg font-semibold text-tinta">Solicitação realizada com sucesso!</h3>
+        <div className="mt-3 space-y-2 text-sm leading-6 text-tinta-2">
+          <p>
+            Agora, aguarde as próximas etapas do processo. A solicitação será encaminhada para aprovação da sua
+            gestão e, após a aprovação, seguirá para o Financeiro para realização do pagamento.
+          </p>
+          <p>Acompanhe o andamento da solicitação e aguarde a conclusão das etapas.</p>
+        </div>
+        <Botao type="button" onClick={onFechar} className="mt-6 w-full justify-center">
+          Acompanhar minhas solicitações
+        </Botao>
+      </div>
+    </div>
   )
 }
 
@@ -193,7 +222,6 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
       const anexo: Anexo = await prepararAnexo(arquivo)
       await criarReembolso({ centro_custo: centro, data_despesa: data, categoria, descricao, valor: v }, anexo, perfil)
       setCentro(perfil.centro_custo || ''); setData(''); setCategoria(''); setValor(''); setDescricao(''); setArquivo(null)
-      setAviso('Solicitação enviada! Acompanhe em "Minhas solicitações".')
       aoEnviar()
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não consegui enviar a solicitação.')
