@@ -15,7 +15,11 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from '
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '../firebase'
 import { registrarLog } from './usuarios'
-import { sanitizeRich, richVazio } from '../sanitizeHtml'
+
+/** Texto simples: normaliza quebras de linha, tira espaços das pontas e corta. */
+function limparTexto(s: string | undefined, max: number): string {
+  return String(s ?? '').replace(/\r\n/g, '\n').replace(/[ \t]+\n/g, '\n').trim().slice(0, max)
+}
 
 export type ItemTipo = 'link' | 'video' | 'foto' | 'arquivo' | 'texto'
 
@@ -101,12 +105,12 @@ export async function listarTopicos(): Promise<InfoTopico[]> {
 }
 
 function normalizarTopico(p: { icone: string; titulo: string; descricao: string }) {
-  const titulo = sanitizeRich(p.titulo ?? '')
-  if (richVazio(titulo)) throw new Error('Dê um título ao tópico.')
+  const titulo = limparTexto(p.titulo, 200)
+  if (!titulo) throw new Error('Dê um título ao tópico.')
   return {
     icone: String(p.icone ?? 'Info'),
     titulo,
-    descricao: sanitizeRich(p.descricao ?? ''),
+    descricao: limparTexto(p.descricao, 2000),
   }
 }
 
@@ -149,13 +153,13 @@ function normalizarItem(p: {
 }): Omit<InfoItem, 'id'> {
   const tipo = ITEM_TIPOS.includes(p.tipo as ItemTipo) ? (p.tipo as ItemTipo) : null
   if (!tipo) throw new Error('Escolha o tipo do item.')
-  const titulo = sanitizeRich(p.titulo ?? '')
-  if (richVazio(titulo)) throw new Error('Dê um título ao item.')
-  const base: Omit<InfoItem, 'id'> = { tipo, titulo, descricao: sanitizeRich(p.descricao ?? '') }
+  const titulo = limparTexto(p.titulo, 200)
+  if (!titulo) throw new Error('Dê um título ao item.')
+  const base: Omit<InfoItem, 'id'> = { tipo, titulo, descricao: limparTexto(p.descricao, 1000) }
 
   if (tipo === 'texto') {
-    const texto = sanitizeRich(p.texto ?? '')
-    if (richVazio(texto)) throw new Error('Escreva o conteúdo do texto.')
+    const texto = limparTexto(p.texto, 8000)
+    if (!texto) throw new Error('Escreva o conteúdo do texto.')
     return { ...base, texto }
   }
   // link/video/foto/arquivo: precisa de uma fonte (link externo OU upload).

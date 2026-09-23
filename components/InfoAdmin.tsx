@@ -21,7 +21,12 @@ import {
 } from '@/lib/fb/infoAdmin'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Aviso, Botao, Campo, ENTRADA, Vazio } from '@/components/ui'
-import { RichTextEditor, RichHtml } from '@/components/RichText'
+
+/** Exibe texto simples preservando quebras de linha (React escapa por padrão). */
+function Texto({ children, className = '' }: { children?: string; className?: string }) {
+  if (!children) return null
+  return <div className={`whitespace-pre-wrap ${className}`}>{children}</div>
+}
 
 // -------- Ícones --------
 const ICONES: Record<string, typeof Info> = {
@@ -159,8 +164,8 @@ function CartaoTopico({
           <IconeTopico nome={topico.icone} />
         </span>
         <div className="min-w-0 flex-1">
-          <RichHtml html={topico.titulo} className="text-[0.9375rem] font-semibold text-tinta" />
-          {topico.descricao && <RichHtml html={topico.descricao} className="mt-1 text-[0.8125rem] leading-6 text-tinta-3" />}
+          <Texto className="text-[0.9375rem] font-semibold text-tinta">{topico.titulo}</Texto>
+          {topico.descricao && <Texto className="mt-1 text-[0.8125rem] leading-6 text-tinta-3">{topico.descricao}</Texto>}
         </div>
         {ehAdmin && (
           <div className="flex flex-none flex-col gap-0.5">
@@ -246,11 +251,11 @@ function ItemView({
       <div className="flex items-start gap-2">
         <Icone size={15} className="mt-0.5 flex-none text-marca" aria-hidden />
         <div className="min-w-0 flex-1">
-          <RichHtml html={item.titulo} className="text-sm font-medium text-tinta" />
-          {item.descricao && <RichHtml html={item.descricao} className="mt-0.5 text-xs leading-5 text-tinta-3" />}
+          <Texto className="text-sm font-medium text-tinta">{item.titulo}</Texto>
+          {item.descricao && <Texto className="mt-0.5 text-xs leading-5 text-tinta-3">{item.descricao}</Texto>}
 
           {item.tipo === 'texto' && item.texto && (
-            <RichHtml html={item.texto} className="mt-1.5 text-[0.8125rem] leading-6 text-tinta-2" />
+            <Texto className="mt-1.5 text-[0.8125rem] leading-6 text-tinta-2">{item.texto}</Texto>
           )}
 
           {item.tipo === 'video' && item.url && (
@@ -352,12 +357,17 @@ function EditorTopico({
           </div>
         </Campo>
         <Campo rotulo="Título" obrigatorio>
-          <RichTextEditor valorInicial={titulo} onChange={setTitulo} placeholder="Ex.: Registro de Ponto – iFractal" minHeight={44} />
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} className={ENTRADA} placeholder="Ex.: Registro de Ponto – iFractal" />
         </Campo>
-        <Campo rotulo="Descrição">
-          <RichTextEditor valorInicial={descricao} onChange={setDescricao} placeholder="Explique rapidamente o tópico…" />
+        <Campo rotulo="Descrição" ajuda="Opcional. Pode usar quebras de linha.">
+          <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} className={ENTRADA} placeholder="Explique rapidamente o tópico…" />
         </Campo>
       </div>
+      {!topico && (
+        <p className="mt-4 rounded-lg bg-marca-clara px-3.5 py-2.5 text-xs leading-5 text-marca-escura">
+          Depois de salvar, use <strong>“Adicionar item”</strong> no card para incluir o <strong>link de acesso</strong>, vídeos, fotos ou arquivos.
+        </p>
+      )}
       <div className="mt-6 flex justify-end gap-2">
         <Botao type="button" variante="secundario" onClick={onFechar}>Cancelar</Botao>
         <Botao type="button" onClick={salvar} disabled={pendente}>{pendente ? 'Salvando…' : 'Salvar'}</Botao>
@@ -436,16 +446,16 @@ function EditorItem({
         </Campo>
 
         <Campo rotulo="Título" obrigatorio>
-          <RichTextEditor valorInicial={titulo} onChange={setTitulo} placeholder="Ex.: Vídeo passo a passo / Paulista" minHeight={44} />
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} className={ENTRADA} placeholder="Ex.: Vídeo passo a passo / Paulista" />
         </Campo>
 
         <Campo rotulo="Descrição">
-          <RichTextEditor valorInicial={descricao} onChange={setDescricao} placeholder="Opcional." minHeight={44} />
+          <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} className={ENTRADA} placeholder="Opcional." />
         </Campo>
 
         {tipo === 'texto' ? (
           <Campo rotulo="Conteúdo" obrigatorio>
-            <RichTextEditor valorInicial={texto} onChange={setTexto} placeholder="Escreva as orientações…" />
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={6} className={ENTRADA} placeholder="Escreva as orientações… (pode usar quebras de linha)" />
           </Campo>
         ) : (
           <div className="space-y-3">
