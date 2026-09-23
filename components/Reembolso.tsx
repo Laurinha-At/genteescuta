@@ -37,10 +37,15 @@ function normalizar(s: unknown): string {
 }
 
 export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
-  const ehAprovador =
-    perfil.papeis.includes('master') || perfil.papeis.includes('financeiro') || perfil.papeis.includes('gestor')
+  const ehMaster = perfil.papeis.includes('master')
+  const ehFinanceiro = perfil.papeis.includes('financeiro')
+  const ehGestor = perfil.papeis.includes('gestor')
+  const ehAprovador = ehMaster || ehFinanceiro || ehGestor
+  // Rótulo da fila conforme o papel: Gestor = "Solicitações"; Financeiro/Master = "Fila de Solicitações".
+  const filaLabel = (ehFinanceiro || ehMaster) ? 'Fila de Solicitações' : 'Solicitações'
 
-  const [aba, setAba] = useState<Aba>('solicitar')
+  // Master (gentecultura) só controla: não solicita.
+  const [aba, setAba] = useState<Aba>(ehMaster ? 'fila' : 'solicitar')
   const [minhas, setMinhas] = useState<Reembolso[]>([])
   const [gestao, setGestao] = useState<Reembolso[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -66,10 +71,12 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
   )
 
   const ABAS: { id: Aba; rotulo: string; Icone: typeof Plus; badge?: number }[] = [
-    { id: 'solicitar', rotulo: 'Solicitar', Icone: Plus },
-    { id: 'minhas', rotulo: 'Minhas solicitações', Icone: ClipboardList },
+    ...(!ehMaster ? [
+      { id: 'solicitar' as Aba, rotulo: 'Solicitar', Icone: Plus },
+      { id: 'minhas' as Aba, rotulo: 'Minhas solicitações', Icone: ClipboardList },
+    ] : []),
     ...(ehAprovador ? [
-      { id: 'fila' as Aba, rotulo: 'Fila de Trabalho', Icone: CheckSquare, badge: pendentes.length },
+      { id: 'fila' as Aba, rotulo: filaLabel, Icone: CheckSquare, badge: pendentes.length },
       { id: 'central' as Aba, rotulo: 'Central das Solicitações', Icone: LayoutList },
     ] : []),
   ]
