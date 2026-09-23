@@ -9,7 +9,7 @@
 // =============================================================
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Upload, Download, Printer, CheckCircle2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Clock, Upload, Download, Printer, CheckCircle2, Loader2, Search } from 'lucide-react'
 import {
   lerBancoHoras, formatSaldo, mesAtualRef, mesRefLabel, mesesRecentes, type LinhaBH,
 } from '@/lib/bancoHoras'
@@ -108,6 +108,8 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+  const [busca, setBusca] = useState('')
+  const [fCentro, setFCentro] = useState('')
 
   async function recarregar() {
     setCarregando(true)
@@ -117,15 +119,29 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
   }
   useEffect(() => { recarregar() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [mesRef])
 
+  // Centros de custo presentes nos dados carregados (para o filtro).
+  const centros = useMemo(
+    () => Array.from(new Set(registros.map((r) => r.centro_custo).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [registros],
+  )
+
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase()
+    return registros.filter((r) =>
+      (!fCentro || r.centro_custo === fCentro) &&
+      (!q || `${r.funcionario ?? ''} ${r.matricula ?? ''}`.toLowerCase().includes(q)),
+    )
+  }, [registros, busca, fCentro])
+
   const resumo = useMemo(() => {
     let pos = 0, neg = 0, sem = 0
-    for (const r of registros) {
+    for (const r of filtrados) {
       if (r.saldo_min == null) sem++
       else if (r.saldo_min < 0) neg++
       else pos++
     }
-    return { total: registros.length, pos, neg, sem }
-  }, [registros])
+    return { total: filtrados.length, pos, neg, sem }
+  }, [filtrados])
 
   const escopo = master ? 'todos os centros de custo' : `centro ${perfil.centro_custo || '—'}`
 
@@ -144,11 +160,23 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
             {mesesRecentes().map((m) => <option key={m} value={m}>{mesRefLabel(m)}</option>)}
           </select>
         </Campo>
+        <Campo rotulo="Buscar por nome ou matrícula">
+          <div className="relative">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3" aria-hidden />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} className={`${ENTRADA} pl-9`} placeholder="Ex.: Maria ou 00123" />
+          </div>
+        </Campo>
+        <Campo rotulo="Centro de custo">
+          <select value={fCentro} onChange={(e) => setFCentro(e.target.value)} className={ENTRADA}>
+            <option value="">Todos</option>
+            {centros.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Campo>
         <div className="flex gap-2">
-          <button type="button" onClick={() => baixarCSV(registros, mesRef)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto">
+          <button type="button" onClick={() => baixarCSV(filtrados, mesRef)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto">
             <Download size={15} aria-hidden /> CSV
           </button>
-          <button type="button" onClick={() => imprimirPDF(registros, mesRef, escopo)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto">
+          <button type="button" onClick={() => imprimirPDF(filtrados, mesRef, escopo)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto">
             <Printer size={15} aria-hidden /> PDF
           </button>
         </div>
@@ -164,8 +192,10 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
 
       {carregando ? (
         <p className="text-sm text-tinta-3">Carregando…</p>
-      ) : registros.length === 0 ? (
-        <div className="cartao-g p-6 text-center text-sm text-tinta-3">Sem registros para {mesRefLabel(mesRef)} no seu escopo.</div>
+      ) : filtrados.length === 0 ? (
+        <div className="cartao-g p-6 text-center text-sm text-tinta-3">
+          {registros.length === 0 ? `Sem registros para ${mesRefLabel(mesRef)} no seu escopo.` : 'Nenhum resultado para o filtro.'}
+        </div>
       ) : (
         <div className="cartao-g overflow-x-auto">
           <table className="w-full min-w-[46rem] text-sm">
@@ -180,7 +210,7 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-borda">
-              {registros.map((r) => (
+              {filtrados.map((r) => (
                 <tr key={r.id} className="hover:bg-superficie-2">
                   <td className="px-4 py-2.5 text-tinta">{r.funcionario || '—'}</td>
                   <td className="px-4 py-2.5 text-tinta-2">{r.matricula || '—'}</td>
