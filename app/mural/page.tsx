@@ -9,6 +9,7 @@ import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 import { MuralFeed } from '@/components/Mural'
+import { AniversariantesDia } from '@/components/AniversariantesDia'
 
 export default function Mural() {
   const [empresa, setEmpresa] = useState('Soulan Recursos Humanos')
@@ -55,6 +56,8 @@ export default function Mural() {
             </div>
           </div>
         </div>
+
+        <AniversariantesDia />
 
         {carregando ? (
           <p className="text-sm text-tinta-3">Carregando…</p>

@@ -11,7 +11,6 @@ import {
   ShieldQuestion,
   Settings,
   SmilePlus,
-  Users,
   Contact,
   ScrollText,
   Receipt,
@@ -34,7 +33,6 @@ const BASE: Item[] = [
 // Só Super Admin
 const SUPER: Item[] = [
   { href: '/admin/pesquisas', rotulo: 'Pesquisas', Icone: ClipboardList },
-  { href: '/admin/usuarios', rotulo: 'Usuários', Icone: Users },
   { href: '/admin/logs', rotulo: 'Logs', Icone: ScrollText },
   { href: '/admin/configuracoes', rotulo: 'Configurações', Icone: Settings },
 ]

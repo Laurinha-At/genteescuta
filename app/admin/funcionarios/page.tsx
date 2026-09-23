@@ -13,10 +13,31 @@ import {
 } from '@/lib/fb/funcionarios'
 import { CENTROS_CUSTO, TODOS_CENTROS, PAPEL_LABEL, PAPEL_DESC } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
+import { ImportarFuncionarios } from '@/components/ImportarFuncionarios'
+import { analisarDataBR } from '@/lib/importarFuncionarios'
 
 // Papéis que um FUNCIONÁRIO pode acumular (colaborador é sempre incluído).
 // "master" = admin completo (mesmo poder do e-mail semente).
 const PAPEIS_FUNC = ['master', 'gestor', 'financeiro'] as const
+
+function pad2(n: number) { return String(n).padStart(2, '0') }
+
+/** Converte os campos de data digitados em DadosPessoais; lança se inválido. */
+function montarDatas(anivTxt: string, admTxt: string) {
+  const extras: Record<string, unknown> = {}
+  if (anivTxt.trim()) {
+    const a = analisarDataBR(anivTxt.trim())
+    if (a === 'invalido' || !a) throw new Error('Data de aniversário inválida (use DD/MM ou DD/MM/AAAA).')
+    extras.aniv_dia = a.dia; extras.aniv_mes = a.mes; extras.aniversario = `${pad2(a.dia)}/${pad2(a.mes)}`
+  }
+  if (admTxt.trim()) {
+    const d = analisarDataBR(admTxt.trim())
+    if (d === 'invalido' || !d) throw new Error('Data de admissão inválida (use DD/MM/AAAA).')
+    extras.adm_dia = d.dia; extras.adm_mes = d.mes; extras.adm_ano = d.ano ?? null
+    extras.admissao = d.ano ? `${pad2(d.dia)}/${pad2(d.mes)}/${d.ano}` : `${pad2(d.dia)}/${pad2(d.mes)}`
+  }
+  return extras
+}
 
 export default function Funcionarios() {
   const [eu, setEu] = useState<Conta | null | undefined>(undefined)
@@ -92,6 +113,10 @@ export default function Funcionarios() {
           <FormFunc onDone={recarregar} setAviso={setAviso} setErro={setErro} />
         </Cartao>
 
+        <Cartao titulo="Importar por planilha" apoio="Cadastre vários de uma vez (.xlsx/.csv). Casa por e-mail: cria novos e atualiza existentes; reprocessar o mesmo arquivo não duplica.">
+          <ImportarFuncionarios onDone={recarregar} />
+        </Cartao>
+
         <Cartao
           titulo={`Funcionários (${lista.length})`}
           acao={
@@ -130,6 +155,13 @@ export default function Funcionarios() {
                       <td className="px-4 py-3">
                         <span className="block font-medium text-tinta">{u.nome || '—'}</span>
                         <span className="block text-xs text-tinta-3">{u.email}</span>
+                        {(u.matricula || u.aniversario) && (
+                          <span className="mt-0.5 block text-xs text-tinta-3">
+                            {u.matricula ? `Matr. ${u.matricula}` : ''}
+                            {u.matricula && u.aniversario ? ' · ' : ''}
+                            {u.aniversario ? `🎂 ${u.aniversario}` : ''}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1">
@@ -230,6 +262,9 @@ function EditorPapeis({
   const iniciais: string[] = Array.isArray(usuario.papeis) ? usuario.papeis : []
   const [papeis, setPapeis] = useState<string[]>(PAPEIS_FUNC.filter((p) => iniciais.includes(p)))
   const [centro, setCentro] = useState<string>(usuario.centro_custo || '')
+  const [matricula, setMatricula] = useState<string>(usuario.matricula || '')
+  const [aniv, setAniv] = useState<string>(usuario.aniversario || '')
+  const [adm, setAdm] = useState<string>(usuario.admissao || '')
   const [pendente, setPendente] = useState(false)
 
   function alterna(p: string) {
@@ -243,8 +278,11 @@ function EditorPapeis({
       if (papeis.includes('gestor') && !centro) {
         throw new Error('Um Gestor Aprovador precisa de um centro de custo (a área que ele aprova).')
       }
-      await atualizarPapeisFuncionario(usuario.uid, papeis, centro, usuario.email)
-      onSalvo(`Papéis de ${usuario.email} atualizados.`)
+      const datas = montarDatas(aniv, adm)
+      await atualizarPapeisFuncionario(usuario.uid, papeis, centro, usuario.email, {
+        nome: usuario.nome, matricula, ...datas,
+      })
+      onSalvo(`Dados de ${usuario.email} atualizados.`)
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui salvar.')
       setPendente(false)
@@ -279,6 +317,18 @@ function EditorPapeis({
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Campo rotulo="Matrícula">
+              <input value={matricula} onChange={(e) => setMatricula(e.target.value)} className={ENTRADA} placeholder="00123" />
+            </Campo>
+            <Campo rotulo="Aniversário (DD/MM)">
+              <input value={aniv} onChange={(e) => setAniv(e.target.value)} className={ENTRADA} placeholder="25/12" />
+            </Campo>
+            <Campo rotulo="Admissão (DD/MM/AAAA)">
+              <input value={adm} onChange={(e) => setAdm(e.target.value)} className={ENTRADA} placeholder="10/03/2022" />
+            </Campo>
           </div>
 
           <Campo rotulo="Centro de custo (área)" ajuda="Área da Soulan à qual a pessoa pertence. Obrigatório para o Gestor Aprovador. Um gestor com “Todos os centros de custo” aprova reembolsos de qualquer área.">
@@ -324,7 +374,11 @@ function FormFunc({
     const f = new FormData(e.currentTarget)
     const email = String(f.get('email') ?? '')
     try {
-      const res = await cadastrarFuncionario({ email, nome: String(f.get('nome') ?? ''), centro_custo: centro, papeis })
+      const extras = montarDatas(String(f.get('aniversario') ?? ''), String(f.get('admissao') ?? ''))
+      const res = await cadastrarFuncionario({
+        email, nome: String(f.get('nome') ?? ''), centro_custo: centro, papeis,
+        matricula: String(f.get('matricula') ?? ''), ...extras,
+      })
       ;(e.target as HTMLFormElement).reset()
       setCentro('')
       setPapeis([])
@@ -356,6 +410,15 @@ function FormFunc({
             <option value={TODOS_CENTROS}>{TODOS_CENTROS}</option>
             {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
+        </Campo>
+        <Campo rotulo="Matrícula" ajuda="Usada no Banco de Horas.">
+          <input name="matricula" className={ENTRADA} placeholder="Ex.: 00123" />
+        </Campo>
+        <Campo rotulo="Aniversário (DD/MM)">
+          <input name="aniversario" className={ENTRADA} placeholder="Ex.: 25/12" />
+        </Campo>
+        <Campo rotulo="Admissão (DD/MM/AAAA)">
+          <input name="admissao" className={ENTRADA} placeholder="Ex.: 10/03/2022" />
         </Campo>
         <Campo rotulo="Papéis adicionais" ajuda="Colaborador já vem incluído.">
           <div className="flex flex-wrap gap-3 pt-1.5">

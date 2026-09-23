@@ -271,6 +271,14 @@ service cloud.firestore {
       allow create, update, delete: if admin();
     }
 
+    // -------- Aniversários / tempo de casa (projeção PÚBLICA p/ o Mural)
+    // Só nome + dia/mês (nada de e-mail/matrícula). Público lê; só admin
+    // (Master) escreve — alimentado pelo cadastro/importação de funcionários.
+    match /aniversarios/{uid} {
+      allow read: if true;
+      allow write: if admin();
+    }
+
     // -------- Mural público (legado "Você disse, nós fizemos")
     match /mural/{id} {
       allow read: if true;
