@@ -7,7 +7,7 @@
 // de adicionar/editar/reordenar/remover tópicos e itens. A trava real de
 // escrita está nas Regras do Firestore e do Storage.
 // =============================================================
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Plus, Pencil, Trash2, X, ExternalLink, ArrowUp, ArrowDown, Upload, Link2, Loader2,
   ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen, HeartPulse,
@@ -21,12 +21,7 @@ import {
 } from '@/lib/fb/infoAdmin'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Aviso, Botao, Campo, ENTRADA, Vazio } from '@/components/ui'
-
-/** Exibe texto simples preservando quebras de linha (React escapa por padrão). */
-function Texto({ children, className = '' }: { children?: string; className?: string }) {
-  if (!children) return null
-  return <div className={`whitespace-pre-wrap ${className}`}>{children}</div>
-}
+import { RichTextEditor, RichHtml, type RichHandle } from '@/components/RichText'
 
 // -------- Ícones --------
 const ICONES: Record<string, typeof Info> = {
@@ -164,8 +159,8 @@ function CartaoTopico({
           <IconeTopico nome={topico.icone} />
         </span>
         <div className="min-w-0 flex-1">
-          <Texto className="text-[0.9375rem] font-semibold text-tinta">{topico.titulo}</Texto>
-          {topico.descricao && <Texto className="mt-1 text-[0.8125rem] leading-6 text-tinta-3">{topico.descricao}</Texto>}
+          <RichHtml html={topico.titulo} className="text-[0.9375rem] font-semibold text-tinta" />
+          {topico.descricao && <RichHtml html={topico.descricao} className="mt-1 text-[0.8125rem] leading-6 text-tinta-3" />}
         </div>
         {ehAdmin && (
           <div className="flex flex-none flex-col gap-0.5">
@@ -251,11 +246,11 @@ function ItemView({
       <div className="flex items-start gap-2">
         <Icone size={15} className="mt-0.5 flex-none text-marca" aria-hidden />
         <div className="min-w-0 flex-1">
-          <Texto className="text-sm font-medium text-tinta">{item.titulo}</Texto>
-          {item.descricao && <Texto className="mt-0.5 text-xs leading-5 text-tinta-3">{item.descricao}</Texto>}
+          <RichHtml html={item.titulo} className="text-sm font-medium text-tinta" />
+          {item.descricao && <RichHtml html={item.descricao} className="mt-0.5 text-xs leading-5 text-tinta-3" />}
 
           {item.tipo === 'texto' && item.texto && (
-            <Texto className="mt-1.5 text-[0.8125rem] leading-6 text-tinta-2">{item.texto}</Texto>
+            <RichHtml html={item.texto} className="mt-1.5 text-[0.8125rem] leading-6 text-tinta-2" />
           )}
 
           {item.tipo === 'video' && item.url && (
@@ -323,15 +318,16 @@ function EditorTopico({
   setErro: (s: string | null) => void
 }) {
   const [icone, setIcone] = useState(topico?.icone ?? 'ClipboardList')
-  const [titulo, setTitulo] = useState(topico?.titulo ?? '')
-  const [descricao, setDescricao] = useState(topico?.descricao ?? '')
+  const tituloRef = useRef<RichHandle>(null)
+  const descRef = useRef<RichHandle>(null)
   const [pendente, setPendente] = useState(false)
 
   async function salvar() {
     setErro(null); setPendente(true)
     try {
-      if (topico) { await atualizarTopico(topico.id, { icone, titulo, descricao }); onSalvo('Tópico atualizado.') }
-      else { await criarTopico({ icone, titulo, descricao }); onSalvo('Tópico criado.') }
+      const dados = { icone, titulo: tituloRef.current?.getHtml() ?? '', descricao: descRef.current?.getHtml() ?? '' }
+      if (topico) { await atualizarTopico(topico.id, dados); onSalvo('Tópico atualizado.') }
+      else { await criarTopico(dados); onSalvo('Tópico criado.') }
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui salvar.'); setPendente(false)
     }
@@ -357,10 +353,10 @@ function EditorTopico({
           </div>
         </Campo>
         <Campo rotulo="Título" obrigatorio>
-          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} className={ENTRADA} placeholder="Ex.: Registro de Ponto – iFractal" />
+          <RichTextEditor ref={tituloRef} valorInicial={topico?.titulo ?? ''} placeholder="Ex.: Registro de Ponto – iFractal" minHeight={44} />
         </Campo>
-        <Campo rotulo="Descrição" ajuda="Opcional. Pode usar quebras de linha.">
-          <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} className={ENTRADA} placeholder="Explique rapidamente o tópico…" />
+        <Campo rotulo="Descrição" ajuda="Opcional. Use os botões para negrito e listas; Enter pula linha.">
+          <RichTextEditor ref={descRef} valorInicial={topico?.descricao ?? ''} placeholder="Explique rapidamente o tópico…" />
         </Campo>
       </div>
       {!topico && (
@@ -389,9 +385,9 @@ function EditorItem({
   setErro: (s: string | null) => void
 }) {
   const [tipo, setTipo] = useState<ItemTipo>(item?.tipo ?? 'link')
-  const [titulo, setTitulo] = useState(item?.titulo ?? '')
-  const [descricao, setDescricao] = useState(item?.descricao ?? '')
-  const [texto, setTexto] = useState(item?.texto ?? '')
+  const tituloRef = useRef<RichHandle>(null)
+  const descRef = useRef<RichHandle>(null)
+  const textoRef = useRef<RichHandle>(null)
   const [fonte, setFonte] = useState<'link' | 'upload'>(item?.storage_path ? 'upload' : 'link')
   const [urlLink, setUrlLink] = useState(item?.storage_path ? '' : (item?.url ?? ''))
   const [arquivo, setArquivo] = useState<File | null>(null)
@@ -410,9 +406,11 @@ function EditorItem({
   async function salvar() {
     setErro(null); setPendente(true)
     try {
+      const titulo = tituloRef.current?.getHtml() ?? ''
+      const descricao = descRef.current?.getHtml() ?? ''
       let dados: Parameters<typeof adicionarItem>[1]
       if (tipo === 'texto') {
-        dados = { tipo, titulo, descricao, texto }
+        dados = { tipo, titulo, descricao, texto: textoRef.current?.getHtml() ?? '' }
       } else if (tipo === 'link' || fonte === 'link') {
         dados = { tipo, titulo, descricao, url: urlLink }
       } else {
@@ -446,16 +444,16 @@ function EditorItem({
         </Campo>
 
         <Campo rotulo="Título" obrigatorio>
-          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} className={ENTRADA} placeholder="Ex.: Vídeo passo a passo / Paulista" />
+          <RichTextEditor ref={tituloRef} valorInicial={item?.titulo ?? ''} placeholder="Ex.: Vídeo passo a passo / Paulista" minHeight={44} />
         </Campo>
 
         <Campo rotulo="Descrição">
-          <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} className={ENTRADA} placeholder="Opcional." />
+          <RichTextEditor ref={descRef} valorInicial={item?.descricao ?? ''} placeholder="Opcional." minHeight={44} />
         </Campo>
 
         {tipo === 'texto' ? (
           <Campo rotulo="Conteúdo" obrigatorio>
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={6} className={ENTRADA} placeholder="Escreva as orientações… (pode usar quebras de linha)" />
+            <RichTextEditor ref={textoRef} valorInicial={item?.texto ?? ''} placeholder="Escreva as orientações…" />
           </Campo>
         ) : (
           <div className="space-y-3">
