@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { LogIn, LogOut, LayoutDashboard, Receipt, ChevronDown } from 'lucide-react'
+import { LogIn, LogOut, LayoutDashboard, ChevronDown } from 'lucide-react'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 
@@ -103,23 +103,15 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
               </Link>
             )}
 
-            {/* Logado (Comum ou admin): aba de reembolso + sair. */}
+            {/* Logado (Comum ou admin): sair. O reembolso fica só como card. */}
             {logado && (
-              <>
-                <Link
-                  href="/reembolso"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-borda-forte bg-white px-3.5 py-1.5 font-semibold text-tinta transition-colors hover:border-marca hover:text-marca-texto"
-                >
-                  <Receipt size={14} aria-hidden /> Reembolso
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => sair()}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-borda-forte bg-white px-3.5 py-1.5 font-semibold text-tinta transition-colors hover:text-critico"
-                >
-                  <LogOut size={14} aria-hidden /> Sair
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => sair()}
+                className="inline-flex items-center gap-1.5 rounded-full border border-borda-forte bg-white px-3.5 py-1.5 font-semibold text-tinta transition-colors hover:text-critico"
+              >
+                <LogOut size={14} aria-hidden /> Sair
+              </button>
             )}
           </nav>
         )}

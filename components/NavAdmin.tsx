@@ -14,6 +14,7 @@ import {
   Contact,
   ScrollText,
   Receipt,
+  Info,
 } from 'lucide-react'
 
 type Item = { href: string; rotulo: string; Icone: typeof LayoutDashboard; exato?: boolean }
@@ -28,6 +29,7 @@ const BASE: Item[] = [
   { href: '/admin/humor', rotulo: 'Humor', Icone: SmilePlus },
   { href: '/reembolso', rotulo: 'Reembolsos', Icone: Receipt },
   { href: '/admin/funcionarios', rotulo: 'Funcionários', Icone: Contact },
+  { href: '/admin/informacoes', rotulo: 'Informações Adm.', Icone: Info },
 ]
 
 // Só Super Admin
