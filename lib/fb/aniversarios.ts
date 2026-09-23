@@ -49,3 +49,58 @@ export async function destaquesDoDia(): Promise<DestaqueDia[]> {
   // Aniversários primeiro, depois tempo de casa; ambos em ordem alfabética.
   return out.sort((a, b) => (a.tipo === b.tipo ? a.nome.localeCompare(b.nome) : a.tipo === 'aniversario' ? -1 : 1))
 }
+
+// -------------------------------------------------------------
+// Painel do mês (página "Aniversariantes do mês")
+// -------------------------------------------------------------
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
+export interface PessoaMes {
+  nome: string
+  dia: number
+  hoje: boolean
+  foto?: string | null
+  anos?: number
+}
+
+export interface AniversariantesMes {
+  mes: number
+  mesNome: string
+  temHoje: boolean
+  aniversarios: PessoaMes[]
+  tempos: PessoaMes[]
+}
+
+export async function aniversariantesDoMes(): Promise<AniversariantesMes> {
+  const snap = await getDocs(collection(db(), 'aniversarios')).catch(() => null)
+  const { dia, mes, ano } = hojeSaoPaulo()
+  const aniversarios: PessoaMes[] = []
+  const tempos: PessoaMes[] = []
+
+  if (snap) for (const d of snap.docs) {
+    const x = d.data() as Record<string, unknown>
+    const nome = String(x.nome ?? '').trim()
+    if (!nome) continue
+    const foto = (x.foto as string) ?? null
+
+    if (x.aniv_mes === mes && x.aniv_dia) {
+      aniversarios.push({ nome, dia: Number(x.aniv_dia), hoje: x.aniv_dia === dia, foto })
+    }
+    if (x.adm_mes === mes && x.adm_dia && x.adm_ano) {
+      const anos = ano - Number(x.adm_ano)
+      if (anos >= 1) tempos.push({ nome, dia: Number(x.adm_dia), hoje: x.adm_dia === dia, anos, foto })
+    }
+  }
+
+  const porDia = (a: PessoaMes, b: PessoaMes) => a.dia - b.dia || a.nome.localeCompare(b.nome)
+  aniversarios.sort(porDia)
+  tempos.sort(porDia)
+
+  return {
+    mes,
+    mesNome: MESES[mes - 1],
+    temHoje: aniversarios.some((p) => p.hoje) || tempos.some((p) => p.hoje),
+    aniversarios,
+    tempos,
+  }
+}
