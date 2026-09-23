@@ -271,6 +271,21 @@ service cloud.firestore {
       allow create, update, delete: if admin();
     }
 
+    // -------- Banco de Horas (planilha mensal por matrícula) --------
+    // Master vê/edita tudo. Gestor lê só o próprio centro (ou todos, se
+    // "Todos os centros"). O colaborador lê só o próprio saldo (uid).
+    // Só o Master grava (import). Filtro por área/uid é imposto AQUI.
+    match /banco_horas/{id} {
+      function gestorDoCentroBH() {
+        return temPapel('gestor')
+          && (meuCentro() == 'Todos os centros de custo' || resource.data.centro_custo == meuCentro());
+      }
+      allow read: if ehMaster()
+        || gestorDoCentroBH()
+        || (logado() && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if ehMaster();
+    }
+
     // -------- Aniversários / tempo de casa (projeção PÚBLICA p/ o Mural)
     // Só nome + dia/mês (nada de e-mail/matrícula). Público lê; só admin
     // (Master) escreve — alimentado pelo cadastro/importação de funcionários.

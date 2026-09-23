@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, LifeBuoy, Megaphone, GraduationCap, Receipt, ClipboardList, Cake } from 'lucide-react'
+import { ArrowRight, ShieldCheck, LifeBuoy, Megaphone, GraduationCap, Receipt, ClipboardList, Cake, Clock } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
@@ -19,6 +19,7 @@ const CARDS: CardHome[] = [
   { href: '/contato', titulo: 'Contato e Suporte', frase: 'Fale com a equipe de Gente & Cultura.', Icone: LifeBuoy, cor: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' },
   { href: '/treinamento', titulo: 'Treinamento e Desenvolvimento', frase: 'Trilhas de aprendizagem: leia, responda e conquiste.', Icone: GraduationCap, cor: 'linear-gradient(135deg, #3f7db0 0%, #223f6a 100%)' },
   { href: '/reembolso', titulo: 'Solicitação de Reembolso', frase: 'Peça reembolsos, anexe o comprovante e acompanhe a aprovação.', Icone: Receipt, cor: 'linear-gradient(135deg, #2a7897 0%, #557d26 100%)' },
+  { href: '/banco-horas', titulo: 'Banco de Horas', frase: 'Veja o seu saldo de horas do mês. Gestores acompanham a própria área.', Icone: Clock, cor: 'linear-gradient(135deg, #4a6fa5 0%, #223f6a 100%)' },
 ]
 
 export default function Inicio() {

@@ -10,6 +10,7 @@ import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 import { InfoAdminApp } from '@/components/InfoAdmin'
+import { MeuBancoHorasResumo } from '@/components/BancoHoras'
 
 export default function InformacoesAdministrativas() {
   const [empresa, setEmpresa] = useState('Soulan Recursos Humanos')
@@ -49,7 +50,10 @@ export default function InformacoesAdministrativas() {
           {perfil === undefined ? (
             <p className="text-sm text-tinta-3">Carregando…</p>
           ) : logado ? (
-            <InfoAdminApp perfil={perfil!} />
+            <div className="space-y-5">
+              <MeuBancoHorasResumo />
+              <InfoAdminApp perfil={perfil!} />
+            </div>
           ) : (
             <div className="mx-auto max-w-md">
               <div className="cartao-g p-8 text-center">

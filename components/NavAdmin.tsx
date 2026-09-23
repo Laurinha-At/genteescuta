@@ -15,6 +15,7 @@ import {
   ScrollText,
   Receipt,
   Info,
+  Clock,
 } from 'lucide-react'
 
 type Item = { href: string; rotulo: string; Icone: typeof LayoutDashboard; exato?: boolean }
@@ -28,6 +29,7 @@ const BASE: Item[] = [
   { href: '/admin/clima', rotulo: 'Clima', Icone: HeartPulse },
   { href: '/admin/humor', rotulo: 'Humor', Icone: SmilePlus },
   { href: '/reembolso', rotulo: 'Reembolsos', Icone: Receipt },
+  { href: '/banco-horas', rotulo: 'Banco de Horas', Icone: Clock },
   { href: '/admin/funcionarios', rotulo: 'Funcionários', Icone: Contact },
   { href: '/admin/informacoes', rotulo: 'Informações Adm.', Icone: Info },
 ]
