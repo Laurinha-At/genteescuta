@@ -222,8 +222,9 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['status', 'historico', 'atualizado_em', 'data_pagamento', 'pago_por_nome', 'pago_em']);
 
-      // Excluir só o Master (mantém a trilha de auditoria por padrão).
-      allow delete: if ehMaster();
+      // Exclusão DESATIVADA para todos: um reembolso é aprovado ou recusado,
+      // nunca apagado (mantém a trilha de auditoria).
+      allow delete: if false;
     }
 
     // -------- Anexos dos reembolsos (comprovantes) --------
@@ -246,7 +247,8 @@ service cloud.firestore {
         && request.resource.data.solicitante_uid == request.auth.uid
         && existeReembolso()
         && reembolso().solicitante_uid == request.auth.uid;
-      allow update, delete: if ehMaster();
+      // Comprovante é imutável e não pode ser apagado (trilha de auditoria).
+      allow update, delete: if false;
     }
 
     // -------- Progresso de Treinamento e Desenvolvimento (por usuário)

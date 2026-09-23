@@ -31,7 +31,7 @@ export default function ReembolsoPage() {
   return (
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:py-10">
         {perfil === undefined ? (
           <p className="text-sm text-tinta-3">Carregando…</p>
         ) : logado ? (
