@@ -35,6 +35,24 @@ export const ICONES_TOPICO = [
   'BookOpen', 'HeartPulse', 'Wrench', 'Building2', 'Gift', 'GraduationCap', 'Info',
 ] as const
 
+/** Rótulo em português de cada ícone, mostrado no seletor. */
+export const ICONE_TOPICO_LABEL: Record<(typeof ICONES_TOPICO)[number], string> = {
+  ClipboardList: 'Ponto',
+  Clock: 'Horários',
+  Bus: 'Transporte',
+  CreditCard: 'Benefícios',
+  Wallet: 'Holerite',
+  Laptop: 'Equipamentos',
+  FileText: 'Documentos',
+  BookOpen: 'Manuais',
+  HeartPulse: 'Saúde',
+  Wrench: 'Ferramentas',
+  Building2: 'Empresa',
+  Gift: 'Vantagens',
+  GraduationCap: 'Treinamentos',
+  Info: 'Geral',
+}
+
 export interface InfoItem {
   id: string
   tipo: ItemTipo

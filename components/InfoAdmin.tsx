@@ -16,7 +16,7 @@ import {
 import {
   listarTopicos, criarTopico, atualizarTopico, excluirTopico, trocarOrdemTopicos,
   adicionarItem, atualizarItem, removerItem, moverItem, subirArquivo,
-  ITEM_TIPOS, ITEM_TIPO_LABEL, ICONES_TOPICO,
+  ITEM_TIPOS, ITEM_TIPO_LABEL, ICONES_TOPICO, ICONE_TOPICO_LABEL,
   type InfoTopico, type InfoItem, type ItemTipo,
 } from '@/lib/fb/infoAdmin'
 import type { Perfil } from '@/lib/fb/funcionarios'
@@ -335,17 +335,18 @@ function EditorTopico({
   return (
     <Modal titulo={topico ? 'Editar tópico' : 'Novo tópico'} onFechar={onFechar}>
       <div className="space-y-4">
-        <Campo rotulo="Ícone">
-          <div className="flex flex-wrap gap-1.5">
+        <Campo rotulo="Ícone" ajuda="Escolha um ícone que represente o tópico.">
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
             {ICONES_TOPICO.map((nome) => (
               <button
                 key={nome}
                 type="button"
                 onClick={() => setIcone(nome)}
-                title={nome}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${icone === nome ? 'border-marca bg-marca-clara text-marca' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
+                title={ICONE_TOPICO_LABEL[nome]}
+                className={`flex flex-col items-center gap-1 rounded-lg border px-1.5 py-2 transition-colors ${icone === nome ? 'border-marca bg-marca-clara text-marca' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
               >
                 <IconeTopico nome={nome} size={18} />
+                <span className="text-[0.6875rem] font-medium leading-tight">{ICONE_TOPICO_LABEL[nome]}</span>
               </button>
             ))}
           </div>
