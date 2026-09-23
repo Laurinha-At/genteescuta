@@ -216,23 +216,23 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
       <TrilhaProgresso passos={passos} total={6} />
 
       <div className="cartao-g space-y-5 p-5 sm:p-6">
-        <Passo n={1} titulo="Qual é a área e a data da despesa?">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select required value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
-              <option value="">Centro de custo…</option>
-              {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <input type="date" required value={data} onChange={(e) => setData(e.target.value)} className={ENTRADA} max={new Date().toISOString().slice(0, 10)} />
-          </div>
-        </Passo>
-
-        <Passo n={2} titulo="O que você gastou?">
+        <Passo n={1} titulo="O que você gastou?">
           <div className="grid gap-3 sm:grid-cols-2">
             <select required value={categoria} onChange={(e) => setCategoria(e.target.value)} className={ENTRADA}>
               <option value="">Categoria…</option>
               {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <input required inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Valor (ex.: 150,00)" className={ENTRADA} />
+          </div>
+        </Passo>
+
+        <Passo n={2} titulo="Quando foi e de qual área?">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input type="date" required value={data} onChange={(e) => setData(e.target.value)} className={ENTRADA} max={new Date().toISOString().slice(0, 10)} />
+            <select required value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
+              <option value="">Centro de custo (área)…</option>
+              {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
         </Passo>
 
