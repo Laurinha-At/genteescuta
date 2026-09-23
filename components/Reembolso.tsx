@@ -205,7 +205,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
     <div className="flex gap-3">
       <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-marca-clara text-xs font-bold text-marca">{n}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-tinta">{titulo}</p>
+        <p className="text-sm font-semibold text-tinta">{titulo}<span className="ml-0.5 text-critico" title="Obrigatório">*</span></p>
         <div className="mt-2">{children}</div>
       </div>
     </div>
@@ -216,23 +216,23 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
       <TrilhaProgresso passos={passos} total={6} />
 
       <div className="cartao-g space-y-5 p-5 sm:p-6">
-        <Passo n={1} titulo="O que você gastou?">
+        <Passo n={1} titulo="Qual é a área e a data da despesa?">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <select required value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
+              <option value="">Centro de custo…</option>
+              {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <input type="date" required value={data} onChange={(e) => setData(e.target.value)} className={ENTRADA} max={new Date().toISOString().slice(0, 10)} />
+          </div>
+        </Passo>
+
+        <Passo n={2} titulo="O que você gastou?">
           <div className="grid gap-3 sm:grid-cols-2">
             <select required value={categoria} onChange={(e) => setCategoria(e.target.value)} className={ENTRADA}>
               <option value="">Categoria…</option>
               {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <input required inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Valor (ex.: 150,00)" className={ENTRADA} />
-          </div>
-        </Passo>
-
-        <Passo n={2} titulo="Quando foi e de qual área?">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input type="date" required value={data} onChange={(e) => setData(e.target.value)} className={ENTRADA} max={new Date().toISOString().slice(0, 10)} />
-            <select required value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
-              <option value="">Centro de custo (área)…</option>
-              {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
           </div>
         </Passo>
 
@@ -249,10 +249,14 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
         </Passo>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-borda pt-4">
-          <Botao type="submit" disabled={pendente}>
+          <Botao type="submit" disabled={pendente || passos < 6}>
             <Receipt size={15} aria-hidden /> {pendente ? 'Enviando…' : 'Enviar solicitação'}
           </Botao>
-          <p className="text-xs text-tinta-3">Vai direto para <strong className="font-semibold text-tinta-2">{destino}</strong>.</p>
+          <p className="text-xs text-tinta-3">
+            {passos < 6
+              ? 'Preencha todos os campos obrigatórios (marcados com *) para enviar.'
+              : <>Vai direto para <strong className="font-semibold text-tinta-2">{destino}</strong>.</>}
+          </p>
         </div>
       </div>
     </form>
