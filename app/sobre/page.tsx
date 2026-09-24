@@ -70,6 +70,20 @@ export default function Sobre() {
             )}
           </div>
         </div>
+        {/* -------- Nossa equipe -------- */}
+        <section className="mt-6 overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_10px_30px_rgba(26,23,20,0.12)]">
+          <div className="relative">
+            <img src="/sobre-equipe.webp" alt="Equipe da Soulan reunida" className="h-64 w-full object-cover sm:h-80 md:h-[26rem]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" aria-hidden />
+            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur">
+                💙 Nossa equipe
+              </span>
+              <h2 className="mt-2 text-2xl font-bold tracking-[-0.01em] text-white sm:text-3xl">Aqui é a nossa equipe</h2>
+              <p className="mt-1 max-w-xl text-sm leading-6 text-white/90 sm:text-base">Quem faz o jeito Soulan acontecer todos os dias.</p>
+            </div>
+          </div>
+        </section>
       </main>
       <RodapePublico />
     </div>
