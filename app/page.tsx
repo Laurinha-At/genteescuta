@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, LifeBuoy, Megaphone, GraduationCap, Receipt, ClipboardList, Cake, Clock } from 'lucide-react'
+import { ArrowRight, LifeBuoy, GraduationCap, Receipt, ClipboardList, Cake, Clock } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
@@ -13,7 +13,6 @@ type CardHome = { href: string; titulo: string; frase: string; Icone: typeof Lif
 // "Sobre nós" e "Missão, Visão e Valores" saíram daqui e viraram itens do
 // rodapé (RodapePublico), acessíveis de qualquer página.
 const CARDS: CardHome[] = [
-  { href: '/mural', titulo: 'Nosso Mural', frase: 'Reconhecimentos e novidades do Gente Informa.', Icone: Megaphone, cor: 'linear-gradient(135deg, #4e9b2e 0%, #1f5f16 100%)', destaque: true },
   { href: '/aniversariantes', titulo: 'Aniversariantes do mês', frase: 'Veja quem aniversaria e quem completa tempo de casa neste mês.', Icone: Cake, cor: 'linear-gradient(135deg, #2f9e8a 0%, #1c6350 100%)' },
   { href: '/informacoes-administrativas', titulo: 'Informações Administrativas', frase: 'Tudo o que você precisa saber sobre os principais procedimentos administrativos da Soulan.', Icone: ClipboardList, cor: 'linear-gradient(135deg, #4a6fa5 0%, #263a5c 100%)' },
   { href: '/contato', titulo: 'Contato e Suporte', frase: 'Fale com a equipe de Gente & Cultura.', Icone: LifeBuoy, cor: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' },

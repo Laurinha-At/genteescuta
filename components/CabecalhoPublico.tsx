@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { LogIn, LogOut, LayoutDashboard, ChevronDown } from 'lucide-react'
+import { LogIn, LogOut, LayoutDashboard, ChevronDown, Megaphone } from 'lucide-react'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 
@@ -72,9 +72,16 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
             </span>
           </Link>
 
-          {/* Menu institucional "Sobre Nós", sempre visível no topo. */}
-          <nav className="flex items-center">
+          {/* Menu institucional "Sobre Nós" + "Nosso Mural" em destaque. */}
+          <nav className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <MenuSobre />
+            <Link
+              href="/mural"
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[0.8125rem] font-semibold text-white shadow-[0_2px_8px_rgba(78,155,46,0.35)] transition-transform hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(135deg, #4e9b2e 0%, #1f5f16 100%)' }}
+            >
+              <Megaphone size={14} aria-hidden /> Nosso Mural
+            </Link>
           </nav>
         </div>
 
