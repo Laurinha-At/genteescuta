@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
-import { aniversariantesDoMes, type AniversariantesMes, type PessoaMes } from '@/lib/fb/aniversarios'
+import { aniversariantesDoMes, mesAtualSP, NOMES_MESES, type AniversariantesMes, type PessoaMes } from '@/lib/fb/aniversarios'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 
@@ -33,20 +33,30 @@ function TagHoje() {
 export default function Aniversariantes() {
   const [empresa, setEmpresa] = useState('Soulan Recursos Humanos')
   const [dados, setDados] = useState<AniversariantesMes | null>(null)
+  const [mesSel, setMesSel] = useState(mesAtualSP())
+  const mesAtual = mesAtualSP()
 
   useEffect(() => {
     if (!configurado()) return
     getConfig().then((c) => setEmpresa(c.empresa_nome)).catch(() => {})
-    aniversariantesDoMes().then(setDados).catch(() => setDados(null))
   }, [])
+
+  useEffect(() => {
+    if (!configurado()) return
+    setDados(null)
+    aniversariantesDoMes(mesSel).then(setDados).catch(() => setDados(null))
+  }, [mesSel])
 
   if (!configurado()) return <TelaConfiguracao />
 
-  const mesNome = dados?.mesNome ?? ''
+  const mesNome = NOMES_MESES[mesSel - 1] ?? ''
   const mesTitulo = mesNome ? mesNome[0].toUpperCase() + mesNome.slice(1) : ''
-  const mes = dados?.mes ?? 0
+  const mes = mesSel
+  const ehMesAtual = mesSel === mesAtual
   const hojeAniv = dados?.aniversarios.filter((p) => p.hoje) ?? []
   const hojeTempo = dados?.tempos.filter((p) => p.hoje) ?? []
+  const anterior = () => setMesSel((m) => (m === 1 ? 12 : m - 1))
+  const proximo = () => setMesSel((m) => (m === 12 ? 1 : m + 1))
 
   return (
     <div className="min-h-screen">
@@ -55,7 +65,34 @@ export default function Aniversariantes() {
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
           <ArrowLeft size={15} aria-hidden /> Início
         </Link>
-        <h1 className="titulo-hero mt-4 text-[1.75rem] text-tinta">🎂 Aniversariantes de {mesTitulo}</h1>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="titulo-hero text-[1.75rem] text-tinta">🎂 Aniversariantes de {mesTitulo}</h1>
+          {ehMesAtual && (
+            <span className="rounded-full bg-[#eef7e3] px-2.5 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-verde-escuro">Mês atual</span>
+          )}
+        </div>
+
+        {/* Seletor de mês */}
+        <div className="mt-4 flex items-center gap-2">
+          <button type="button" onClick={anterior} aria-label="Mês anterior" className="flex h-9 w-9 items-center justify-center rounded-lg border border-borda-forte bg-white text-tinta-2 transition-colors hover:border-marca hover:text-marca">
+            <ChevronLeft size={18} aria-hidden />
+          </button>
+          <select value={mesSel} onChange={(e) => setMesSel(Number(e.target.value))} className="rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca">
+            {NOMES_MESES.map((nome, i) => (
+              <option key={i} value={i + 1}>
+                {nome[0].toUpperCase() + nome.slice(1)}{i + 1 === mesAtual ? ' • atual' : ''}
+              </option>
+            ))}
+          </select>
+          <button type="button" onClick={proximo} aria-label="Próximo mês" className="flex h-9 w-9 items-center justify-center rounded-lg border border-borda-forte bg-white text-tinta-2 transition-colors hover:border-marca hover:text-marca">
+            <ChevronRight size={18} aria-hidden />
+          </button>
+          {!ehMesAtual && (
+            <button type="button" onClick={() => setMesSel(mesAtual)} className="ml-1 text-xs font-medium text-marca-texto hover:text-marca-escura">
+              Voltar ao mês atual
+            </button>
+          )}
+        </div>
 
         {dados === null ? (
           <p className="mt-6 text-sm text-tinta-3">Carregando…</p>

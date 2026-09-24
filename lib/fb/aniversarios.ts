@@ -53,7 +53,12 @@ export async function destaquesDoDia(): Promise<DestaqueDia[]> {
 // -------------------------------------------------------------
 // Painel do mês (página "Aniversariantes do mês")
 // -------------------------------------------------------------
-const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+export const NOMES_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
+/** Número do mês atual (1–12) no fuso de São Paulo. */
+export function mesAtualSP(): number {
+  return hojeSaoPaulo().mes
+}
 
 export interface PessoaMes {
   nome: string
@@ -66,14 +71,19 @@ export interface PessoaMes {
 export interface AniversariantesMes {
   mes: number
   mesNome: string
+  mesAtual: number
+  ehMesAtual: boolean
   temHoje: boolean
   aniversarios: PessoaMes[]
   tempos: PessoaMes[]
 }
 
-export async function aniversariantesDoMes(): Promise<AniversariantesMes> {
+/** Aniversariantes de um mês (padrão: mês atual em São Paulo). */
+export async function aniversariantesDoMes(mesSel?: number): Promise<AniversariantesMes> {
   const snap = await getDocs(collection(db(), 'aniversarios')).catch(() => null)
-  const { dia, mes, ano } = hojeSaoPaulo()
+  const { dia, mes: mesAtual, ano } = hojeSaoPaulo()
+  const alvo = mesSel && mesSel >= 1 && mesSel <= 12 ? mesSel : mesAtual
+  const ehMesAtual = alvo === mesAtual
   const aniversarios: PessoaMes[] = []
   const tempos: PessoaMes[] = []
 
@@ -83,12 +93,12 @@ export async function aniversariantesDoMes(): Promise<AniversariantesMes> {
     if (!nome) continue
     const foto = (x.foto as string) ?? null
 
-    if (x.aniv_mes === mes && x.aniv_dia) {
-      aniversarios.push({ nome, dia: Number(x.aniv_dia), hoje: x.aniv_dia === dia, foto })
+    if (x.aniv_mes === alvo && x.aniv_dia) {
+      aniversarios.push({ nome, dia: Number(x.aniv_dia), hoje: ehMesAtual && x.aniv_dia === dia, foto })
     }
-    if (x.adm_mes === mes && x.adm_dia && x.adm_ano) {
+    if (x.adm_mes === alvo && x.adm_dia && x.adm_ano) {
       const anos = ano - Number(x.adm_ano)
-      if (anos >= 1) tempos.push({ nome, dia: Number(x.adm_dia), hoje: x.adm_dia === dia, anos, foto })
+      if (anos >= 1) tempos.push({ nome, dia: Number(x.adm_dia), hoje: ehMesAtual && x.adm_dia === dia, anos, foto })
     }
   }
 
@@ -97,9 +107,11 @@ export async function aniversariantesDoMes(): Promise<AniversariantesMes> {
   tempos.sort(porDia)
 
   return {
-    mes,
-    mesNome: MESES[mes - 1],
-    temHoje: aniversarios.some((p) => p.hoje) || tempos.some((p) => p.hoje),
+    mes: alvo,
+    mesNome: NOMES_MESES[alvo - 1],
+    mesAtual,
+    ehMesAtual,
+    temHoje: ehMesAtual && (aniversarios.some((p) => p.hoje) || tempos.some((p) => p.hoje)),
     aniversarios,
     tempos,
   }
