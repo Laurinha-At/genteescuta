@@ -29,11 +29,12 @@ export default function Sobre() {
           <ArrowLeft size={15} aria-hidden /> Início
         </Link>
 
-        {s.capa && (
-          <div className="mt-4 overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_6px_18px_rgba(26,23,20,0.08)]">
-            <img src={s.capa} alt="Soulan Recursos Humanos" className="h-44 w-full object-cover sm:h-60 md:h-72" />
-          </div>
-        )}
+        {/* Mosaico de capa (fotos do escritório) */}
+        <div className="mt-4 grid gap-3 sm:h-[26rem] sm:grid-cols-3 sm:grid-rows-2">
+          <img src="/sobre-2.jpg" alt="Parede de boas-vindas da Soulan" className="h-56 w-full rounded-2xl object-cover shadow-[0_6px_18px_rgba(26,23,20,0.1)] sm:col-span-2 sm:row-span-2 sm:h-full" />
+          <img src="/sobre-1.jpg" alt="Eu te ajudo a trabalhar mais feliz" className="h-40 w-full rounded-2xl object-cover shadow-[0_6px_18px_rgba(26,23,20,0.1)] sm:h-full" />
+          <img src="/sobre-3.jpg" alt="Sala de treinamento da Soulan" className="h-40 w-full rounded-2xl object-cover shadow-[0_6px_18px_rgba(26,23,20,0.1)] sm:h-full" />
+        </div>
 
         <h1 className="titulo-hero mt-6 text-[1.875rem] text-tinta">{s.titulo}</h1>
         {s.subtitulo && <p className="mt-2 text-[1.0625rem] text-tinta-2">{s.subtitulo}</p>}
@@ -73,10 +74,9 @@ export default function Sobre() {
         {/* -------- Nossa equipe -------- */}
         <section className="mt-6 grid items-stretch overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_10px_30px_rgba(26,23,20,0.12)] md:grid-cols-[minmax(0,20rem)_1fr]">
           <div className="flex flex-col justify-center p-8 text-white sm:p-10 [text-shadow:0_1px_6px_rgba(0,0,0,0.18)]" style={{ background: 'var(--gradiente)' }}>
-            <span className="text-4xl" aria-hidden>💙</span>
-            <h2 className="mt-3 text-2xl font-bold tracking-[-0.01em] sm:text-3xl">Nossa equipe</h2>
+            <h2 className="text-2xl font-bold tracking-[-0.01em] sm:text-3xl">Nossa equipe 💙</h2>
             <p className="mt-3 text-[1.0625rem] leading-8 text-white/95">
-              Quem faz o jeito Soulan acontecer todos os dias.
+              Quem faz o jeito Soulan acontecer todos os dias
             </p>
           </div>
           <div className="relative min-h-[18rem] md:min-h-[30rem]">
