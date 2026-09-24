@@ -23,7 +23,7 @@ export interface SobreConfig {
 }
 
 export const SOBRE_PADRAO: SobreConfig = {
-  capa: '/capa-soulan.png',
+  capa: '/sobre-capa.jpg',
   titulo: 'Gente Cultura',
   subtitulo: 'Informação, comunicação e conexão.',
   blocos: [
