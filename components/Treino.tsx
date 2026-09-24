@@ -10,9 +10,9 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   GraduationCap, Clock, Lock, CheckCircle2, ArrowLeft, ArrowRight,
-  Trophy, Star, BookOpen, HelpCircle, Grid2x2, PartyPopper, LogIn,
+  Trophy, Star, BookOpen, HelpCircle, Grid2x2, PartyPopper, LogIn, ExternalLink, Video,
 } from 'lucide-react'
-import { TRILHAS, pontosPossiveis, type Trilha, type Etapa } from '@/lib/treinamentos'
+import { pontosPossiveis, type Trilha, type Etapa } from '@/lib/treinamentos'
 import { aplicarConclusaoEtapa, salvarProgresso, type ProgressoTreino } from '@/lib/fb/treino'
 import type { Perfil } from '@/lib/fb/funcionarios'
 
@@ -21,9 +21,11 @@ type Filtro = 'todas' | 'obrigatorio' | 'sugerido' | 'concluidas'
 export function TrilhasApp({
   perfil,
   progInicial,
+  trilhas,
 }: {
   perfil: Perfil | null
   progInicial: ProgressoTreino
+  trilhas: Trilha[]
 }) {
   const [prog, setProg] = useState<ProgressoTreino>(progInicial)
   const [aberta, setAberta] = useState<Trilha | null>(null)
@@ -50,7 +52,7 @@ export function TrilhasApp({
     )
   }
 
-  return <Hub perfil={perfil} logado={logado} prog={prog} aoAbrir={setAberta} />
+  return <Hub perfil={perfil} logado={logado} prog={prog} aoAbrir={setAberta} trilhas={trilhas} />
 }
 
 // -------------------------------------------------------------
@@ -63,24 +65,25 @@ function pctTrilha(t: Trilha, prog: ProgressoTreino): number {
 }
 
 function Hub({
-  perfil, logado, prog, aoAbrir,
+  perfil, logado, prog, aoAbrir, trilhas: todasTrilhas,
 }: {
   perfil: Perfil | null
   logado: boolean
   prog: ProgressoTreino
   aoAbrir: (t: Trilha) => void
+  trilhas: Trilha[]
 }) {
   const [filtro, setFiltro] = useState<Filtro>('todas')
 
   const trilhas = useMemo(() => {
-    return TRILHAS.filter((t) => {
+    return todasTrilhas.filter((t) => {
       if (filtro === 'todas') return true
       if (filtro === 'concluidas') return !!prog.trilhas[t.id]
       return t.tag === filtro
     })
-  }, [filtro, prog])
+  }, [filtro, prog, todasTrilhas])
 
-  const concluidas = TRILHAS.filter((t) => prog.trilhas[t.id]).length
+  const concluidas = todasTrilhas.filter((t) => prog.trilhas[t.id]).length
 
   const FILTROS: { id: Filtro; rotulo: string }[] = [
     { id: 'todas', rotulo: 'Todas' },
@@ -111,7 +114,7 @@ function Hub({
       {/* Faixa de progresso pessoal (logado) ou convite a entrar */}
       {logado ? (
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <ResumoCard icone={<Trophy size={18} aria-hidden />} valor={`${concluidas}/${TRILHAS.length}`} rotulo="Trilhas concluídas" />
+          <ResumoCard icone={<Trophy size={18} aria-hidden />} valor={`${concluidas}/${todasTrilhas.length}`} rotulo="Trilhas concluídas" />
           <ResumoCard icone={<Star size={18} aria-hidden />} valor={String(prog.pontos)} rotulo="Pontos conquistados" />
           <ResumoCard icone={<BookOpen size={18} aria-hidden />} valor={String(Object.values(prog.etapas).filter(Boolean).length)} rotulo="Etapas feitas" />
         </div>
@@ -329,7 +332,7 @@ function PlayerTrilha({
 }
 
 function StatusEtapa({ feita, livre, tipo }: { feita: boolean; livre: boolean; tipo: Etapa['type'] }) {
-  const Icone = tipo === 'quiz' ? HelpCircle : tipo === 'caca' ? Grid2x2 : BookOpen
+  const Icone = tipo === 'quiz' ? HelpCircle : tipo === 'caca' ? Grid2x2 : tipo === 'material' ? Video : BookOpen
   return (
     <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ${
       feita ? 'bg-[#eef7e3] text-verde-escuro' : livre ? 'bg-marca-clara text-marca' : 'bg-superficie-2 text-tinta-3'
@@ -340,7 +343,7 @@ function StatusEtapa({ feita, livre, tipo }: { feita: boolean; livre: boolean; t
 }
 
 function rotuloTipo(t: Etapa['type']) {
-  return t === 'quiz' ? 'Quiz' : t === 'caca' ? 'Caça-palavras' : 'Leitura'
+  return t === 'quiz' ? 'Quiz' : t === 'caca' ? 'Caça-palavras' : t === 'material' ? 'Material' : 'Leitura'
 }
 
 // -------------------------------------------------------------
@@ -356,7 +359,41 @@ function CorpoEtapa({
 }) {
   if (etapa.type === 'texto') return <EtapaTextoView etapa={etapa} feita={feita} logado={logado} aoConcluir={aoConcluir} />
   if (etapa.type === 'quiz') return <EtapaQuizView etapa={etapa} feita={feita} logado={logado} aoConcluir={aoConcluir} />
+  if (etapa.type === 'material') return <EtapaMaterialView etapa={etapa} feita={feita} logado={logado} aoConcluir={aoConcluir} />
   return <EtapaCacaView etapa={etapa} feita={feita} logado={logado} aoConcluir={aoConcluir} />
+}
+
+/** Converte link de YouTube/Drive em URL de embed. */
+function urlEmbed(url: string): string {
+  try {
+    const u = new URL(url)
+    if (u.hostname.includes('youtube.com')) { const v = u.searchParams.get('v'); if (v) return `https://www.youtube.com/embed/${v}` }
+    if (u.hostname === 'youtu.be') return `https://www.youtube.com/embed${u.pathname}`
+    if (u.hostname.includes('drive.google.com')) { const m = u.pathname.match(/\/file\/d\/([^/]+)/); if (m) return `https://drive.google.com/file/d/${m[1]}/preview` }
+    return url
+  } catch { return url }
+}
+const ehEmbed = (url: string) => /youtube\.com|youtu\.be|drive\.google\.com/.test(url)
+
+function EtapaMaterialView({ etapa, feita, logado, aoConcluir }: any) {
+  const video = etapa.midia === 'video'
+  return (
+    <div>
+      {etapa.content && <Paragrafos texto={etapa.content} />}
+      {etapa.url && (
+        video && ehEmbed(etapa.url) ? (
+          <div className="mt-3 aspect-video overflow-hidden rounded-xl border border-borda bg-black">
+            <iframe src={urlEmbed(etapa.url)} title={etapa.title} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          </div>
+        ) : (
+          <a href={etapa.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3.5 py-2 text-sm font-semibold text-marca-texto transition-colors hover:border-marca">
+            {video ? <Video size={15} aria-hidden /> : <ExternalLink size={15} aria-hidden />} {video ? 'Abrir vídeo' : 'Abrir material'}
+          </a>
+        )
+      )}
+      <BotaoConcluir feita={feita} logado={logado} rotulo="Concluir e avançar" onClick={aoConcluir} />
+    </div>
+  )
 }
 
 /** Renderiza texto com parágrafos (\n\n) e quebras simples (\n). */

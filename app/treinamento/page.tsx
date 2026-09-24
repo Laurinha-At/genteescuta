@@ -6,6 +6,8 @@ import { getConfig } from '@/lib/fb/publico'
 import { observarLogin } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 import { getProgresso, type ProgressoTreino } from '@/lib/fb/treino'
+import { listarTrilhas } from '@/lib/fb/treinos'
+import { type Trilha } from '@/lib/treinamentos'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 import { TrilhasApp } from '@/components/Treino'
@@ -14,10 +16,12 @@ export default function Treinamento() {
   const [empresa, setEmpresa] = useState('Soulan Recursos Humanos')
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined)
   const [prog, setProg] = useState<ProgressoTreino | null>(null)
+  const [trilhas, setTrilhas] = useState<Trilha[] | null>(null)
 
   useEffect(() => {
     if (!configurado()) return
     getConfig().then((c) => setEmpresa(c.empresa_nome)).catch(() => {})
+    listarTrilhas().then((r) => setTrilhas(r.trilhas)).catch(() => setTrilhas([]))
     const cancelar = observarLogin(async (u) => {
       const p = u ? await perfilAtual().catch(() => null) : null
       setPerfil(p)
@@ -32,10 +36,10 @@ export default function Treinamento() {
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-        {perfil === undefined || prog === null ? (
+        {perfil === undefined || prog === null || trilhas === null ? (
           <p className="text-sm text-tinta-3">Carregando trilhas…</p>
         ) : (
-          <TrilhasApp perfil={perfil} progInicial={prog} />
+          <TrilhasApp perfil={perfil} progInicial={prog} trilhas={trilhas} />
         )}
       </main>
       <RodapePublico />

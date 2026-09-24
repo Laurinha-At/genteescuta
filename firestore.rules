@@ -275,6 +275,12 @@ service cloud.firestore {
       allow create, update, delete: if admin();
     }
 
+    // Trilhas de Treinamento & Desenvolvimento. Público lê; só admin grava.
+    match /trilhas/{id} {
+      allow read: if true;
+      allow create, update, delete: if admin();
+    }
+
     // -------- Banco de Horas (planilha mensal por matrícula) --------
     // Master vê/edita tudo. Gestor lê só o próprio centro (ou todos, se
     // "Todos os centros"). O colaborador lê só o próprio saldo (uid).

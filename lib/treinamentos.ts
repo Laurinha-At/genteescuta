@@ -15,13 +15,14 @@ export type TagTrilha = 'obrigatorio' | 'sugerido'
 
 export interface EtapaBase {
   id: string
-  type: 'texto' | 'quiz' | 'caca'
+  type: 'texto' | 'quiz' | 'caca' | 'material'
   title: string
   pts: number
   coins: number
 }
 export interface EtapaTexto extends EtapaBase { type: 'texto'; content: string }
 export interface EtapaQuiz extends EtapaBase { type: 'quiz'; q: string; opts: string[]; ans: number }
+export interface EtapaMaterial extends EtapaBase { type: 'material'; url: string; content?: string; midia?: 'link' | 'video' }
 export interface EtapaCaca extends EtapaBase {
   type: 'caca'
   intro: string
@@ -29,7 +30,7 @@ export interface EtapaCaca extends EtapaBase {
   grid: string[][]
   posicoes: Record<string, [number, number][]>
 }
-export type Etapa = EtapaTexto | EtapaQuiz | EtapaCaca
+export type Etapa = EtapaTexto | EtapaQuiz | EtapaMaterial | EtapaCaca
 
 export interface Trilha {
   id: string
