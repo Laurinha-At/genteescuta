@@ -94,7 +94,9 @@ service cloud.firestore {
     // é de dashboard, então master também pode salvar.
     match /config/{doc} {
       allow read: if true;
-      allow write: if souSuper() || (doc == 'humor' && admin());
+      // Super edita tudo; admin (Master) edita a classificação de humor e o
+      // conteúdo da página de Contato.
+      allow write: if souSuper() || ((doc == 'humor' || doc == 'contato') && admin());
     }
 
     // -------- Áreas/setores: público lê; só SUPER edita (é configuração).
