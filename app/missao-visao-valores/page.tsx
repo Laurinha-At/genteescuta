@@ -5,15 +5,18 @@ import Link from 'next/link'
 import { ArrowLeft, Target, Eye, Gem } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
+import { getMissao, MISSAO_PADRAO, type MissaoConfig } from '@/lib/fb/institucional'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 
 export default function MissaoVisaoValores() {
   const [empresa, setEmpresa] = useState('Soulan Recursos Humanos')
+  const [m, setM] = useState<MissaoConfig>(MISSAO_PADRAO)
 
   useEffect(() => {
     if (!configurado()) return
     getConfig().then((c) => setEmpresa(c.empresa_nome)).catch(() => {})
+    getMissao().then(setM).catch(() => {})
   }, [])
 
   if (!configurado()) return <TelaConfiguracao />
@@ -36,11 +39,7 @@ export default function MissaoVisaoValores() {
               </span>
               <div>
                 <h2 className="text-[0.9375rem] font-semibold text-tinta">Visão</h2>
-                <p className="mt-1 text-[0.9688rem] leading-7 text-tinta-2">
-                  Nossa visão é ser reconhecida como a principal Consultoria de RH, Líder em Gestão de Pessoas. Isso
-                  significa que nos dedicamos a fornecer as melhores práticas e soluções que promovem o sucesso de
-                  nossos clientes e colaboradores.
-                </p>
+                <p className="mt-1 whitespace-pre-wrap text-[0.9688rem] leading-7 text-tinta-2">{m.visao}</p>
               </div>
             </li>
             <li className="flex gap-3">
@@ -49,11 +48,7 @@ export default function MissaoVisaoValores() {
               </span>
               <div>
                 <h2 className="text-[0.9375rem] font-semibold text-tinta">Missão</h2>
-                <p className="mt-1 text-[0.9688rem] leading-7 text-tinta-2">
-                  Nossa missão é oferecer produtos e serviços que apoiem a gestão de pessoas, buscando sempre a
-                  melhoria da performance e satisfação profissional. Queremos garantir que todos os membros de nossa
-                  equipe se sintam motivados e preparados para alcançar seus objetivos.
-                </p>
+                <p className="mt-1 whitespace-pre-wrap text-[0.9688rem] leading-7 text-tinta-2">{m.missao}</p>
               </div>
             </li>
             <li className="flex gap-3">
@@ -62,19 +57,11 @@ export default function MissaoVisaoValores() {
               </span>
               <div>
                 <h2 className="text-[0.9375rem] font-semibold text-tinta">Valores Fundamentais</h2>
-                <p className="mt-1 text-[0.9688rem] leading-7 text-tinta-2">
-                  Para nós, ética é um valor tão fundamental que você inclusive já viu que temos um código inteiro só
-                  voltado a isso. Mas além dele, temos outros 4 valores que são essenciais no nosso dia a dia:
-                </p>
+                <p className="mt-1 whitespace-pre-wrap text-[0.9688rem] leading-7 text-tinta-2">{m.intro_valores}</p>
                 <ul className="mt-3 space-y-2.5">
-                  {[
-                    { nome: 'Trabalho Cooperativo', desc: 'Acreditamos no poder do trabalho colaborativo. Incentivamos uma abordagem que se concentra em ações realistas, autoconfiança e pensamento coletivo. Juntos, podemos alcançar resultados maiores do que alcançaríamos sozinhos.' },
-                    { nome: 'Atendimento ao Cliente', desc: 'O atendimento ao cliente é um dos pilares da nossa operação. Praticamos a escuta ativa e estamos sempre atentos a novas oportunidades dentro dos clientes, mantendo a flexibilidade necessária para adaptar nossas rotinas e entregar o melhor serviço.' },
-                    { nome: 'Inovação', desc: 'A inovação está no centro de nossa estratégia. Valorizamos a iniciativa na resolução de problemas e a proatividade na proposição de novas soluções. Buscamos constantemente melhorar nossos processos e nos adaptar às mudanças do mercado.' },
-                    { nome: 'Ímpeto por Excelência', desc: 'Comprometemo-nos com a excelência em tudo o que fazemos. Incentivamos a conscientização do papel de cada colaborador dentro da organização, o senso de responsabilidade e urgência, e um foco contínuo em medir, acompanhar e alcançar resultados.' },
-                  ].map(({ nome, desc }) => (
-                    <li key={nome} className="rounded-xl border border-borda bg-superficie-2 px-4 py-3 text-sm leading-6 text-tinta-2">
-                      <strong className="font-semibold text-tinta">{nome}</strong> — {desc}
+                  {m.valores.map(({ nome, desc }, i) => (
+                    <li key={i} className="rounded-xl border border-borda bg-superficie-2 px-4 py-3 text-sm leading-6 text-tinta-2">
+                      <strong className="font-semibold text-tinta">{nome}</strong>{desc ? ` — ${desc}` : ''}
                     </li>
                   ))}
                 </ul>

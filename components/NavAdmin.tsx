@@ -17,6 +17,7 @@ import {
   Info,
   Clock,
   LifeBuoy,
+  BookOpen,
 } from 'lucide-react'
 
 type Item = { href: string; rotulo: string; Icone: typeof LayoutDashboard; exato?: boolean }
@@ -34,6 +35,7 @@ const BASE: Item[] = [
   { href: '/admin/funcionarios', rotulo: 'Funcionários', Icone: Contact },
   { href: '/admin/informacoes', rotulo: 'Informações Adm.', Icone: Info },
   { href: '/admin/contato', rotulo: 'Contato', Icone: LifeBuoy },
+  { href: '/admin/institucional', rotulo: 'Sobre / Missão', Icone: BookOpen },
 ]
 
 // Só Super Admin
