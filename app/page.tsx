@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, LifeBuoy, Megaphone, GraduationCap, Receipt, ClipboardList, Cake, Clock } from 'lucide-react'
+import { ArrowRight, LifeBuoy, Megaphone, GraduationCap, Receipt, ClipboardList, Cake, Clock } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
@@ -44,10 +44,6 @@ export default function Inicio() {
           alt="Equipe da Soulan de costas, com a frase “Eu te ajudo a trabalhar mais feliz” nas camisetas"
           className="banner-img"
         />
-        <div className="banner-scrim" aria-hidden />
-        <div className="banner-conteudo">
-          <h1 className="banner-titulo">Sua voz importa. Aqui, ela é ouvida e pode transformar.</h1>
-        </div>
       </section>
 
       <main className="mx-auto max-w-7xl px-4 pt-10">
@@ -100,25 +96,6 @@ export default function Inicio() {
                 </span>
               </Link>
             ))}
-          </div>
-        </section>
-
-        {/* -------- LGPD (enxuto) -------- */}
-        <section className="mb-16">
-          <div className="cartao-g p-6 sm:p-7">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-marca-clara text-marca">
-                <ShieldCheck size={18} aria-hidden />
-              </span>
-              <h2 className="titulo-secao text-tinta">Privacidade e base legal (LGPD)</h2>
-            </div>
-            <p className="mt-3 max-w-[70ch] text-sm leading-6 text-tinta-2">
-              O Gente Cultura trata seus dados pessoais conforme a{' '}
-              <strong className="font-semibold text-tinta">Lei nº 13.709/2018 (LGPD)</strong>. As manifestações e as
-              respostas de pesquisa são usadas exclusivamente para a gestão do canal de escuta e para o inventário de
-              riscos psicossociais exigido pela{' '}
-              <strong className="font-semibold text-tinta">NR-1 (Portaria MTE nº 1.419/2024)</strong>.
-            </p>
           </div>
         </section>
 

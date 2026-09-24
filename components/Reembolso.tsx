@@ -134,7 +134,7 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
         )}
         {aba === 'minhas' && <ListaMinhas carregando={carregando} itens={minhas} />}
         {aba === 'fila' && (
-          <Fila perfil={perfil} carregando={carregando} pendentes={pendentes} aoDecidir={recarregar} setAviso={setAviso} setErro={setErro} />
+          <Fila perfil={perfil} carregando={carregando} pendentes={pendentes} aoDecidir={recarregar} />
         )}
         {aba === 'central' && (
           <Central perfil={perfil} carregando={carregando} registros={gestao} />
@@ -396,11 +396,11 @@ function BotaoAnexo({ id, tipo }: { id: string; tipo: 'image' | 'pdf' | null }) 
 // -------------------------------------------------------------
 // Tabela de solicitações (busca + filtros + ordenação)
 // -------------------------------------------------------------
-type Coluna = { key: string; label: string; texto: (r: Reembolso) => string; ord: (r: Reembolso) => string | number; right?: boolean; chip?: boolean }
+type Coluna = { key: string; label: string; texto: (r: Reembolso) => string; ord: (r: Reembolso) => string | number; right?: boolean; chip?: boolean; trunc?: boolean }
 
 const COLS_BASE: Coluna[] = [
   { key: 'data', label: 'Data', texto: (r) => formatData(r.data_despesa), ord: (r) => r.data_despesa ?? '' },
-  { key: 'solicitante', label: 'Solicitante', texto: (r) => r.solicitante_nome, ord: (r) => normalizar(r.solicitante_nome) },
+  { key: 'solicitante', label: 'Solicitante', texto: (r) => r.solicitante_nome, ord: (r) => normalizar(r.solicitante_nome), trunc: true },
   { key: 'centro', label: 'Centro de custo', texto: (r) => r.centro_custo, ord: (r) => normalizar(r.centro_custo) },
   { key: 'categoria', label: 'Categoria', texto: (r) => r.categoria, ord: (r) => normalizar(r.categoria) },
   { key: 'valor', label: 'Valor', texto: (r) => formatBRL(r.valor), ord: (r) => r.valor ?? 0, right: true },
@@ -411,7 +411,9 @@ const COLS_CENTRAL: Coluna[] = [
   { key: 'pagamento', label: 'Pagamento', texto: (r) => (r.data_pagamento ? formatData(r.data_pagamento) : '—'), ord: (r) => r.data_pagamento ?? '' },
 ]
 
-function TabelaSolicitacoes({ registros, colunas, aoAbrir }: { registros: Reembolso[]; colunas: Coluna[]; aoAbrir: (r: Reembolso) => void }) {
+function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
+  registros: Reembolso[]; colunas: Coluna[]; aoAbrir: (r: Reembolso) => void; acoes?: (r: Reembolso) => React.ReactNode
+}) {
   const [busca, setBusca] = useState('')
   const [fStatus, setFStatus] = useState('')
   const [fCentro, setFCentro] = useState('')
@@ -421,6 +423,9 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir }: { registros: Reembo
 
   const centros = useMemo(() => Array.from(new Set(registros.map((r) => r.centro_custo).filter(Boolean))).sort(), [registros])
   const categorias = useMemo(() => Array.from(new Set(registros.map((r) => r.categoria).filter(Boolean))).sort(), [registros])
+  // Só mostra o filtro de centro quando há mais de uma área no escopo (oculta
+  // para colaborador e para gestor de uma área só).
+  const mostrarCentro = centros.length > 1
   const statuses = useMemo(() => Array.from(new Set(registros.map((r) => statusEfetivo(r.status, r.data_pagamento)))), [registros])
 
   const filtrados = useMemo(() => {
@@ -458,10 +463,12 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir }: { registros: Reembo
           <option value="">Todos os status</option>
           {statuses.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
         </select>
-        <select value={fCentro} onChange={(e) => setFCentro(e.target.value)} className={ENTRADA}>
-          <option value="">Todos os centros</option>
-          {centros.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        {mostrarCentro && (
+          <select value={fCentro} onChange={(e) => setFCentro(e.target.value)} className={ENTRADA}>
+            <option value="">Todos os centros</option>
+            {centros.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
         <select value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className={ENTRADA}>
           <option value="">Todas as categorias</option>
           {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -481,7 +488,7 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir }: { registros: Reembo
         <div className="cartao-g p-6 text-center text-sm text-tinta-3">Nada encontrado com esses filtros.</div>
       ) : (
         <div className="cartao-g overflow-x-auto">
-          <table className="w-full min-w-[48rem] text-sm">
+          <table className="w-full min-w-[44rem] text-sm">
             <thead>
               <tr className="border-b border-borda text-left text-xs font-semibold text-tinta-3">
                 {colunas.map((c) => (
@@ -492,16 +499,24 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir }: { registros: Reembo
                     </button>
                   </th>
                 ))}
+                {acoes && <th className="px-4 py-2.5 text-right">Ações</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-borda">
               {filtrados.map((r) => (
                 <tr key={r.id} onClick={() => aoAbrir(r)} className="cursor-pointer hover:bg-superficie-2">
                   {colunas.map((c) => (
-                    <td key={c.key} className={`whitespace-nowrap px-4 py-2.5 ${c.right ? 'text-right font-medium text-tinta' : 'text-tinta-2'}`}>
-                      {c.chip ? <StatusChip status={r.status} dataPagamento={r.data_pagamento} /> : c.texto(r)}
+                    <td key={c.key} className={`px-4 py-2.5 ${c.trunc ? '' : 'whitespace-nowrap'} ${c.right ? 'text-right font-medium text-tinta' : 'text-tinta-2'}`}>
+                      {c.chip ? (
+                        <StatusChip status={r.status} dataPagamento={r.data_pagamento} />
+                      ) : c.trunc ? (
+                        <span className="block max-w-[12rem] truncate" title={c.texto(r)}>{c.texto(r)}</span>
+                      ) : (
+                        c.texto(r)
+                      )}
                     </td>
                   ))}
+                  {acoes && <td className="whitespace-nowrap px-4 py-2.5 text-right">{acoes(r)}</td>}
                 </tr>
               ))}
             </tbody>
@@ -515,23 +530,61 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir }: { registros: Reembo
 // -------------------------------------------------------------
 // Fila de Trabalho (aprovador) — tabela + modal de decisão
 // -------------------------------------------------------------
-function Fila({ perfil, carregando, pendentes, aoDecidir, setAviso, setErro }: {
-  perfil: Perfil; carregando: boolean; pendentes: Reembolso[]; aoDecidir: () => void; setAviso: (s: string | null) => void; setErro: (s: string | null) => void
+type ResultadoAcao = { tipo: 'sucesso' | 'reprovado'; titulo: string; mensagem: string }
+
+function Fila({ perfil, carregando, pendentes, aoDecidir }: {
+  perfil: Perfil; carregando: boolean; pendentes: Reembolso[]; aoDecidir: () => void
 }) {
-  const [aberto, setAberto] = useState<Reembolso | null>(null)
+  const [aberto, setAberto] = useState<{ r: Reembolso; modo: 'ver' | 'recusar' } | null>(null)
+  const [resultado, setResultado] = useState<ResultadoAcao | null>(null)
   if (carregando) return <p className="text-sm text-tinta-3">Carregando…</p>
+
+  const icones = (r: Reembolso) => (
+    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      <button type="button" title={ehEtapaFinanceiro(r.status) ? 'Registrar pagamento' : 'Aprovar'} onClick={() => setAberto({ r, modo: 'ver' })} className="rounded-md p-1.5 text-verde-escuro transition-colors hover:bg-[#eef7e3]">
+        <CheckCircle2 size={18} aria-hidden />
+      </button>
+      <button type="button" title="Recusar" onClick={() => setAberto({ r, modo: 'recusar' })} className="rounded-md p-1.5 text-critico transition-colors hover:bg-[#fdeaea]">
+        <XCircle size={18} aria-hidden />
+      </button>
+    </div>
+  )
+
   return (
     <>
       <p className="text-sm text-tinta-2">Solicitações aguardando <strong>a sua decisão</strong> ({pendentes.length}).</p>
       {pendentes.length === 0 ? (
         <div className="cartao-g p-6 text-center text-sm text-tinta-3">Nada aguardando você agora. 🎉</div>
       ) : (
-        <TabelaSolicitacoes registros={pendentes} colunas={COLS_BASE} aoAbrir={setAberto} />
+        <TabelaSolicitacoes registros={pendentes} colunas={COLS_BASE} aoAbrir={(r) => setAberto({ r, modo: 'ver' })} acoes={icones} />
       )}
       {aberto && (
-        <ModalDecisao r={aberto} perfil={perfil} onFechar={() => setAberto(null)} aoDecidir={() => { setAberto(null); aoDecidir() }} setAviso={setAviso} setErro={setErro} />
+        <ModalDecisao
+          r={aberto.r}
+          perfil={perfil}
+          modoInicial={aberto.modo}
+          onFechar={() => setAberto(null)}
+          aoConcluir={(res) => { setAberto(null); setResultado(res) }}
+        />
       )}
+      {resultado && <ModalResultado {...resultado} onFechar={() => { setResultado(null); aoDecidir() }} />}
     </>
+  )
+}
+
+function ModalResultado({ tipo, titulo, mensagem, onFechar }: ResultadoAcao & { onFechar: () => void }) {
+  const sucesso = tipo === 'sucesso'
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={onFechar}>
+      <div className="anim-fade-up w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl sm:p-7" onClick={(e) => e.stopPropagation()}>
+        <span className={`anim-pop mx-auto flex h-16 w-16 items-center justify-center rounded-full ${sucesso ? 'bg-[#eef7e3] text-verde-escuro' : 'bg-[#fdeaea] text-critico'}`}>
+          {sucesso ? <CheckCircle2 size={34} aria-hidden /> : <XCircle size={34} aria-hidden />}
+        </span>
+        <h3 className="mt-4 text-lg font-semibold text-tinta">{titulo}</h3>
+        <p className="mt-3 text-sm leading-6 text-tinta-2">{mensagem}</p>
+        <Botao type="button" onClick={onFechar} className="mt-6 w-full justify-center">Entendi</Botao>
+      </div>
+    </div>
   )
 }
 
@@ -627,34 +680,44 @@ function ModalDetalhe({ r, onFechar }: { r: Reembolso; onFechar: () => void }) {
   )
 }
 
-function ModalDecisao({ r, perfil, onFechar, aoDecidir, setAviso, setErro }: {
-  r: Reembolso; perfil: Perfil; onFechar: () => void; aoDecidir: () => void; setAviso: (s: string | null) => void; setErro: (s: string | null) => void
+function ModalDecisao({ r, perfil, modoInicial, onFechar, aoConcluir }: {
+  r: Reembolso; perfil: Perfil; modoInicial: 'ver' | 'recusar'; onFechar: () => void; aoConcluir: (res: ResultadoAcao) => void
 }) {
   const [pendente, setPendente] = useState(false)
-  const [recusando, setRecusando] = useState(false)
+  const [recusando, setRecusando] = useState(modoInicial === 'recusar')
   const [motivo, setMotivo] = useState('')
   const [dataPag, setDataPag] = useState(new Date().toISOString().slice(0, 10))
+  const [erro, setErro] = useState<string | null>(null)
   const financeiro = ehEtapaFinanceiro(r.status)
 
   async function aprovar() {
-    setPendente(true); setErro(null); setAviso(null)
-    try { await aprovarReembolso(r.id, perfil); setAviso('Aprovado e encaminhado ao Financeiro.'); aoDecidir() }
-    catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui aprovar.'); setPendente(false) }
+    setPendente(true); setErro(null)
+    try {
+      await aprovarReembolso(r.id, perfil)
+      aoConcluir({ tipo: 'sucesso', titulo: 'Solicitação aprovada!', mensagem: 'Encaminhada ao Financeiro para o pagamento. Acompanhe o andamento nas próximas etapas.' })
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui aprovar.'); setPendente(false) }
   }
   async function pagar() {
-    setPendente(true); setErro(null); setAviso(null)
-    try { const { status } = await registrarPagamento(r.id, perfil, dataPag); setAviso(status === 'agendado' ? 'Pagamento agendado.' : 'Pagamento registrado!'); aoDecidir() }
-    catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui registrar o pagamento.'); setPendente(false) }
+    setPendente(true); setErro(null)
+    try {
+      const { status } = await registrarPagamento(r.id, perfil, dataPag)
+      aoConcluir(status === 'agendado'
+        ? { tipo: 'sucesso', titulo: 'Pagamento agendado!', mensagem: 'O pagamento foi agendado para a data informada. O solicitante acompanha o status.' }
+        : { tipo: 'sucesso', titulo: 'Pagamento concluído!', mensagem: 'O reembolso foi marcado como pago. Processo finalizado. ✅' })
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui registrar o pagamento.'); setPendente(false) }
   }
   async function recusar() {
-    setPendente(true); setErro(null); setAviso(null)
-    try { await recusarReembolso(r.id, perfil, motivo); setAviso('Solicitação recusada. O solicitante verá o motivo.'); aoDecidir() }
-    catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui recusar.'); setPendente(false) }
+    setPendente(true); setErro(null)
+    try {
+      await recusarReembolso(r.id, perfil, motivo)
+      aoConcluir({ tipo: 'reprovado', titulo: 'Solicitação reprovada', mensagem: 'O solicitante será informado com o motivo que você registrou.' })
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui recusar.'); setPendente(false) }
   }
 
   return (
     <Envelope r={r} onFechar={onFechar}>
       <div className="mt-4 border-t border-borda pt-4">
+        {erro && <div className="mb-3"><Aviso tom="erro">{erro}</Aviso></div>}
         {!recusando ? (
           financeiro ? (
             <div className="flex flex-wrap items-end gap-2">
