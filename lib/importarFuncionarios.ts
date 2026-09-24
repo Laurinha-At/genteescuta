@@ -81,15 +81,49 @@ function parsePapeis(v: unknown): string[] {
     .filter((p) => PAPEIS_VALIDOS.includes(p))
 }
 
+/** Divide uma linha de CSV respeitando aspas. */
+function dividirCSV(linha: string, sep: string): string[] {
+  const out: string[] = []
+  let atual = '', aspas = false
+  for (let i = 0; i < linha.length; i++) {
+    const c = linha[i]
+    if (c === '"') {
+      if (aspas && linha[i + 1] === '"') { atual += '"'; i++ }
+      else aspas = !aspas
+    } else if (c === sep && !aspas) { out.push(atual); atual = '' }
+    else atual += c
+  }
+  out.push(atual)
+  return out.map((s) => s.trim())
+}
+
+/** Lê a planilha como matriz de linhas. CSV: detecta o separador (; , ou tab). */
+async function lerMatriz(file: File): Promise<unknown[][]> {
+  const nome = (file.name || '').toLowerCase()
+  const ehCSV = nome.endsWith('.csv') || nome.endsWith('.txt') || (file.type || '').includes('csv')
+  if (ehCSV) {
+    const texto = (await file.text()).replace(/^﻿/, '')
+    const linhas = texto.split(/\r\n|\n|\r/).filter((l) => l.trim() !== '')
+    if (linhas.length === 0) return []
+    const primeira = linhas[0]
+    const conta = (ch: string) => primeira.split(ch).length - 1
+    const cand: Array<[string, number]> = [[';', conta(';')], [',', conta(',')], ['\t', conta('\t')]]
+    cand.sort((a, b) => b[1] - a[1])
+    const sep = cand[0][1] > 0 ? cand[0][0] : ';'
+    return linhas.map((l) => dividirCSV(l, sep))
+  }
+  const buf = await file.arrayBuffer()
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  return XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, blankrows: false, defval: '' })
+}
+
 /**
  * Lê a planilha e valida cada linha. `emailsExistentes` (minúsculos) define
  * quem é atualização vs. criação. Não grava nada.
  */
 export async function lerEValidar(file: File, emailsExistentes: Set<string>): Promise<LinhaImport[]> {
-  const buf = await file.arrayBuffer()
-  const wb = XLSX.read(buf, { type: 'array', cellDates: true })
-  const ws = wb.Sheets[wb.SheetNames[0]]
-  const matriz: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, blankrows: false, defval: '' })
+  const matriz = await lerMatriz(file)
   if (matriz.length < 2) return []
 
   const cabec = (matriz[0] as unknown[]).map((h) => campoDoCabecalho(String(h ?? '')))
