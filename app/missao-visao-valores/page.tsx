@@ -29,7 +29,7 @@ export default function MissaoVisaoValores() {
           <ArrowLeft size={15} aria-hidden /> Início
         </Link>
         <h1 className="titulo-hero mt-4 text-[2rem] text-tinta">Missão, Visão e Valores</h1>
-        <p className="mt-2 max-w-2xl text-[1.0625rem] leading-7 text-tinta-2">O que guia a forma como a Soulan cuida de pessoas — todos os dias.</p>
+        <p className="mt-2 max-w-2xl text-[1.0625rem] leading-7 text-tinta-2">O que guia a forma como a Soulan cuida de pessoas, todos os dias.</p>
 
         <div className="mt-8 space-y-6">
           {/* -------- Visão (imagem à esquerda) -------- */}
