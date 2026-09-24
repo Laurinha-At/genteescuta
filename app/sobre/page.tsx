@@ -28,7 +28,14 @@ export default function Sobre() {
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
           <ArrowLeft size={15} aria-hidden /> Início
         </Link>
-        <h1 className="titulo-hero mt-4 text-[1.875rem] text-tinta">{s.titulo}</h1>
+
+        {s.capa && (
+          <div className="mt-4 overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_6px_18px_rgba(26,23,20,0.08)]">
+            <img src={s.capa} alt="Soulan Recursos Humanos" className="h-44 w-full object-cover sm:h-60 md:h-72" />
+          </div>
+        )}
+
+        <h1 className="titulo-hero mt-6 text-[1.875rem] text-tinta">{s.titulo}</h1>
         {s.subtitulo && <p className="mt-2 text-[1.0625rem] text-tinta-2">{s.subtitulo}</p>}
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-borda bg-white shadow-[0_1px_3px_rgba(26,23,20,0.04),0_4px_12px_rgba(26,23,20,0.06)]">

@@ -13,6 +13,7 @@ import { registrarLog } from './usuarios'
 export type BlocoTipo = 'sub' | 'p'
 export interface Bloco { tipo: BlocoTipo; texto: string }
 export interface SobreConfig {
+  capa: string
   titulo: string
   subtitulo: string
   blocos: Bloco[]
@@ -22,6 +23,7 @@ export interface SobreConfig {
 }
 
 export const SOBRE_PADRAO: SobreConfig = {
+  capa: '/capa-soulan.png',
   titulo: 'Gente Cultura',
   subtitulo: 'Informação, comunicação e conexão.',
   blocos: [
@@ -65,6 +67,7 @@ export async function getSobre(): Promise<SobreConfig> {
   if (!snap || !snap.exists()) return SOBRE_PADRAO
   const d = snap.data() as Partial<SobreConfig>
   return {
+    capa: d.capa ?? SOBRE_PADRAO.capa,
     titulo: d.titulo ?? SOBRE_PADRAO.titulo,
     subtitulo: d.subtitulo ?? SOBRE_PADRAO.subtitulo,
     blocos: Array.isArray(d.blocos) ? (d.blocos as Bloco[]) : SOBRE_PADRAO.blocos,
@@ -76,6 +79,7 @@ export async function getSobre(): Promise<SobreConfig> {
 
 export async function salvarSobre(c: SobreConfig): Promise<void> {
   const limpo: SobreConfig = {
+    capa: String(c.capa ?? '').trim(),
     titulo: String(c.titulo ?? '').trim(),
     subtitulo: String(c.subtitulo ?? '').trim(),
     blocos: (c.blocos ?? [])

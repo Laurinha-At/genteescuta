@@ -44,6 +44,9 @@ export default function AdminInstitucional() {
         <Cartao titulo="Sobre Nós" apoio="Página “Sobre Nós” (rodapé/menu).">
           {!sobre ? <p className="text-sm text-tinta-3">Carregando…</p> : (
             <div className="space-y-4">
+              <Campo rotulo="Imagem de capa (URL)" ajuda="Foto no topo da página. Deixe em branco para não mostrar capa.">
+                <input value={sobre.capa} onChange={(e) => setSobre({ ...sobre, capa: e.target.value })} className={ENTRADA} placeholder="/capa-soulan.png ou https://…" />
+              </Campo>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Campo rotulo="Título"><input value={sobre.titulo} onChange={(e) => setSobre({ ...sobre, titulo: e.target.value })} className={ENTRADA} /></Campo>
                 <Campo rotulo="Subtítulo"><input value={sobre.subtitulo} onChange={(e) => setSobre({ ...sobre, subtitulo: e.target.value })} className={ENTRADA} /></Campo>
