@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Target, Eye, Gem } from 'lucide-react'
+import { Target, Eye, Gem } from 'lucide-react'
+import { BotaoVoltar } from '@/components/BotaoVoltar'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { getMissao, MISSAO_PADRAO, type MissaoConfig } from '@/lib/fb/institucional'
@@ -25,9 +25,7 @@ export default function MissaoVisaoValores() {
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
-          <ArrowLeft size={15} aria-hidden /> Início
-        </Link>
+        <BotaoVoltar />
         <h1 className="titulo-hero mt-4 text-[2rem] text-tinta">Missão, Visão e Valores</h1>
         <p className="mt-2 max-w-2xl text-[1.0625rem] leading-7 text-tinta-2">O que guia a forma como a Soulan cuida de pessoas, todos os dias.</p>
 

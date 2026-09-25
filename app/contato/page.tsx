@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, LifeBuoy, Mail, ShieldCheck, Phone, Users } from 'lucide-react'
+import { LifeBuoy, Mail, ShieldCheck, Phone, Users } from 'lucide-react'
+import { BotaoVoltar } from '@/components/BotaoVoltar'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { getContato, CONTATO_PADRAO, type ContatoConfig } from '@/lib/fb/contato'
@@ -33,9 +33,7 @@ export default function Contato() {
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
       <main className="mx-auto max-w-4xl px-4 py-8 sm:py-10">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
-          <ArrowLeft size={15} aria-hidden /> Início
-        </Link>
+        <BotaoVoltar />
 
         <div className="mt-6 cartao-g p-6 sm:p-8">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-marca-clara text-marca">

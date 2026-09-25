@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft, Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
+  Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
   CheckCircle2, XCircle, Download, Printer, FileText, Image as ImageIcon, Search,
   X, PersonStanding, ChevronUp, ChevronDown, ChevronsUpDown,
 } from 'lucide-react'
@@ -28,6 +28,7 @@ import {
 } from '@/lib/fb/reembolso'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
+import { BotaoVoltar } from '@/components/BotaoVoltar'
 
 type Aba = 'solicitar' | 'minhas' | 'fila' | 'central'
 
@@ -83,9 +84,7 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
 
   return (
     <>
-      <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
-        <ArrowLeft size={15} aria-hidden /> Início
-      </Link>
+      <BotaoVoltar />
 
       <div className="mt-6 flex items-start gap-3">
         <span className="mt-1 flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-marca-clara text-marca">

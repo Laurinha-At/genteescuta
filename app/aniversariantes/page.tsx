@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { BotaoVoltar } from '@/components/BotaoVoltar'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { aniversariantesDoMes, mesAtualSP, NOMES_MESES, type AniversariantesMes, type PessoaMes } from '@/lib/fb/aniversarios'
@@ -62,9 +62,7 @@ export default function Aniversariantes() {
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
       <main className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
-          <ArrowLeft size={15} aria-hidden /> Início
-        </Link>
+        <BotaoVoltar />
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
           <h1 className="titulo-hero text-[1.75rem] text-tinta">🎂 Aniversariantes de {mesTitulo}</h1>
           {ehMesAtual && (

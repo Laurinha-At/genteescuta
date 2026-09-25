@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { RegistroNavegacao } from '@/components/BotaoVoltar'
 
 export const metadata: Metadata = {
   title: 'Gente Cultura · Soulan',
@@ -12,7 +13,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <RegistroNavegacao />
+        {children}
+      </body>
     </html>
   )
 }

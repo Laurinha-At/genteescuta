@@ -15,6 +15,7 @@ import {
 import { pontosPossiveis, type Trilha, type Etapa } from '@/lib/treinamentos'
 import { aplicarConclusaoEtapa, salvarProgresso, type ProgressoTreino } from '@/lib/fb/treino'
 import type { Perfil } from '@/lib/fb/funcionarios'
+import { BotaoVoltar } from '@/components/BotaoVoltar'
 
 type Filtro = 'todas' | 'obrigatorio' | 'sugerido' | 'concluidas'
 
@@ -94,9 +95,7 @@ function Hub({
 
   return (
     <>
-      <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
-        <ArrowLeft size={15} aria-hidden /> Início
-      </Link>
+      <BotaoVoltar />
 
       <div className="mt-6 flex items-start gap-3">
         <span className="mt-1 flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-marca-clara text-marca">

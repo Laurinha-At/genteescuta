@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
+import { BotaoVoltar } from '@/components/BotaoVoltar'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { getSobre, SOBRE_PADRAO, type SobreConfig } from '@/lib/fb/institucional'
@@ -25,9 +25,7 @@ export default function Sobre() {
     <div className="min-h-screen">
       <CabecalhoPublico empresa={empresa} />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-tinta-3 transition-colors hover:text-marca">
-          <ArrowLeft size={15} aria-hidden /> Início
-        </Link>
+        <BotaoVoltar />
 
         {/* Capa: parede de boas-vindas (com o sofá) */}
         <div className="mt-4 overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_6px_18px_rgba(26,23,20,0.08)]">
