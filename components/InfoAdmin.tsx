@@ -12,12 +12,13 @@ import {
   Plus, Pencil, Trash2, X, ExternalLink, ArrowUp, ArrowDown, Upload, Link2, Loader2,
   ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen, HeartPulse,
   Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon, Search, Table2, CalendarDays,
+  Lock, Users,
 } from 'lucide-react'
 import {
   listarTopicos, criarTopico, atualizarTopico, excluirTopico, trocarOrdemTopicos,
   adicionarItem, atualizarItem, removerItem, moverItem, subirArquivo,
   ITEM_TIPOS, ITEM_TIPO_LABEL, ICONES_TOPICO, ICONE_TOPICO_LABEL, CORES_TOPICO,
-  type InfoTopico, type InfoItem, type ItemTipo,
+  type InfoTopico, type InfoItem, type ItemTipo, type Visibilidade,
 } from '@/lib/fb/infoAdmin'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Aviso, Botao, Campo, ENTRADA, Vazio } from '@/components/ui'
@@ -132,12 +133,17 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
   }
 
   const termo = busca.trim().toLowerCase()
+  // Colaborador não vê os assuntos marcados como "apenas administradores".
+  const base = useMemo(
+    () => (ehAdmin ? topicos : topicos.filter((t) => (t.visivel ?? 'todos') !== 'admin')),
+    [topicos, ehAdmin],
+  )
   const filtrados = useMemo(() => {
-    if (!termo) return topicos
-    return topicos.filter((t) =>
+    if (!termo) return base
+    return base.filter((t) =>
       `${semHtml(t.titulo)} ${semHtml(t.descricao)}`.toLowerCase().includes(termo),
     )
-  }, [topicos, termo])
+  }, [base, termo])
 
   // Índice de cor de cada tópico segue a posição real (estável ao filtrar).
   const idxCor = useMemo(() => new Map(topicos.map((t, i) => [t.id, i])), [topicos])
@@ -169,7 +175,7 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
 
       {carregando ? (
         <p className="text-sm text-tinta-3">Carregando…</p>
-      ) : topicos.length === 0 ? (
+      ) : base.length === 0 ? (
         <Vazio
           titulo="Nenhum assunto ainda"
           descricao={ehAdmin ? 'Use “Adicionar assunto” para criar o primeiro card (ex.: Registro de Ponto, Vale-Transporte).' : 'Em breve a equipe de Gente & Cultura vai publicar os conteúdos aqui.'}
@@ -280,6 +286,11 @@ function CartaoPreview({
         )}
 
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+          {topico.visivel === 'admin' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
+              <Lock size={11} aria-hidden /> Só admin
+            </span>
+          )}
           {tipos.map((tp) => {
             const { label, Icone } = CHIP_ITEM[tp]
             return (
@@ -489,6 +500,7 @@ function EditorTopico({
 }) {
   const [icone, setIcone] = useState(topico?.icone ?? 'ClipboardList')
   const [cor, setCor] = useState<string>(topico?.cor && CORES[topico.cor] ? topico.cor : 'azul')
+  const [visivel, setVisivel] = useState<Visibilidade>(topico?.visivel === 'admin' ? 'admin' : 'todos')
   const tituloRef = useRef<RichHandle>(null)
   const descRef = useRef<RichHandle>(null)
   const [pendente, setPendente] = useState(false)
@@ -496,7 +508,7 @@ function EditorTopico({
   async function salvar() {
     setErro(null); setPendente(true)
     try {
-      const dados = { icone, cor, titulo: tituloRef.current?.getHtml() ?? '', descricao: descRef.current?.getHtml() ?? '' }
+      const dados = { icone, cor, visivel, titulo: tituloRef.current?.getHtml() ?? '', descricao: descRef.current?.getHtml() ?? '' }
       if (topico) { await atualizarTopico(topico.id, dados); onSalvo('Tópico atualizado.') }
       else { await criarTopico(dados); onSalvo('Tópico criado.') }
     } catch (e) {
@@ -536,6 +548,24 @@ function EditorTopico({
                 style={{ background: CORES[nome].grad }}
               />
             ))}
+          </div>
+        </Campo>
+        <Campo rotulo="Quem vê este assunto" ajuda="“Apenas administradores” esconde o card dos colaboradores.">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setVisivel('todos')}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'todos' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
+            >
+              <Users size={13} aria-hidden /> Todos os colaboradores
+            </button>
+            <button
+              type="button"
+              onClick={() => setVisivel('admin')}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'admin' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
+            >
+              <Lock size={13} aria-hidden /> Apenas administradores
+            </button>
           </div>
         </Campo>
         <Campo rotulo="Título" obrigatorio>
