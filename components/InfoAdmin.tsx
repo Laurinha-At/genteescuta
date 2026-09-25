@@ -11,12 +11,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Plus, Pencil, Trash2, X, ExternalLink, ArrowUp, ArrowDown, Upload, Link2, Loader2,
   ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen, HeartPulse,
-  Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon,
+  Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon, Search, Table2,
 } from 'lucide-react'
 import {
   listarTopicos, criarTopico, atualizarTopico, excluirTopico, trocarOrdemTopicos,
   adicionarItem, atualizarItem, removerItem, moverItem, subirArquivo,
-  ITEM_TIPOS, ITEM_TIPO_LABEL, ICONES_TOPICO, ICONE_TOPICO_LABEL,
+  ITEM_TIPOS, ITEM_TIPO_LABEL, ICONES_TOPICO, ICONE_TOPICO_LABEL, CORES_TOPICO,
   type InfoTopico, type InfoItem, type ItemTipo,
 } from '@/lib/fb/infoAdmin'
 import type { Perfil } from '@/lib/fb/funcionarios'
@@ -29,12 +29,44 @@ const ICONES: Record<string, typeof Info> = {
   HeartPulse, Wrench, Building2, Gift, GraduationCap, Info,
 }
 const ICONE_ITEM: Record<ItemTipo, typeof Info> = {
-  link: Link2, video: Video, foto: ImageIcon, arquivo: FileText, texto: FileText,
+  link: Link2, video: Video, foto: ImageIcon, arquivo: Table2, texto: FileText,
 }
 function IconeTopico({ nome, size = 20 }: { nome: string; size?: number }) {
   const C = ICONES[nome] ?? Info
   return <C size={size} aria-hidden />
 }
+
+// -------- Cores dos cards (gradientes dentro da paleta Soulan) --------
+const CORES: Record<string, { label: string; grad: string }> = {
+  azul:     { label: 'Azul',     grad: 'linear-gradient(135deg, #2f8bb4 0%, #1f5c73 100%)' },
+  verde:    { label: 'Verde',    grad: 'linear-gradient(135deg, #7bbf3b 0%, #557d26 100%)' },
+  petroleo: { label: 'Petróleo', grad: 'linear-gradient(135deg, #2f83a4 0%, #154556 100%)' },
+  ceu:      { label: 'Céu',      grad: 'linear-gradient(135deg, #7fbdd4 0%, #2f83a4 100%)' },
+  ambar:    { label: 'Âmbar',    grad: 'linear-gradient(135deg, #f4b64a 0%, #d98a1f 100%)' },
+  coral:    { label: 'Coral',    grad: 'linear-gradient(135deg, #f0956a 0%, #d75f38 100%)' },
+  uva:      { label: 'Uva',      grad: 'linear-gradient(135deg, #8f77c2 0%, #5f4894 100%)' },
+  grafite:  { label: 'Grafite',  grad: 'linear-gradient(135deg, #5c6b73 0%, #33414a 100%)' },
+}
+/** Cor efetiva do tópico: a escolhida, ou uma automática pela posição. */
+function corDe(t: InfoTopico, idx: number): string {
+  const nome = t.cor && CORES[t.cor] ? t.cor : CORES_TOPICO[idx % CORES_TOPICO.length]
+  return CORES[nome].grad
+}
+
+// -------- Chips de tipo de item (prévia do conteúdo) --------
+const CHIP_ITEM: Record<ItemTipo, { label: string; Icone: typeof Info }> = {
+  link:    { label: 'Link',     Icone: Link2 },
+  video:   { label: 'Vídeo',    Icone: Video },
+  foto:    { label: 'Foto',     Icone: ImageIcon },
+  arquivo: { label: 'Planilha', Icone: Table2 },
+  texto:   { label: 'Texto',    Icone: FileText },
+}
+/** Tipos presentes no tópico, na ordem canônica. */
+function tiposPresentes(t: InfoTopico): ItemTipo[] {
+  return ITEM_TIPOS.filter((tp) => t.itens.some((i) => i.tipo === tp))
+}
+/** Texto puro (sem HTML) para busca. */
+const semHtml = (s: string) => (s || '').replace(/<[^>]*>/g, ' ')
 
 /** Converte link de YouTube/Drive na URL de embed. */
 function urlEmbed(url: string): string {
@@ -61,6 +93,8 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
   const [topicos, setTopicos] = useState<InfoTopico[]>([])
   const [carregando, setCarregando] = useState(true)
   const [edTopico, setEdTopico] = useState<EdTopico>(null)
+  const [abertoId, setAbertoId] = useState<string | null>(null)
+  const [busca, setBusca] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
 
@@ -78,43 +112,85 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
     catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui concluir a ação.') }
   }
 
+  const termo = busca.trim().toLowerCase()
+  const filtrados = useMemo(() => {
+    if (!termo) return topicos
+    return topicos.filter((t) =>
+      `${semHtml(t.titulo)} ${semHtml(t.descricao)}`.toLowerCase().includes(termo),
+    )
+  }, [topicos, termo])
+
+  // Índice de cor de cada tópico segue a posição real (estável ao filtrar).
+  const idxCor = useMemo(() => new Map(topicos.map((t, i) => [t.id, i])), [topicos])
+  const aberto = abertoId ? topicos.find((t) => t.id === abertoId) ?? null : null
+
   return (
     <div className="space-y-4">
       {erro && <Aviso tom="erro">{erro}</Aviso>}
       {aviso && !erro && <Aviso tom="sucesso">{aviso}</Aviso>}
 
-      {ehAdmin && (
-        <div className="flex justify-end">
-          <Botao type="button" onClick={() => { setErro(null); setAviso(null); setEdTopico('novo') }}>
-            <Plus size={15} aria-hidden /> Adicionar tópico
-          </Botao>
+      {/* Busca + ação de admin */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-tinta-3" aria-hidden />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar assunto (ex.: ponto, holerite, transporte)…"
+            className={`${ENTRADA} pl-10`}
+            type="search"
+          />
         </div>
-      )}
+        {ehAdmin && (
+          <Botao type="button" onClick={() => { setErro(null); setAviso(null); setEdTopico('novo') }}>
+            <Plus size={15} aria-hidden /> Adicionar assunto
+          </Botao>
+        )}
+      </div>
 
       {carregando ? (
         <p className="text-sm text-tinta-3">Carregando…</p>
       ) : topicos.length === 0 ? (
         <Vazio
-          titulo="Nenhum tópico ainda"
-          descricao={ehAdmin ? 'Use “Adicionar tópico” para criar o primeiro card (ex.: Registro de Ponto, Vale-Transporte).' : 'Em breve a equipe de Gente & Cultura vai publicar os conteúdos aqui.'}
+          titulo="Nenhum assunto ainda"
+          descricao={ehAdmin ? 'Use “Adicionar assunto” para criar o primeiro card (ex.: Registro de Ponto, Vale-Transporte).' : 'Em breve a equipe de Gente & Cultura vai publicar os conteúdos aqui.'}
         />
+      ) : filtrados.length === 0 ? (
+        <Vazio titulo="Nada encontrado" descricao={`Nenhum assunto combina com “${busca.trim()}”. Tente outra palavra.`} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {topicos.map((t, idx) => (
-            <CartaoTopico
-              key={t.id}
-              topico={t}
-              ehAdmin={ehAdmin}
-              primeiro={idx === 0}
-              ultimo={idx === topicos.length - 1}
-              onEditar={() => { setErro(null); setAviso(null); setEdTopico(t) }}
-              onExcluir={() => { if (confirm('Remover este tópico e todos os seus itens?')) acao(() => excluirTopico(t.id), 'Tópico removido.') }}
-              onMover={(dir) => { const outro = topicos[idx + dir]; if (outro) acao(() => trocarOrdemTopicos(t, outro)) }}
-              aoMudar={recarregar}
-              setErro={setErro}
-            />
-          ))}
+        <div
+          className="grid gap-4"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 17rem), 1fr))' }}
+        >
+          {filtrados.map((t) => {
+            const idx = idxCor.get(t.id) ?? 0
+            return (
+              <CartaoPreview
+                key={t.id}
+                topico={t}
+                grad={corDe(t, idx)}
+                ehAdmin={ehAdmin}
+                primeiro={idx === 0}
+                ultimo={idx === topicos.length - 1}
+                onAbrir={() => setAbertoId(t.id)}
+                onEditar={() => { setErro(null); setAviso(null); setEdTopico(t) }}
+                onExcluir={() => { if (confirm('Remover este assunto e todos os seus itens?')) acao(() => excluirTopico(t.id), 'Assunto removido.') }}
+                onMover={(dir) => { const outro = topicos[idx + dir]; if (outro) acao(() => trocarOrdemTopicos(t, outro)) }}
+              />
+            )
+          })}
         </div>
+      )}
+
+      {aberto && (
+        <DetalheTopico
+          topico={aberto}
+          grad={corDe(aberto, idxCor.get(aberto.id) ?? 0)}
+          ehAdmin={ehAdmin}
+          onFechar={() => setAbertoId(null)}
+          aoMudar={recarregar}
+          setErro={setErro}
+        />
       )}
 
       {edTopico && (
@@ -130,18 +206,88 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
 }
 
 // -------------------------------------------------------------
-// Card de um tópico
+// Card de prévia (grade). Clicar abre o detalhe.
 // -------------------------------------------------------------
-function CartaoTopico({
-  topico, ehAdmin, primeiro, ultimo, onEditar, onExcluir, onMover, aoMudar, setErro,
+function CartaoPreview({
+  topico, grad, ehAdmin, primeiro, ultimo, onAbrir, onEditar, onExcluir, onMover,
 }: {
   topico: InfoTopico
+  grad: string
   ehAdmin: boolean
   primeiro: boolean
   ultimo: boolean
+  onAbrir: () => void
   onEditar: () => void
   onExcluir: () => void
   onMover: (dir: -1 | 1) => void
+}) {
+  const tipos = tiposPresentes(topico)
+  const n = topico.itens.length
+  const stop = (e: React.MouseEvent) => e.stopPropagation()
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onAbrir}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir() } }}
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-borda bg-white text-left shadow-[0_1px_3px_rgba(26,23,20,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-borda-forte hover:shadow-[0_10px_28px_rgba(26,23,20,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-marca focus-visible:ring-offset-2"
+    >
+      {/* Faixa de cor + ícone grande */}
+      <div className="relative flex h-20 items-center gap-3 px-5" style={{ background: grad }}>
+        <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-white/25 text-white ring-1 ring-inset ring-white/30 backdrop-blur-sm">
+          <IconeTopico nome={topico.icone} size={26} />
+        </span>
+        <RichHtml
+          html={topico.titulo}
+          className="line-clamp-2 min-w-0 flex-1 text-[1.0625rem] font-bold leading-tight text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.25)]"
+        />
+        {ehAdmin && (
+          <div className="absolute right-2 top-2 flex gap-0.5" onClick={stop}>
+            <button type="button" title="Mover para cima" disabled={primeiro} onClick={() => onMover(-1)} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowUp size={14} aria-hidden /></button>
+            <button type="button" title="Mover para baixo" disabled={ultimo} onClick={() => onMover(1)} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowDown size={14} aria-hidden /></button>
+            <button type="button" title="Editar assunto" onClick={onEditar} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><Pencil size={14} aria-hidden /></button>
+            <button type="button" title="Remover assunto" onClick={onExcluir} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><Trash2 size={14} aria-hidden /></button>
+          </div>
+        )}
+      </div>
+
+      {/* Corpo: descrição curta + prévia (chips de tipos) */}
+      <div className="flex flex-1 flex-col p-4">
+        {topico.descricao ? (
+          <RichHtml html={topico.descricao} className="line-clamp-2 text-[0.8125rem] leading-6 text-tinta-2" />
+        ) : (
+          <p className="text-[0.8125rem] leading-6 text-tinta-3">Toque para ver os conteúdos deste assunto.</p>
+        )}
+
+        <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+          {tipos.map((tp) => {
+            const { label, Icone } = CHIP_ITEM[tp]
+            return (
+              <span key={tp} className="inline-flex items-center gap-1 rounded-full bg-superficie-2 px-2 py-0.5 text-[0.6875rem] font-medium text-tinta-2">
+                <Icone size={11} className="text-marca" aria-hidden /> {label}
+              </span>
+            )
+          })}
+          <span className="ml-auto text-[0.6875rem] font-semibold text-tinta-3">
+            {n === 0 ? 'Sem itens' : `${n} ${n === 1 ? 'item' : 'itens'}`}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// -------------------------------------------------------------
+// Detalhe de um assunto (modal) — lista os itens; admin gerencia aqui.
+// -------------------------------------------------------------
+function DetalheTopico({
+  topico, grad, ehAdmin, onFechar, aoMudar, setErro,
+}: {
+  topico: InfoTopico
+  grad: string
+  ehAdmin: boolean
+  onFechar: () => void
   aoMudar: () => void
   setErro: (s: string | null) => void
 }) {
@@ -153,65 +299,50 @@ function CartaoTopico({
   }
 
   return (
-    <div className="cartao-g flex flex-col p-5">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-marca-clara text-marca">
-          <IconeTopico nome={topico.icone} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <RichHtml html={topico.titulo} className="text-[0.9375rem] font-semibold text-tinta" />
-          {topico.descricao && <RichHtml html={topico.descricao} className="mt-1 text-[0.8125rem] leading-6 text-tinta-3" />}
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onFechar}>
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+        {/* Cabeçalho colorido */}
+        <div className="relative flex items-center gap-3.5 px-6 py-5" style={{ background: grad }}>
+          <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-white/25 text-white ring-1 ring-inset ring-white/30 backdrop-blur-sm">
+            <IconeTopico nome={topico.icone} size={26} />
+          </span>
+          <RichHtml html={topico.titulo} className="min-w-0 flex-1 text-lg font-bold leading-tight text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.25)]" />
+          <button type="button" onClick={onFechar} className="rounded-lg p-1.5 text-white/85 hover:bg-white/25 hover:text-white" aria-label="Fechar"><X size={20} aria-hidden /></button>
         </div>
-        {ehAdmin && (
-          <div className="flex flex-none flex-col gap-0.5">
-            <div className="flex gap-0.5">
-              <button type="button" title="Mover para cima" disabled={primeiro} onClick={() => onMover(-1)} className="rounded p-1 text-tinta-3 hover:bg-white hover:text-marca disabled:opacity-30">
-                <ArrowUp size={15} aria-hidden />
-              </button>
-              <button type="button" title="Mover para baixo" disabled={ultimo} onClick={() => onMover(1)} className="rounded p-1 text-tinta-3 hover:bg-white hover:text-marca disabled:opacity-30">
-                <ArrowDown size={15} aria-hidden />
-              </button>
-            </div>
-            <div className="flex gap-0.5">
-              <button type="button" title="Editar tópico" onClick={onEditar} className="rounded p-1 text-tinta-3 hover:bg-white hover:text-marca">
-                <Pencil size={15} aria-hidden />
-              </button>
-              <button type="button" title="Remover tópico" onClick={onExcluir} className="rounded p-1 text-tinta-3 hover:bg-plano hover:text-critico">
-                <Trash2 size={15} aria-hidden />
-              </button>
-            </div>
+
+        <div className="max-h-[calc(92vh-5.5rem)] overflow-y-auto p-6">
+          {topico.descricao && <RichHtml html={topico.descricao} className="mb-4 text-[0.9063rem] leading-7 text-tinta-2" />}
+
+          <div className="space-y-2.5">
+            {topico.itens.length === 0 ? (
+              <p className="text-[0.875rem] text-tinta-3">{ehAdmin ? 'Nenhum item ainda — adicione links, vídeos, fotos, planilhas ou textos.' : 'Sem conteúdos ainda.'}</p>
+            ) : (
+              topico.itens.map((it, i) => (
+                <ItemView
+                  key={it.id}
+                  item={it}
+                  ehAdmin={ehAdmin}
+                  primeiro={i === 0}
+                  ultimo={i === topico.itens.length - 1}
+                  onEditar={() => { setErro(null); setEdItem(it) }}
+                  onExcluir={() => { if (confirm('Remover este item?')) acaoItem(() => removerItem(topico.id, it.id)) }}
+                  onMover={(dir) => acaoItem(() => moverItem(topico.id, it.id, dir))}
+                />
+              ))
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="mt-4 space-y-2.5">
-        {topico.itens.length === 0 ? (
-          <p className="text-[0.8125rem] text-tinta-3">{ehAdmin ? 'Nenhum item ainda — adicione links, vídeos, fotos, arquivos ou textos.' : 'Sem conteúdos ainda.'}</p>
-        ) : (
-          topico.itens.map((it, i) => (
-            <ItemView
-              key={it.id}
-              item={it}
-              ehAdmin={ehAdmin}
-              primeiro={i === 0}
-              ultimo={i === topico.itens.length - 1}
-              onEditar={() => { setErro(null); setEdItem(it) }}
-              onExcluir={() => { if (confirm('Remover este item?')) acaoItem(() => removerItem(topico.id, it.id)) }}
-              onMover={(dir) => acaoItem(() => moverItem(topico.id, it.id, dir))}
-            />
-          ))
-        )}
+          {ehAdmin && (
+            <button
+              type="button"
+              onClick={() => { setErro(null); setEdItem('novo') }}
+              className="mt-4 inline-flex items-center gap-1.5 self-start rounded-lg border border-dashed border-borda-forte px-3 py-1.5 text-[0.8125rem] font-medium text-tinta-2 transition-colors hover:border-marca hover:text-marca-texto"
+            >
+              <Plus size={14} aria-hidden /> Adicionar item
+            </button>
+          )}
+        </div>
       </div>
-
-      {ehAdmin && (
-        <button
-          type="button"
-          onClick={() => { setErro(null); setEdItem('novo') }}
-          className="mt-4 inline-flex items-center gap-1.5 self-start rounded-lg border border-dashed border-borda-forte px-3 py-1.5 text-[0.8125rem] font-medium text-tinta-2 transition-colors hover:border-marca hover:text-marca-texto"
-        >
-          <Plus size={14} aria-hidden /> Adicionar item
-        </button>
-      )}
 
       {edItem && (
         <EditorItem
@@ -318,6 +449,7 @@ function EditorTopico({
   setErro: (s: string | null) => void
 }) {
   const [icone, setIcone] = useState(topico?.icone ?? 'ClipboardList')
+  const [cor, setCor] = useState<string>(topico?.cor && CORES[topico.cor] ? topico.cor : 'azul')
   const tituloRef = useRef<RichHandle>(null)
   const descRef = useRef<RichHandle>(null)
   const [pendente, setPendente] = useState(false)
@@ -325,7 +457,7 @@ function EditorTopico({
   async function salvar() {
     setErro(null); setPendente(true)
     try {
-      const dados = { icone, titulo: tituloRef.current?.getHtml() ?? '', descricao: descRef.current?.getHtml() ?? '' }
+      const dados = { icone, cor, titulo: tituloRef.current?.getHtml() ?? '', descricao: descRef.current?.getHtml() ?? '' }
       if (topico) { await atualizarTopico(topico.id, dados); onSalvo('Tópico atualizado.') }
       else { await criarTopico(dados); onSalvo('Tópico criado.') }
     } catch (e) {
@@ -349,6 +481,21 @@ function EditorTopico({
                 <IconeTopico nome={nome} size={18} />
                 <span className="text-[0.6875rem] font-medium leading-tight">{ICONE_TOPICO_LABEL[nome]}</span>
               </button>
+            ))}
+          </div>
+        </Campo>
+        <Campo rotulo="Cor do card" ajuda="Ajuda a diferenciar os assuntos visualmente.">
+          <div className="flex flex-wrap gap-2">
+            {CORES_TOPICO.map((nome) => (
+              <button
+                key={nome}
+                type="button"
+                onClick={() => setCor(nome)}
+                title={CORES[nome].label}
+                aria-label={CORES[nome].label}
+                className={`h-9 w-9 rounded-full transition-transform ${cor === nome ? 'scale-110 ring-2 ring-marca ring-offset-2' : 'ring-1 ring-inset ring-black/10 hover:scale-105'}`}
+                style={{ background: CORES[nome].grad }}
+              />
             ))}
           </div>
         </Campo>

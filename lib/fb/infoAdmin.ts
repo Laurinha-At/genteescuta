@@ -63,9 +63,16 @@ export interface InfoItem {
   texto?: string            // HTML rico (tipo 'texto')
 }
 
+/** Cores disponíveis para os cards (gradientes resolvidos no componente). */
+export const CORES_TOPICO = [
+  'azul', 'verde', 'petroleo', 'ceu', 'ambar', 'coral', 'uva', 'grafite',
+] as const
+export type CorTopico = (typeof CORES_TOPICO)[number]
+
 export interface InfoTopico {
   id: string
   icone: string
+  cor?: string              // uma de CORES_TOPICO; ausente = cor automática
   titulo: string            // HTML rico sanitizado
   descricao: string         // HTML rico sanitizado
   ordem: number
@@ -100,17 +107,19 @@ export async function listarTopicos(): Promise<InfoTopico[]> {
     .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
 }
 
-function normalizarTopico(p: { icone: string; titulo: string; descricao: string }) {
+function normalizarTopico(p: { icone: string; cor?: string; titulo: string; descricao: string }) {
   const titulo = sanitizeRich(p.titulo ?? '')
   if (richVazio(titulo)) throw new Error('Dê um título ao tópico.')
+  const cor = CORES_TOPICO.includes(p.cor as CorTopico) ? (p.cor as CorTopico) : 'azul'
   return {
     icone: String(p.icone ?? 'Info'),
+    cor,
     titulo,
     descricao: sanitizeRich(p.descricao ?? ''),
   }
 }
 
-export async function criarTopico(p: { icone: string; titulo: string; descricao: string }): Promise<string> {
+export async function criarTopico(p: { icone: string; cor?: string; titulo: string; descricao: string }): Promise<string> {
   const v = normalizarTopico(p)
   const agora = new Date().toISOString()
   const refDoc = await addDoc(collection(db(), 'info_topicos'), { ...v, ordem: Date.now(), itens: [], criado_em: agora })
@@ -118,7 +127,7 @@ export async function criarTopico(p: { icone: string; titulo: string; descricao:
   return refDoc.id
 }
 
-export async function atualizarTopico(id: string, p: { icone: string; titulo: string; descricao: string }): Promise<void> {
+export async function atualizarTopico(id: string, p: { icone: string; cor?: string; titulo: string; descricao: string }): Promise<void> {
   const v = normalizarTopico(p)
   await updateDoc(doc(db(), 'info_topicos', id), { ...v, atualizado_em: new Date().toISOString() })
   await registrarLog('info_topico_editar', v.titulo.replace(/<[^>]*>/g, ''))
