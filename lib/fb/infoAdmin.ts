@@ -17,9 +17,9 @@ import { db, storage } from '../firebase'
 import { registrarLog } from './usuarios'
 import { sanitizeRich, richVazio } from '../sanitizeHtml'
 
-export type ItemTipo = 'link' | 'video' | 'foto' | 'arquivo' | 'texto'
+export type ItemTipo = 'link' | 'video' | 'foto' | 'arquivo' | 'texto' | 'embed'
 
-export const ITEM_TIPOS: ItemTipo[] = ['link', 'video', 'foto', 'arquivo', 'texto']
+export const ITEM_TIPOS: ItemTipo[] = ['link', 'video', 'foto', 'arquivo', 'texto', 'embed']
 
 export const ITEM_TIPO_LABEL: Record<ItemTipo, string> = {
   link: 'Link',
@@ -27,11 +27,12 @@ export const ITEM_TIPO_LABEL: Record<ItemTipo, string> = {
   foto: 'Foto / Imagem',
   arquivo: 'Planilha / Arquivo',
   texto: 'Texto',
+  embed: 'Calendário / Incorporar',
 }
 
 /** Ícones disponíveis para os tópicos (nomes resolvidos no componente). */
 export const ICONES_TOPICO = [
-  'ClipboardList', 'Clock', 'Bus', 'CreditCard', 'Wallet', 'Laptop', 'FileText',
+  'ClipboardList', 'Clock', 'CalendarDays', 'Bus', 'CreditCard', 'Wallet', 'Laptop', 'FileText',
   'BookOpen', 'HeartPulse', 'Wrench', 'Building2', 'Gift', 'GraduationCap', 'Info',
 ] as const
 
@@ -39,6 +40,7 @@ export const ICONES_TOPICO = [
 export const ICONE_TOPICO_LABEL: Record<(typeof ICONES_TOPICO)[number], string> = {
   ClipboardList: 'Ponto',
   Clock: 'Horários',
+  CalendarDays: 'Calendário',
   Bus: 'Transporte',
   CreditCard: 'Benefícios',
   Wallet: 'Holerite',

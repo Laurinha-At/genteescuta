@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Plus, Pencil, Trash2, X, ExternalLink, ArrowUp, ArrowDown, Upload, Link2, Loader2,
   ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen, HeartPulse,
-  Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon, Search, Table2,
+  Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon, Search, Table2, CalendarDays,
 } from 'lucide-react'
 import {
   listarTopicos, criarTopico, atualizarTopico, excluirTopico, trocarOrdemTopicos,
@@ -25,11 +25,11 @@ import { RichTextEditor, RichHtml, type RichHandle } from '@/components/RichText
 
 // -------- Ícones --------
 const ICONES: Record<string, typeof Info> = {
-  ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen,
+  ClipboardList, Clock, CalendarDays, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen,
   HeartPulse, Wrench, Building2, Gift, GraduationCap, Info,
 }
 const ICONE_ITEM: Record<ItemTipo, typeof Info> = {
-  link: Link2, video: Video, foto: ImageIcon, arquivo: Table2, texto: FileText,
+  link: Link2, video: Video, foto: ImageIcon, arquivo: Table2, texto: FileText, embed: CalendarDays,
 }
 function IconeTopico({ nome, size = 20 }: { nome: string; size?: number }) {
   const C = ICONES[nome] ?? Info
@@ -55,11 +55,12 @@ function corDe(t: InfoTopico, idx: number): string {
 
 // -------- Chips de tipo de item (prévia do conteúdo) --------
 const CHIP_ITEM: Record<ItemTipo, { label: string; Icone: typeof Info }> = {
-  link:    { label: 'Link',     Icone: Link2 },
-  video:   { label: 'Vídeo',    Icone: Video },
-  foto:    { label: 'Foto',     Icone: ImageIcon },
-  arquivo: { label: 'Planilha', Icone: Table2 },
-  texto:   { label: 'Texto',    Icone: FileText },
+  link:    { label: 'Link',       Icone: Link2 },
+  video:   { label: 'Vídeo',      Icone: Video },
+  foto:    { label: 'Foto',       Icone: ImageIcon },
+  arquivo: { label: 'Planilha',   Icone: Table2 },
+  texto:   { label: 'Texto',      Icone: FileText },
+  embed:   { label: 'Calendário', Icone: CalendarDays },
 }
 /** Tipos presentes no tópico, na ordem canônica. */
 function tiposPresentes(t: InfoTopico): ItemTipo[] {
@@ -68,7 +69,7 @@ function tiposPresentes(t: InfoTopico): ItemTipo[] {
 /** Texto puro (sem HTML) para busca. */
 const semHtml = (s: string) => (s || '').replace(/<[^>]*>/g, ' ')
 
-/** Converte link de YouTube/Drive na URL de embed. */
+/** Converte link de YouTube/Drive/Canva na URL de embed. */
 function urlEmbed(url: string): string {
   try {
     const u = new URL(url)
@@ -81,10 +82,28 @@ function urlEmbed(url: string): string {
       const m = u.pathname.match(/\/file\/d\/([^/]+)/)
       if (m) return `https://drive.google.com/file/d/${m[1]}/preview`
     }
+    if (u.hostname.includes('canva.com')) {
+      // .../design/{id}/{token}/(edit|view)… → sempre /view?embed
+      const m = u.pathname.match(/\/design\/([^/]+)\/([^/]+)/)
+      if (m) return `https://www.canva.com/design/${m[1]}/${m[2]}/view?embed`
+    }
     return url
   } catch { return url }
 }
-const ehEmbed = (url: string) => /youtube\.com|youtu\.be|drive\.google\.com/.test(url)
+const ehEmbed = (url: string) => /youtube\.com|youtu\.be|drive\.google\.com|canva\.com\/design\//.test(url)
+
+/** URL para abrir em nova aba (sem o modo embed). */
+function urlAbrir(url: string): string {
+  const emb = urlEmbed(url)
+  return emb.replace(/\/view\?embed$/, '/view').replace(/\?embed$/, '')
+}
+
+/** Aceita um link OU um código de incorporação (<iframe …>) e devolve a URL. */
+function extrairUrlEmbed(entrada: string): string {
+  const s = (entrada || '').trim()
+  const m = s.match(/src\s*=\s*["']([^"']+)["']/i)
+  return (m ? m[1] : s).trim()
+}
 
 type EdTopico = InfoTopico | 'novo' | null
 
@@ -405,6 +424,26 @@ function ItemView({
               {item.tipo === 'arquivo' ? 'Abrir arquivo' : 'Abrir'} <ExternalLink size={13} aria-hidden />
             </a>
           )}
+
+          {item.tipo === 'embed' && item.url && (
+            <div className="mt-2">
+              {ehEmbed(item.url) && (
+                <div className="relative w-full overflow-hidden rounded-lg border border-borda bg-superficie-2" style={{ aspectRatio: '16 / 10' }}>
+                  <iframe
+                    src={urlEmbed(item.url)}
+                    title="Conteúdo incorporado"
+                    className="absolute inset-0 h-full w-full"
+                    loading="lazy"
+                    allow="fullscreen"
+                    allowFullScreen
+                  />
+                </div>
+              )}
+              <a href={urlAbrir(item.url)} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-marca-texto transition-colors hover:text-marca-escura">
+                Abrir calendário <ExternalLink size={13} aria-hidden />
+              </a>
+            </div>
+          )}
         </div>
 
         {ehAdmin && (
@@ -558,6 +597,8 @@ function EditorItem({
       let dados: Parameters<typeof adicionarItem>[1]
       if (tipo === 'texto') {
         dados = { tipo, titulo, descricao, texto: textoRef.current?.getHtml() ?? '' }
+      } else if (tipo === 'embed') {
+        dados = { tipo, titulo, descricao, url: extrairUrlEmbed(urlLink) }
       } else if (tipo === 'link' || fonte === 'link') {
         dados = { tipo, titulo, descricao, url: urlLink }
       } else {
@@ -601,6 +642,19 @@ function EditorItem({
         {tipo === 'texto' ? (
           <Campo rotulo="Conteúdo" obrigatorio>
             <RichTextEditor ref={textoRef} valorInicial={item?.texto ?? ''} placeholder="Escreva as orientações…" />
+          </Campo>
+        ) : tipo === 'embed' ? (
+          <Campo
+            rotulo="Link público ou código de incorporação"
+            ajuda="Cole o link público do Canva (…/view) ou o código de “Incorporar”. Dá para trocar depois quando o calendário for atualizado."
+            obrigatorio
+          >
+            <textarea
+              value={urlLink}
+              onChange={(e) => setUrlLink(e.target.value)}
+              className={`${ENTRADA} min-h-[92px] font-mono text-xs`}
+              placeholder={'https://www.canva.com/design/…/view\nou <iframe src="…"></iframe>'}
+            />
           </Campo>
         ) : (
           <div className="space-y-3">
