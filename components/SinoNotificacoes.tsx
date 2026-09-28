@@ -7,19 +7,21 @@
 // =============================================================
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Bell, Check, Receipt, XCircle, CheckCircle2, CalendarClock } from 'lucide-react'
+import { Bell, Check, Receipt, XCircle, CheckCircle2, CalendarClock, Megaphone, GraduationCap } from 'lucide-react'
 import {
-  listarNotificacoes, marcarTudoVisto, contarNaoLidas, ultimaVisita,
-  type Notificacao, type NotifTipo,
+  listarAvisos, marcarTudoVisto, contarNaoLidas, ultimaVisita,
+  type Aviso, type AvisoTipo,
 } from '@/lib/fb/notificacoes'
 import type { Perfil } from '@/lib/fb/funcionarios'
 
-const ICONE: Record<NotifTipo, typeof Receipt> = {
+const ICONE: Record<AvisoTipo, typeof Receipt> = {
   reembolso_novo: Receipt,
   reembolso_aprovado: CheckCircle2,
   reembolso_recusado: XCircle,
   reembolso_pago: CheckCircle2,
   reembolso_agendado: CalendarClock,
+  mural_post: Megaphone,
+  treino_trilha: GraduationCap,
 }
 
 function tempoRelativo(iso: string): string {
@@ -36,7 +38,7 @@ function tempoRelativo(iso: string): string {
 }
 
 export function SinoNotificacoes({ perfil }: { perfil: Perfil }) {
-  const [itens, setItens] = useState<Notificacao[]>([])
+  const [itens, setItens] = useState<Aviso[]>([])
   const [aberto, setAberto] = useState(false)
   const [naoLidas, setNaoLidas] = useState(0)
   const [visto, setVisto] = useState('')
@@ -44,7 +46,7 @@ export function SinoNotificacoes({ perfil }: { perfil: Perfil }) {
 
   async function carregar() {
     try {
-      const l = await listarNotificacoes(perfil)
+      const l = await listarAvisos(perfil)
       setItens(l)
       setNaoLidas(contarNaoLidas(l))
     } catch { /* silencioso */ }

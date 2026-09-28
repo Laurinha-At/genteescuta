@@ -152,7 +152,9 @@ function Hub({
       ) : (
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {trilhas.map((t) => (
-            <CardTrilha key={t.id} trilha={t} prog={prog} aoAbrir={() => aoAbrir(t)} />
+            <div key={t.id} id={`trilha-${t.id}`} className="scroll-mt-24">
+              <CardTrilha trilha={t} prog={prog} aoAbrir={() => aoAbrir(t)} />
+            </div>
           ))}
         </div>
       )}

@@ -76,7 +76,7 @@ export function MuralFeed({ posts, perfil }: { posts: Post[]; perfil: Perfil | n
       ) : (
         <ul className="space-y-4">
           {visiveis.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} id={`post-${p.id}`} className="scroll-mt-24">
               <CartaoPost post={p} perfil={perfil} />
             </li>
           ))}

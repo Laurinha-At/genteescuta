@@ -75,8 +75,7 @@ export default function Entrar() {
               </span>
               <h1 className="titulo-hero mt-4 text-[1.625rem] text-tinta">Entrar</h1>
               <p className="mt-2 text-sm leading-6 text-tinta-2">
-                Use seu <strong className="font-semibold text-tinta">e-mail</strong> e a sua senha. No primeiro acesso,
-                a senha padrão é <strong className="font-semibold text-tinta">soulan123</strong> e você cria a sua.
+                Use seu <strong className="font-semibold text-tinta">e-mail</strong> e a sua senha para acessar.
               </p>
 
               <div className="mt-6 rounded-2xl border border-borda bg-white/80 p-5 shadow-[0_1px_3px_rgba(26,23,20,0.05)] backdrop-blur">

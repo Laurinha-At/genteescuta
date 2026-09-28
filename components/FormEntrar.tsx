@@ -14,8 +14,8 @@ export function FormEntrar() {
     setPendente(true)
     const f = new FormData(e.currentTarget)
     const r = await entrar(String(f.get('email') ?? ''), String(f.get('senha') ?? ''))
-    // O redirecionamento por papel é feito na página /entrar (observarLogin):
-    // colaborador → /mural, admin/master → /admin, senha provisória → primeiro acesso.
+    // O redirecionamento é feito na página /entrar (observarLogin):
+    // todos → página inicial (admin → /admin; demais → /), senha provisória → primeiro acesso.
     if (!r.ok) {
       setErro(r.erro ?? 'Não consegui entrar.')
       setPendente(false)

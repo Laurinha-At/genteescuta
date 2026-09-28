@@ -20,6 +20,8 @@ import { collection, addDoc, getDocs, query, where, type QueryConstraint } from 
 import { db, auth } from '../firebase'
 import type { Perfil } from './funcionarios'
 import { TODOS_CENTROS } from '../reembolso'
+import { getPostsMural } from './publico'
+import { listarTrilhas } from './treinos'
 
 export type NotifTipo =
   | 'reembolso_novo'
@@ -163,7 +165,58 @@ export function ultimaVisita(): string {
 export function marcarTudoVisto(): void {
   try { localStorage.setItem(CHAVE_VISTO, new Date().toISOString()) } catch { /* ignore */ }
 }
-export function contarNaoLidas(itens: Notificacao[]): number {
+export function contarNaoLidas(itens: { criado_em?: string }[]): number {
   const visto = ultimaVisita()
   return itens.filter((n) => (n.criado_em ?? '') > visto).length
+}
+
+// =============================================================
+// Central de avisos do sino: junta os reembolsos com Mural e Trilhas.
+// Mural e Trilhas são derivados (sem gravar notificação): entram como
+// "novos" pela data, comparada à última visita (por dispositivo). Ambos
+// são visíveis a qualquer pessoa logada, então respeitam a permissão.
+// =============================================================
+export type AvisoTipo = NotifTipo | 'mural_post' | 'treino_trilha'
+export interface Aviso {
+  id: string
+  tipo: AvisoTipo
+  titulo: string
+  texto: string
+  link: string
+  criado_em: string
+}
+
+export async function listarAvisos(perfil: Perfil): Promise<Aviso[]> {
+  const [reemb, posts, trilhasRes] = await Promise.all([
+    listarNotificacoes(perfil).catch(() => [] as Notificacao[]),
+    getPostsMural().catch(() => [] as Record<string, unknown>[]),
+    listarTrilhas().catch(() => ({ trilhas: [] as Record<string, unknown>[], doFirestore: false })),
+  ])
+  const out: Aviso[] = []
+  for (const n of reemb) {
+    out.push({ id: n.id, tipo: n.tipo, titulo: n.titulo, texto: n.texto, link: n.link, criado_em: n.criado_em })
+  }
+  for (const p of (posts as Record<string, unknown>[]).slice(0, 15)) {
+    const quando = String(p.criado_em || p.data || '')
+    out.push({
+      id: `post:${p.id}`,
+      tipo: 'mural_post',
+      titulo: 'Nova publicação no Mural',
+      texto: String(p.titulo || 'Confira a novidade no Mural.'),
+      link: `/mural#post-${p.id}`,
+      criado_em: quando,
+    })
+  }
+  for (const t of (trilhasRes.trilhas as Record<string, unknown>[])) {
+    if (!t.criado_em) continue // só as criadas a partir de agora entram como "novas"
+    out.push({
+      id: `trilha:${t.id}`,
+      tipo: 'treino_trilha',
+      titulo: 'Nova trilha disponível',
+      texto: String(t.title || 'Confira a nova trilha.'),
+      link: `/treinamento#trilha-${t.id}`,
+      criado_em: String(t.criado_em),
+    })
+  }
+  return out.sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || '')).slice(0, 30)
 }

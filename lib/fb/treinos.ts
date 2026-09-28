@@ -52,7 +52,7 @@ function limpar(t: Partial<Trilha>) {
 
 export async function criarTrilha(t: Partial<Trilha>): Promise<string> {
   if (!String(t.title ?? '').trim()) throw new Error('Dê um título à trilha.')
-  const ref = await addDoc(collection(db(), 'trilhas'), { ...limpar(t), ordem: Date.now() })
+  const ref = await addDoc(collection(db(), 'trilhas'), { ...limpar(t), ordem: Date.now(), criado_em: new Date().toISOString() })
   await registrarLog('trilha_criar', String(t.title))
   return ref.id
 }

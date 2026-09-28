@@ -15,7 +15,8 @@ export default function PrimeiroAcesso() {
   const [pendente, setPendente] = useState(false)
 
   function destino(p: Perfil) {
-    return p.tipo === 'admin' ? '/admin' : '/mural'
+    // Igual ao pós-login: todos vão para a página inicial (Visão geral / home).
+    return p.tipo === 'admin' ? '/admin' : '/'
   }
 
   useEffect(() => {
@@ -72,9 +73,9 @@ export default function PrimeiroAcesso() {
         <div className="cartao-g p-6 sm:p-7">
           <h1 className="text-lg font-semibold text-tinta">Bem-vindo(a)! Crie a sua senha</h1>
           <p className="mt-1.5 text-sm leading-6 text-tinta-2">
-            Este é o seu primeiro acesso com <strong className="font-medium text-tinta">{perfil.email}</strong>. Defina
-            uma senha nova para continuar.
+            Este é seu primeiro acesso. Crie uma senha de sua preferência para substituir a senha padrão.
           </p>
+          <p className="mt-1 text-xs text-tinta-3">Conta: <strong className="font-medium text-tinta-2">{perfil.email}</strong></p>
           <form onSubmit={enviar} className="mt-5 space-y-4">
             {erro && (
               <p className="rounded-lg border border-[#f0c2c2] bg-[#fdeaea] px-3.5 py-2.5 text-sm text-[#8a1f1f]">{erro}</p>
