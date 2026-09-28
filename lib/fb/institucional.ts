@@ -32,8 +32,6 @@ export const SOBRE_PADRAO: SobreConfig = {
     { tipo: 'p', texto: 'O portal também é um espaço de participação. Aqui, você pode compartilhar sugestões, ideias, oportunidades de melhoria e reconhecimentos, contribuindo para o desenvolvimento contínuo do nosso ambiente de trabalho.' },
     { tipo: 'sub', texto: 'Um canal para informar, ouvir e conectar.' },
     { tipo: 'p', texto: 'O Gente Cultura reúne, em um só lugar, informações importantes para você acompanhar o que acontece na Soulan e participar ativamente da nossa cultura.' },
-    { tipo: 'sub', texto: 'O jeito Soulan de transformar o trabalho' },
-    { tipo: 'p', texto: 'Nosso propósito orienta a forma como construímos nossas relações e experiências no ambiente de trabalho:' },
   ],
   destaque: 'Eu te ajudo a trabalhar mais feliz.',
   link_texto: 'Conheça a Soulan',
