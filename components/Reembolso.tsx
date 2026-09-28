@@ -14,10 +14,11 @@ import Link from 'next/link'
 import {
   Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
   CheckCircle2, XCircle, Download, Printer, FileText, Image as ImageIcon, Search,
-  X, PersonStanding, ChevronUp, ChevronDown, ChevronsUpDown,
+  X, ChevronUp, ChevronDown, ChevronsUpDown, Check, Lock, User, Building2, CalendarDays, AlertCircle,
+  ArrowLeft, ArrowRight,
 } from 'lucide-react'
 import {
-  CENTROS_CUSTO, CATEGORIAS, STATUS_LABEL, STATUS_FAIXA, PAPEL_LABEL,
+  CATEGORIAS, STATUS_LABEL, STATUS_FAIXA, PAPEL_LABEL,
   formatBRL, formatData, podeAprovar, statusEfetivo, ehEtapaFinanceiro, estaPendente,
   type StatusReembolso,
 } from '@/lib/reembolso'
@@ -172,62 +173,178 @@ function ModalSucesso({ onFechar }: { onFechar: () => void }) {
 }
 
 // -------------------------------------------------------------
-// Trilha de progresso (perfumaria): pessoa caminhando na trilha
+// Fluxo do reembolso (4 etapas) — SÓ na tela de acompanhamento do
+// pedido já enviado, destacando a etapa atual conforme o status.
 // -------------------------------------------------------------
-function TrilhaProgresso({ passos, total }: { passos: number; total: number }) {
-  const pct = Math.round((Math.min(passos, total) / total) * 100)
-  const completo = passos >= total
+const ETAPAS_FLUXO = [
+  { t: 'Solicitação', d: 'Pedido enviado com o comprovante.' },
+  { t: 'Aprovação do gestor', d: 'O gestor da área aprova ou recusa.' },
+  { t: 'Pagamento (Financeiro)', d: 'O Financeiro registra o pagamento.' },
+  { t: 'Pago', d: 'Reembolso concluído.' },
+]
+/** Etapa "corrente" (1..4) a partir do status; 5 = concluído (pago). */
+function etapaDoStatus(status: StatusReembolso): number {
+  if (status === 'pendente_gestor' || status === 'pendente_master') return 2
+  if (status === 'pendente_financeiro') return 3
+  if (status === 'agendado') return 4
+  if (status === 'pago' || status === 'aprovado') return 5
+  return 2
+}
+function FluxoReembolso({ status, dataPagamento }: { status: StatusReembolso; dataPagamento?: string | null }) {
+  const efetivo = statusEfetivo(status, dataPagamento)
+  const recusado = efetivo === 'recusado'
+  const atual = etapaDoStatus(efetivo)
   return (
-    <div className="rounded-2xl bg-superficie-2 p-4">
-      <div className="flex items-center justify-between text-xs font-semibold text-tinta-2">
-        <span>{completo ? 'Tudo pronto — é só enviar! 🎉' : 'Vamos preencher juntos'}</span>
-        <span className="text-marca-texto">{pct}%</span>
-      </div>
-      <div className="relative mt-3 h-3 rounded-full bg-white shadow-inner">
-        <div className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: 'var(--gradiente)' }} />
-        {/* marcos */}
-        {Array.from({ length: total + 1 }).map((_, i) => (
-          <span key={i} className="absolute top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70" style={{ left: `${(i / total) * 100}%` }} aria-hidden />
-        ))}
-        {/* pessoa caminhando */}
-        <span
-          className="absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-marca text-white shadow transition-[left] duration-500"
-          style={{ left: `${pct}%` }}
-        >
-          <PersonStanding size={16} aria-hidden />
-        </span>
-      </div>
-      <p className="mt-2 text-[0.6875rem] text-tinta-3">{passos} de {total} passos concluídos</p>
+    <div className="rounded-xl border border-borda bg-superficie-2 p-4">
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-tinta-3">Fluxo do reembolso</p>
+      <ol className="mt-3">
+        {ETAPAS_FLUXO.map((p, i) => {
+          const n = i + 1
+          let estado: 'feito' | 'ativo' | 'pendente' | 'recusa'
+          if (recusado) estado = n === 1 ? 'feito' : n === 2 ? 'recusa' : 'pendente'
+          else if (n < atual) estado = 'feito'
+          else if (n === atual) estado = 'ativo'
+          else estado = 'pendente'
+          const bolha =
+            estado === 'feito' ? 'bg-verde-escuro text-white'
+              : estado === 'ativo' ? 'bg-marca text-white ring-4 ring-marca-clara'
+                : estado === 'recusa' ? 'bg-critico text-white'
+                  : 'border border-borda-forte bg-white text-tinta-3'
+          const titulo = estado === 'recusa' ? 'Recusado' : p.t
+          return (
+            <li key={n} className="relative flex gap-3 pb-3.5 last:pb-0">
+              {n < ETAPAS_FLUXO.length && <span className="absolute left-[13px] top-7 bottom-0 w-px bg-borda-forte" aria-hidden />}
+              <span className={`relative z-10 flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-bold ${bolha}`}>
+                {estado === 'feito' ? <Check size={14} aria-hidden /> : estado === 'recusa' ? <X size={14} aria-hidden /> : n}
+              </span>
+              <div className="min-w-0 pt-0.5">
+                <p className={`text-[0.8125rem] font-semibold ${estado === 'ativo' ? 'text-marca-escura' : estado === 'recusa' ? 'text-critico' : 'text-tinta'}`}>{titulo}</p>
+                <p className="text-[0.6875rem] leading-4 text-tinta-3">{estado === 'recusa' ? 'A solicitação foi recusada.' : p.t === 'Pago' && estado === 'ativo' ? 'Pagamento agendado.' : p.d}</p>
+              </div>
+            </li>
+          )
+        })}
+      </ol>
     </div>
   )
 }
 
 // -------------------------------------------------------------
-// Formulário de solicitação (guiado)
+// Barra dos 5 passos do wizard — SÓ enquanto preenche a solicitação.
+// -------------------------------------------------------------
+const PASSOS_WIZARD = ['Identificação', 'Despesa', 'Motivo', 'Comprovante', 'Conclusão']
+function BarraPassos({ atual, maximo, aoIr }: { atual: number; maximo: number; aoIr: (n: number) => void }) {
+  return (
+    <ol className="flex items-start gap-1 overflow-x-auto pb-1">
+      {PASSOS_WIZARD.map((rot, i) => {
+        const n = i + 1
+        const feito = n < atual
+        const ativo = n === atual
+        const alcancavel = n <= maximo
+        return (
+          <li key={n} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" style={{ minWidth: '3.4rem' }}>
+            <div className="flex w-full items-center">
+              <span className={`h-0.5 flex-1 ${n === 1 ? 'opacity-0' : feito || ativo ? 'bg-marca' : 'bg-borda-forte'}`} aria-hidden />
+              <button
+                type="button"
+                disabled={!alcancavel}
+                onClick={() => alcancavel && aoIr(n)}
+                aria-current={ativo ? 'step' : undefined}
+                className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-bold transition-colors ${ativo ? 'bg-marca text-white ring-4 ring-marca-clara' : feito ? 'bg-verde-escuro text-white' : 'border border-borda-forte bg-white text-tinta-3'} ${alcancavel && !ativo ? 'cursor-pointer' : ''} disabled:cursor-default`}
+              >
+                {feito ? <Check size={14} aria-hidden /> : n}
+              </button>
+              <span className={`h-0.5 flex-1 ${n === PASSOS_WIZARD.length ? 'opacity-0' : feito ? 'bg-marca' : 'bg-borda-forte'}`} aria-hidden />
+            </div>
+            <span className={`text-center text-[0.625rem] font-semibold leading-tight ${ativo ? 'text-marca-escura' : feito ? 'text-tinta-2' : 'text-tinta-3'}`}>{rot}</span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+// -------------------------------------------------------------
+// Campos auxiliares do formulário (fora do componente para não
+// remontar os inputs a cada tecla — evita o "erro ao digitar").
+// -------------------------------------------------------------
+function CampoLeitura({ Icone, rotulo, valor }: { Icone: typeof User; rotulo: string; valor: string }) {
+  return (
+    <div>
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-tinta-3">{rotulo}</p>
+      <div className="mt-1 flex items-center gap-2 rounded-lg border border-borda bg-superficie-2 px-3 py-2 text-sm text-tinta">
+        <Icone size={14} className="flex-none text-tinta-3" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{valor}</span>
+        <span title="Preenchido automaticamente" className="flex-none"><Lock size={12} className="text-tinta-3" aria-hidden /></span>
+      </div>
+    </div>
+  )
+}
+function ErroCampo({ msg }: { msg: string }) {
+  if (!msg) return null
+  return <p className="mt-1 flex items-center gap-1 text-xs font-medium text-critico"><AlertCircle size={12} aria-hidden /> {msg}</p>
+}
+const fmtDataBR = (iso: string) => { const p = iso.slice(0, 10).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso }
+
+// -------------------------------------------------------------
+// Formulário de solicitação
 // -------------------------------------------------------------
 function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
   perfil: Perfil; aoEnviar: () => void; setAviso: (s: string | null) => void; setErro: (s: string | null) => void
 }) {
-  const [centro, setCentro] = useState(perfil.centro_custo || '')
-  const [data, setData] = useState('')
+  const hoje = new Date().toISOString().slice(0, 10)
+  const centro = perfil.centro_custo || ''
+  const semCentro = !centro
+
+  const [passo, setPasso] = useState(1)          // 1..5
+  const [maximo, setMaximo] = useState(1)         // passo mais avançado já alcançado
+  const [tentou, setTentou] = useState(false)     // mostra erros do passo atual
+  const [data, setData] = useState('')            // data da compra/gasto
   const [categoria, setCategoria] = useState('')
   const [valor, setValor] = useState('')
   const [descricao, setDescricao] = useState('')
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [pendente, setPendente] = useState(false)
 
-  const passos = [centro, data, categoria, valor, descricao.trim().length >= 3 ? 'x' : '', arquivo ? 'x' : ''].filter(Boolean).length
+  const valorNum = Number(String(valor).replace(/\./g, '').replace(',', '.'))
+  const erros = {
+    data: !data ? 'Informe a data da compra/gasto.' : '',
+    categoria: !categoria ? 'Escolha a categoria da despesa.' : '',
+    valor: !(valorNum > 0) ? 'Informe um valor maior que zero.' : '',
+    descricao: descricao.trim().length < 3 ? 'Descreva o motivo (mínimo 3 letras).' : '',
+    arquivo: !arquivo ? 'Anexe o comprovante (imagem ou PDF).' : '',
+  }
   const destino = perfil.papeis.includes('gestor') ? 'Master' : perfil.papeis.includes('master') ? 'Financeiro' : 'gestor da sua área'
+  const borda = (e: string) => `${ENTRADA}${tentou && e ? ' border-critico focus:border-critico' : ''}`
 
-  async function enviar(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setErro(null); setAviso(null)
-    const v = Number(valor.replace(/\./g, '').replace(',', '.'))
-    if (!arquivo) { setErro('Anexe o comprovante (foto ou PDF).'); return }
+  function passoValido(n: number): boolean {
+    if (n === 1) return !semCentro
+    if (n === 2) return !erros.data && !erros.categoria && !erros.valor
+    if (n === 3) return !erros.descricao
+    if (n === 4) return !erros.arquivo
+    return !semCentro && !Object.values(erros).some(Boolean)
+  }
+  function avancar() {
+    if (!passoValido(passo)) { setTentou(true); return }
+    const n = Math.min(PASSOS_WIZARD.length, passo + 1)
+    setPasso(n); setMaximo((m) => Math.max(m, n)); setTentou(false)
+  }
+  function voltar() { setPasso((p) => Math.max(1, p - 1)); setTentou(false) }
+  function irPara(n: number) { if (n <= maximo) { setPasso(n); setTentou(false) } }
+
+  async function enviar() {
+    setErro(null); setAviso(null)
+    if (!passoValido(5)) {
+      setTentou(true)
+      const primeiro = [1, 2, 3, 4].find((n) => !passoValido(n)) ?? 1
+      setPasso(primeiro)
+      setErro('Preencha todos os campos obrigatórios antes de enviar.')
+      return
+    }
     setPendente(true)
     try {
-      const anexo: Anexo = await prepararAnexo(arquivo)
-      await criarReembolso({ centro_custo: centro, data_despesa: data, categoria, descricao, valor: v }, anexo, perfil)
-      setCentro(perfil.centro_custo || ''); setData(''); setCategoria(''); setValor(''); setDescricao(''); setArquivo(null)
+      const anexo: Anexo = await prepararAnexo(arquivo!)
+      await criarReembolso({ centro_custo: centro, data_despesa: data, categoria, descricao, valor: valorNum }, anexo, perfil)
       aoEnviar()
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não consegui enviar a solicitação.')
@@ -235,65 +352,139 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
     setPendente(false)
   }
 
-  const Passo = ({ n, titulo, children }: { n: number; titulo: string; children: React.ReactNode }) => (
-    <div className="flex gap-3">
-      <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-marca-clara text-xs font-bold text-marca">{n}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-tinta">{titulo}<span className="ml-0.5 text-critico" title="Obrigatório">*</span></p>
-        <div className="mt-2">{children}</div>
-      </div>
-    </div>
-  )
-
   return (
-    <form onSubmit={enviar} className="space-y-5">
-      <TrilhaProgresso passos={passos} total={6} />
+    <form onSubmit={(e) => { e.preventDefault(); passo < 5 ? avancar() : enviar() }} className="space-y-4" noValidate>
+      <div className="cartao-g p-5">
+        <BarraPassos atual={passo} maximo={maximo} aoIr={irPara} />
+      </div>
 
-      <div className="cartao-g space-y-5 p-5 sm:p-6">
-        <Passo n={1} titulo="Qual é a área e a data da despesa?">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select required value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
-              <option value="">Centro de custo…</option>
-              {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <input type="date" required value={data} onChange={(e) => setData(e.target.value)} className={ENTRADA} max={new Date().toISOString().slice(0, 10)} />
+      <div className="cartao-g space-y-4 p-5 sm:p-6">
+        {/* Passo 1 — Identificação */}
+        {passo === 1 && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-tinta">Identificação</p>
+              <p className="mt-1 text-xs text-tinta-3">Preenchido automaticamente do seu cadastro — confira e siga.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <CampoLeitura Icone={User} rotulo="Solicitante" valor={perfil.nome || perfil.email || '—'} />
+              <CampoLeitura Icone={Building2} rotulo="Centro de custo" valor={centro || 'Não definido'} />
+              <CampoLeitura Icone={CalendarDays} rotulo="Data da solicitação" valor={fmtDataBR(hoje)} />
+            </div>
+            {semCentro && (
+              <p className="flex items-start gap-2 rounded-lg border border-[#f0c2c2] bg-[#fdeaea] px-3 py-2 text-xs leading-5 text-[#8a1f1f]">
+                <AlertCircle size={14} className="mt-0.5 flex-none" aria-hidden />
+                Seu centro de custo ainda não foi definido no cadastro. Peça à equipe de Gente &amp; Cultura para configurar antes de solicitar.
+              </p>
+            )}
           </div>
-        </Passo>
+        )}
 
-        <Passo n={2} titulo="O que você gastou?">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select required value={categoria} onChange={(e) => setCategoria(e.target.value)} className={ENTRADA}>
-              <option value="">Categoria…</option>
-              {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <input required inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Valor (ex.: 150,00)" className={ENTRADA} />
+        {/* Passo 2 — Despesa */}
+        {passo === 2 && (
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-tinta">Despesa</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-tinta">Data da compra / gasto <span className="text-critico">*</span></label>
+                <input type="date" value={data} onChange={(e) => setData(e.target.value)} className={borda(erros.data)} max={hoje} />
+                {tentou && <ErroCampo msg={erros.data} />}
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-tinta">Categoria <span className="text-critico">*</span></label>
+                <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={borda(erros.categoria)}>
+                  <option value="">Escolha…</option>
+                  {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                {tentou && <ErroCampo msg={erros.categoria} />}
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-tinta">Valor (R$) <span className="text-critico">*</span></label>
+              <input inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ex.: 150,00" className={borda(erros.valor)} />
+              {tentou && <ErroCampo msg={erros.valor} />}
+            </div>
           </div>
-        </Passo>
+        )}
 
-        <Passo n={3} titulo="Conte rapidamente o motivo">
-          <textarea required rows={3} minLength={3} value={descricao} onChange={(e) => setDescricao(e.target.value)} className={ENTRADA} placeholder="Ex.: almoço com cliente, corrida de app até o evento…" />
-        </Passo>
+        {/* Passo 3 — Motivo */}
+        {passo === 3 && (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-tinta">Motivo</p>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-tinta">Descrição <span className="text-critico">*</span></label>
+              <textarea rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)} className={borda(erros.descricao)} placeholder="Ex.: almoço com cliente, corrida de app até o evento…" />
+              {tentou && <ErroCampo msg={erros.descricao} />}
+            </div>
+          </div>
+        )}
 
-        <Passo n={4} titulo="Anexe o comprovante">
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-borda-forte bg-white px-4 py-3 text-sm text-tinta-2 transition-colors hover:border-marca">
-            <Paperclip size={16} className="text-marca" aria-hidden />
-            <span className="min-w-0 flex-1 truncate">{arquivo ? arquivo.name : 'Escolher foto ou PDF…'}</span>
-            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
-          </label>
-        </Passo>
+        {/* Passo 4 — Comprovante */}
+        {passo === 4 && (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-tinta">Comprovante</p>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-tinta">Anexo <span className="text-critico">*</span></label>
+              <label className={`flex cursor-pointer items-center gap-3 rounded-lg border border-dashed bg-white px-4 py-3 text-sm text-tinta-2 transition-colors hover:border-marca ${tentou && erros.arquivo ? 'border-critico' : 'border-borda-forte'}`}>
+                <Paperclip size={16} className="text-marca" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{arquivo ? arquivo.name : 'Escolher foto ou PDF…'}</span>
+                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+              </label>
+              <p className="mt-1 text-xs text-tinta-3">Aceita imagem (foto) ou PDF.</p>
+              {tentou && <ErroCampo msg={erros.arquivo} />}
+            </div>
+          </div>
+        )}
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-borda pt-4">
-          <Botao type="submit" disabled={pendente || passos < 6}>
-            <Receipt size={15} aria-hidden /> {pendente ? 'Enviando…' : 'Enviar solicitação'}
-          </Botao>
-          <p className="text-xs text-tinta-3">
-            {passos < 6
-              ? 'Preencha todos os campos obrigatórios (marcados com *) para enviar.'
-              : <>Vai direto para <strong className="font-semibold text-tinta-2">{destino}</strong>.</>}
-          </p>
+        {/* Passo 5 — Conclusão */}
+        {passo === 5 && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-tinta">Conclusão</p>
+              <p className="mt-1 text-xs text-tinta-3">Confira os dados e envie. Depois vai direto para <strong className="font-semibold text-tinta-2">{destino}</strong>.</p>
+            </div>
+            <dl className="grid gap-x-4 gap-y-2.5 rounded-xl border border-borda bg-superficie-2 p-4 sm:grid-cols-2">
+              <Resumo rotulo="Solicitante" valor={perfil.nome || perfil.email || '—'} />
+              <Resumo rotulo="Centro de custo" valor={centro || '—'} />
+              <Resumo rotulo="Data da compra" valor={data ? fmtDataBR(data) : '—'} />
+              <Resumo rotulo="Categoria" valor={categoria || '—'} />
+              <Resumo rotulo="Valor" valor={valorNum > 0 ? formatBRL(valorNum) : '—'} />
+              <Resumo rotulo="Comprovante" valor={arquivo ? arquivo.name : '—'} />
+              <div className="sm:col-span-2"><Resumo rotulo="Descrição" valor={descricao.trim() || '—'} /></div>
+            </dl>
+          </div>
+        )}
+
+        {/* Navegação do wizard */}
+        <div className="flex items-center justify-between gap-3 border-t border-borda pt-4">
+          <button
+            type="button"
+            onClick={voltar}
+            disabled={passo === 1 || pendente}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3.5 py-2 text-sm font-medium text-tinta-2 transition-colors hover:border-marca disabled:opacity-40"
+          >
+            <ArrowLeft size={15} aria-hidden /> Voltar
+          </button>
+          {passo < PASSOS_WIZARD.length ? (
+            <Botao type="submit" disabled={semCentro}>
+              Continuar <ArrowRight size={15} aria-hidden />
+            </Botao>
+          ) : (
+            <Botao type="submit" disabled={pendente || semCentro}>
+              <Receipt size={15} aria-hidden /> {pendente ? 'Enviando…' : 'Enviar solicitação'}
+            </Botao>
+          )}
         </div>
       </div>
     </form>
+  )
+}
+function Resumo({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div>
+      <dt className="text-[0.6875rem] font-semibold uppercase tracking-wide text-tinta-3">{rotulo}</dt>
+      <dd className="mt-0.5 break-words text-sm text-tinta">{valor}</dd>
+    </div>
   )
 }
 
@@ -340,6 +531,7 @@ function CardReembolso({ r }: { r: Reembolso }) {
               <strong className="font-semibold">Motivo da recusa:</strong> {recusa.motivo}
             </p>
           )}
+          <div className="mt-3"><FluxoReembolso status={r.status} dataPagamento={r.data_pagamento} /></div>
           <Timeline r={r} />
           <div className="mt-3"><BotaoAnexo id={r.id} tipo={r.anexo_tipo} /></div>
         </div>

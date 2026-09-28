@@ -33,7 +33,8 @@ export default function Entrar() {
         router.replace('/primeiro-acesso')
         return
       }
-      router.replace(p.tipo === 'admin' ? '/admin' : '/mural')
+      // Todos caem na página inicial (Visão geral do admin; home para os demais).
+      router.replace(p.tipo === 'admin' ? '/admin' : '/')
     })
     return cancelar
   }, [router])

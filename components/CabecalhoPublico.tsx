@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { LogIn, LogOut, LayoutDashboard, ChevronDown, Megaphone } from 'lucide-react'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
+import { SinoNotificacoes } from '@/components/SinoNotificacoes'
 
 /** Menu suspenso "Sobre Nós" com as duas páginas institucionais. */
 function MenuSobre() {
@@ -89,6 +90,11 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
             enxergar (nem de relance) o botão do ADM. */}
         {perfil !== undefined && (
           <nav className="flex items-center gap-2 text-[0.8125rem]">
+            {/* Sino de notificações (só para quem tem cadastro ativo) */}
+            {perfil && (perfil.tipo === 'admin' || perfil.tipo === 'funcionario') && (
+              <SinoNotificacoes perfil={perfil} />
+            )}
+
             {/* Admin: atalho para o painel */}
             {ehAdmin && (
               <Link

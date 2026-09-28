@@ -253,6 +253,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // -------- Notificações do portal (sino) --------
+    // Avisos do fluxo de reembolso. Cada pessoa lê o que é endereçado ao seu
+    // uid OU ao seu papel (gestor do centro / financeiro / master). Qualquer
+    // participante CRIA (disparado pelas ações de solicitar/aprovar/pagar).
+    // Imutável: o "lido" é por dispositivo (não grava aqui).
+    match /notificacoes/{id} {
+      allow read: if logado() && (
+        resource.data.alvo == 'u:' + request.auth.uid
+        || (resource.data.alvo == 'f' && temPapel('financeiro'))
+        || (resource.data.alvo == 'm' && ehMaster())
+        || (temPapel('gestor') && (
+             resource.data.alvo == 'g:' + meuCentro()
+             || (meuCentro() == 'Todos os centros de custo' && resource.data.alvo.matches('g:.*'))
+           ))
+      );
+      allow create: if participante()
+        && request.resource.data.alvo is string
+        && request.resource.data.reembolso_id is string;
+      allow update, delete: if false;
+    }
+
     // -------- Progresso de Treinamento e Desenvolvimento (por usuário)
     // Cada participante (funcionário Comum ou admin) só lê e grava o SEU
     // próprio documento (id = uid). Admin pode ler todos para relatórios.

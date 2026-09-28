@@ -15,10 +15,11 @@ import {
 import { db, auth } from '../firebase'
 import {
   statusInicial, proximoStatus, papelDaEtapa, mesmoCentro, centroAbrangeTudo, statusDoPagamento,
-  type StatusReembolso,
+  formatBRL, type StatusReembolso,
 } from '../reembolso'
 import type { Perfil } from './funcionarios'
 import { registrarLog } from './usuarios'
+import { avisarNovaSolicitacao, avisarDecisao, avisarPagamento } from './notificacoes'
 
 // Limite do data URL do anexo. O documento do Firestore tem teto de ~1 MB;
 // base64 infla ~33%, então seguramos o conteúdo bem abaixo disso.
@@ -181,6 +182,14 @@ export async function criarReembolso(
   })
 
   await registrarLog('reembolso_solicitado', `${dados.categoria} · ${valor}`)
+  // Notifica (sino) o gestor da área / master e o financeiro. Best-effort.
+  await avisarNovaSolicitacao({
+    reembolsoId: ref.id,
+    status,
+    centro: dados.centro_custo,
+    solicitante: perfil.nome || u.email || 'Colaborador',
+    resumo: `${dados.categoria} · ${formatBRL(valor)}`,
+  })
   return { id: ref.id, status }
 }
 
@@ -280,6 +289,14 @@ async function decidir(id: string, perfil: Perfil, aprovar: boolean, motivo?: st
     atualizado_em: agora,
   })
   await registrarLog(aprovar ? 'reembolso_aprovado' : 'reembolso_recusado', `${id} → ${novoStatus}`)
+  // Notifica (sino) o colaborador que fez o pedido.
+  await avisarDecisao({
+    solicitanteUid: r.solicitante_uid,
+    aprovado: aprovar,
+    reembolsoId: id,
+    porNome: perfil.nome || u.email || '',
+    motivo,
+  })
   return { status: novoStatus }
 }
 
@@ -333,5 +350,13 @@ export async function registrarPagamento(id: string, perfil: Perfil, dataPagamen
     atualizado_em: agora,
   })
   await registrarLog('reembolso_pago', `${id} → ${novoStatus} (${data})`)
+  // Notifica (sino) o colaborador.
+  await avisarPagamento({
+    solicitanteUid: r.solicitante_uid,
+    reembolsoId: id,
+    porNome: perfil.nome || u.email || '',
+    agendado: novoStatus === 'agendado',
+    data,
+  })
   return { status: novoStatus }
 }
