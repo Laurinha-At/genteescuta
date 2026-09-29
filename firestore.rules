@@ -367,7 +367,8 @@ service cloud.firestore {
           participante()
           && resource.data.uid == request.auth.uid
           && request.resource.data.uid == resource.data.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['texto', 'editado', 'editado_em'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['texto', 'editado', 'editado_em', 'aprovado'])
+          && request.resource.data.aprovado == false
           && request.resource.data.texto is string
           && request.resource.data.texto.size() > 0
           && request.resource.data.texto.size() <= 800

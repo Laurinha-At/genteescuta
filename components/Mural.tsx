@@ -213,6 +213,7 @@ function Comentarios({ postId, perfil }: { postId: string; perfil: Perfil | null
     }
   }
 
+  const [avisoMod, setAvisoMod] = useState<string | null>(null)
   function recarregar() {
     getComentarios(postId).then(setLista).catch(() => {})
   }
@@ -241,6 +242,9 @@ function Comentarios({ postId, perfil }: { postId: string; perfil: Perfil | null
 
       {aberto && (
         <div className="mt-3 space-y-3">
+          {avisoMod && (
+            <p className="rounded-lg border border-[#f2dfae] bg-[#fdf7e7] px-3 py-2 text-xs text-[#6b4a00]">{avisoMod}</p>
+          )}
           {lista === null ? (
             <p className="text-xs text-tinta-3">Carregando…</p>
           ) : lista.length === 0 ? (
@@ -248,7 +252,7 @@ function Comentarios({ postId, perfil }: { postId: string; perfil: Perfil | null
           ) : (
             <ul className="space-y-2">
               {lista.map((c) => (
-                <ItemComentario key={c.id} postId={postId} c={c} perfil={perfil} aoMudar={recarregar} />
+                <ItemComentario key={c.id} postId={postId} c={c} perfil={perfil} aoMudar={recarregar} aoEditado={() => setAvisoMod('Comentário atualizado. Ele volta para aprovação da equipe antes de aparecer de novo.')} />
               ))}
             </ul>
           )}
@@ -294,7 +298,7 @@ function Comentarios({ postId, perfil }: { postId: string; perfil: Perfil | null
   )
 }
 
-function ItemComentario({ postId, c, perfil, aoMudar }: { postId: string; c: any; perfil: Perfil | null; aoMudar: () => void }) {
+function ItemComentario({ postId, c, perfil, aoMudar, aoEditado }: { postId: string; c: any; perfil: Perfil | null; aoMudar: () => void; aoEditado?: () => void }) {
   const podeGerir = !!perfil && (perfil.uid === c.uid || perfil.tipo === 'admin')
   const [editando, setEditando] = useState(false)
   const [texto, setTexto] = useState(c.texto ?? '')
@@ -306,6 +310,7 @@ function ItemComentario({ postId, c, perfil, aoMudar }: { postId: string; c: any
     try {
       await editarComentario(postId, c.id, texto)
       setEditando(false)
+      aoEditado?.()
       aoMudar()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui salvar.')

@@ -332,6 +332,7 @@ export async function editarComentario(postId: string, cid: string, texto: strin
     texto: t,
     editado: true,
     editado_em: new Date().toISOString(),
+    aprovado: false, // toda edição volta para a fila de moderação
   })
   return { ok: true }
 }
