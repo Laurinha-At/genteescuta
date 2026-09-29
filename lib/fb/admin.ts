@@ -144,6 +144,32 @@ export async function triarManifestacao(
   return { ok: true }
 }
 
+/**
+ * Muda rapidamente o status de uma manifestação (inativar = arquivar,
+ * ativar = reabrir, repostar = voltar para nova análise) e registra no histórico.
+ */
+export async function mudarStatusManifestacao(id: string, status: string, autor: string, mensagem?: string) {
+  const ref = doc(db(), 'manifestacoes', id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Manifestação não encontrada.')
+  const atual = snap.data() as any
+  const agora = new Date().toISOString()
+  const campos: Record<string, unknown> = { status, atualizado_em: agora }
+  if (['analisada', 'em_implementacao', 'implementada'].includes(status) && !atual.analisada_em) campos.analisada_em = agora
+  const updates = Array.isArray(atual.updates) ? [...atual.updates] : []
+  updates.push({
+    status_anterior: atual.status,
+    status_novo: status,
+    mensagem: mensagem || null,
+    autor,
+    visivel_ao_colaborador: true,
+    criado_em: agora,
+  })
+  campos.updates = updates
+  await updateDoc(ref, campos)
+  return { ok: true }
+}
+
 /** Publica (ou tira) no mural. Copia só campos seguros para a coleção pública. */
 export async function publicarMural(
   id: string,
@@ -462,6 +488,12 @@ export async function salvarPostInforma(p: {
 
 export async function definirPublicadoPost(id: string, publicado: boolean) {
   await updateDoc(doc(db(), 'posts', id), { publicado })
+}
+
+/** Repostar: joga o post para o topo do mural (data de agora) e publica. */
+export async function repostarPost(id: string) {
+  const agora = new Date().toISOString()
+  await updateDoc(doc(db(), 'posts', id), { data: agora, publicado: true, atualizado_em: agora })
 }
 
 export async function excluirPost(id: string) {

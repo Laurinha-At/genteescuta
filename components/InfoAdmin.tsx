@@ -12,10 +12,11 @@ import {
   Plus, Pencil, Trash2, X, ExternalLink, ArrowUp, ArrowDown, Upload, Link2, Loader2,
   ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen, HeartPulse,
   Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon, Search, Table2, CalendarDays,
-  Lock, Users,
+  Lock, Users, Eye, EyeOff, ArrowUpToLine,
 } from 'lucide-react'
 import {
   listarTopicos, criarTopico, atualizarTopico, excluirTopico, trocarOrdemTopicos,
+  definirAtivoTopico, reporTopico,
   adicionarItem, atualizarItem, removerItem, moverItem, subirArquivo,
   ITEM_TIPOS, ITEM_TIPO_LABEL, ICONES_TOPICO, ICONE_TOPICO_LABEL, CORES_TOPICO,
   type InfoTopico, type InfoItem, type ItemTipo, type Visibilidade,
@@ -135,7 +136,7 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
   const termo = busca.trim().toLowerCase()
   // Colaborador não vê os assuntos marcados como "apenas administradores".
   const base = useMemo(
-    () => (ehAdmin ? topicos : topicos.filter((t) => (t.visivel ?? 'todos') !== 'admin')),
+    () => (ehAdmin ? topicos : topicos.filter((t) => (t.visivel ?? 'todos') !== 'admin' && t.ativo !== false)),
     [topicos, ehAdmin],
   )
   const filtrados = useMemo(() => {
@@ -201,6 +202,8 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
                 onEditar={() => { setErro(null); setAviso(null); setEdTopico(t) }}
                 onExcluir={() => { if (confirm('Remover este assunto e todos os seus itens?')) acao(() => excluirTopico(t.id), 'Assunto removido.') }}
                 onMover={(dir) => { const outro = topicos[idx + dir]; if (outro) acao(() => trocarOrdemTopicos(t, outro)) }}
+                onAtivo={() => acao(() => definirAtivoTopico(t.id, t.ativo === false), t.ativo === false ? 'Assunto ativado.' : 'Assunto inativado.')}
+                onRepor={() => { if (confirm('Repostar este assunto? Ele volta para o topo e fica ativo.')) acao(() => reporTopico(t.id), 'Assunto reposto no topo.') }}
               />
             )
           })}
@@ -234,7 +237,7 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
 // Card de prévia (grade). Clicar abre o detalhe.
 // -------------------------------------------------------------
 function CartaoPreview({
-  topico, grad, ehAdmin, primeiro, ultimo, onAbrir, onEditar, onExcluir, onMover,
+  topico, grad, ehAdmin, primeiro, ultimo, onAbrir, onEditar, onExcluir, onMover, onAtivo, onRepor,
 }: {
   topico: InfoTopico
   grad: string
@@ -245,7 +248,10 @@ function CartaoPreview({
   onEditar: () => void
   onExcluir: () => void
   onMover: (dir: -1 | 1) => void
+  onAtivo: () => void
+  onRepor: () => void
 }) {
+  const inativo = topico.ativo === false
   const tipos = tiposPresentes(topico)
   const n = topico.itens.length
   const stop = (e: React.MouseEvent) => e.stopPropagation()
@@ -271,6 +277,8 @@ function CartaoPreview({
           <div className="absolute right-2 top-2 flex gap-0.5" onClick={stop}>
             <button type="button" title="Mover para cima" disabled={primeiro} onClick={() => onMover(-1)} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowUp size={14} aria-hidden /></button>
             <button type="button" title="Mover para baixo" disabled={ultimo} onClick={() => onMover(1)} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowDown size={14} aria-hidden /></button>
+            <button type="button" title={inativo ? 'Ativar (mostrar no site)' : 'Inativar (esconder do site)'} onClick={onAtivo} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white">{inativo ? <Eye size={14} aria-hidden /> : <EyeOff size={14} aria-hidden />}</button>
+            <button type="button" title="Repostar (jogar para o topo)" onClick={onRepor} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><ArrowUpToLine size={14} aria-hidden /></button>
             <button type="button" title="Editar assunto" onClick={onEditar} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><Pencil size={14} aria-hidden /></button>
             <button type="button" title="Remover assunto" onClick={onExcluir} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><Trash2 size={14} aria-hidden /></button>
           </div>
@@ -286,6 +294,11 @@ function CartaoPreview({
         )}
 
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+          {inativo && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#fbe9e1] px-2 py-0.5 text-[0.6875rem] font-semibold text-[#7a3418]">
+              <EyeOff size={11} aria-hidden /> Inativo
+            </span>
+          )}
           {topico.visivel === 'admin' && (
             <span className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
               <Lock size={11} aria-hidden /> Só admin

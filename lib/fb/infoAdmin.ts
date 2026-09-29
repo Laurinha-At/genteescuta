@@ -77,6 +77,7 @@ export interface InfoTopico {
   id: string
   icone: string
   cor?: string              // uma de CORES_TOPICO; ausente = cor automática
+  ativo?: boolean           // false = inativo (escondido do site, sem apagar)
   visivel?: Visibilidade    // 'admin' = só administradores veem o card
   titulo: string            // HTML rico sanitizado
   descricao: string         // HTML rico sanitizado
@@ -129,7 +130,7 @@ function normalizarTopico(p: { icone: string; cor?: string; visivel?: string; ti
 export async function criarTopico(p: { icone: string; cor?: string; visivel?: string; titulo: string; descricao: string }): Promise<string> {
   const v = normalizarTopico(p)
   const agora = new Date().toISOString()
-  const refDoc = await addDoc(collection(db(), 'info_topicos'), { ...v, ordem: Date.now(), itens: [], criado_em: agora })
+  const refDoc = await addDoc(collection(db(), 'info_topicos'), { ...v, ativo: true, ordem: Date.now(), itens: [], criado_em: agora })
   await registrarLog('info_topico_criar', v.titulo.replace(/<[^>]*>/g, ''))
   return refDoc.id
 }
@@ -155,6 +156,21 @@ export async function trocarOrdemTopicos(a: InfoTopico, b: InfoTopico): Promise<
     updateDoc(doc(db(), 'info_topicos', a.id), { ordem: b.ordem ?? 0 }),
     updateDoc(doc(db(), 'info_topicos', b.id), { ordem: a.ordem ?? 0 }),
   ])
+}
+
+/** Inativa (esconde do site) ou reativa um tópico, sem apagar. */
+export async function definirAtivoTopico(id: string, ativo: boolean): Promise<void> {
+  await updateDoc(doc(db(), 'info_topicos', id), { ativo, atualizado_em: new Date().toISOString() })
+  await registrarLog(ativo ? 'info_topico_ativar' : 'info_topico_inativar', id)
+}
+
+/** Repostar: joga o tópico para o topo da lista e reativa. */
+export async function reporTopico(id: string): Promise<void> {
+  const snap = await getDocs(collection(db(), 'info_topicos'))
+  let min = 0
+  snap.docs.forEach((d) => { const o = Number((d.data() as Record<string, unknown>).ordem ?? 0); if (o < min) min = o })
+  await updateDoc(doc(db(), 'info_topicos', id), { ordem: min - 1, ativo: true, atualizado_em: new Date().toISOString() })
+  await registrarLog('info_topico_repostar', id)
 }
 
 // -------------------------------------------------------------

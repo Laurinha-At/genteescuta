@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Megaphone, Award, Plus, Pencil, Trash2, Eye, EyeOff, ShieldQuestion, X } from 'lucide-react'
+import { Megaphone, Award, Plus, Pencil, Trash2, Eye, EyeOff, ShieldQuestion, X, ArrowUpToLine } from 'lucide-react'
 import {
   listarPosts,
   salvarPostInforma,
   excluirPost,
   definirPublicadoPost,
+  repostarPost,
   reconhecimentosPendentes,
   comentariosPendentes,
 } from '@/lib/fb/admin'
@@ -90,8 +91,11 @@ export default function MuralAdmin() {
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-tinta">{p.titulo}</span>
                   {p.publicado ? <Chip faixa="baixo">Publicado</Chip> : <Chip faixa="neutro">Rascunho</Chip>}
                   <span className="text-xs text-tinta-3">{fmtData(p.data)}</span>
-                  <button type="button" onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} title={p.publicado ? 'Despublicar' : 'Publicar'} className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-tinta">
+                  <button type="button" onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} title={p.publicado ? 'Inativar (tirar do ar)' : 'Ativar (publicar)'} className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-tinta">
                     {p.publicado ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+                  </button>
+                  <button type="button" onClick={() => { if (confirm('Repostar este aviso? Ele vai para o topo do mural com a data de hoje.')) repostarPost(p.id).then(recarregar) }} title="Repostar (jogar para o topo)" className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-marca">
+                    <ArrowUpToLine size={15} aria-hidden />
                   </button>
                   <button type="button" onClick={() => setEditando(p)} title="Editar" className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-marca">
                     <Pencil size={15} aria-hidden />
@@ -116,8 +120,11 @@ export default function MuralAdmin() {
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-tinta">{p.titulo}</span>
                   {p.area && <Chip faixa="marca">{p.area}</Chip>}
                   {p.publicado ? <Chip faixa="baixo">No ar</Chip> : <Chip faixa="neutro">Fora do ar</Chip>}
-                  <button type="button" onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} title={p.publicado ? 'Tirar do ar' : 'Publicar'} className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-tinta">
+                  <button type="button" onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} title={p.publicado ? 'Inativar (tirar do ar)' : 'Ativar (publicar)'} className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-tinta">
                     {p.publicado ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+                  </button>
+                  <button type="button" onClick={() => { if (confirm('Repostar este reconhecimento? Ele vai para o topo do mural com a data de hoje.')) repostarPost(p.id).then(recarregar) }} title="Repostar (jogar para o topo)" className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-marca">
+                    <ArrowUpToLine size={15} aria-hidden />
                   </button>
                   <button type="button" onClick={() => { if (confirm('Remover este reconhecimento do mural?')) excluirPost(p.id).then(recarregar) }} title="Remover" className="rounded p-1 text-tinta-3 hover:bg-plano hover:text-critico">
                     <Trash2 size={15} aria-hidden />

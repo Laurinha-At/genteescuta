@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Mail, UserX, MapPin, Calendar, User, Building2, CheckCircle2, XCircle } from 'lucide-react'
-import { getManifestacao, triarManifestacao } from '@/lib/fb/admin'
+import { getManifestacao, triarManifestacao, mudarStatusManifestacao } from '@/lib/fb/admin'
 import { usuarioAtual } from '@/lib/fb/auth'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao } from '@/components/ui'
 import { LinhaDoTempo, StatusChip } from '@/components/StatusManifestacao'
@@ -80,6 +80,7 @@ function Detalhe() {
           </Cartao>
 
           <PainelTriagem m={m} aoSalvar={recarregar} />
+          <AcoesManifestacao m={m} aoSalvar={recarregar} />
 
           {m.anonima && (
             <Aviso tom="alerta" titulo="Manifestação anônima">
@@ -190,6 +191,40 @@ function PainelTriagem({ m, aoSalvar }: { m: any; aoSalvar: () => void }) {
           </div>
         )}
       </div>
+    </Cartao>
+  )
+}
+
+function AcoesManifestacao({ m, aoSalvar }: { m: any; aoSalvar: () => void }) {
+  const [busy, setBusy] = useState('')
+  const arquivada = m.status === 'arquivada'
+
+  async function acao(status: string, msg: string, chave: string) {
+    setBusy(chave)
+    try {
+      await mudarStatusManifestacao(m.id, status, usuarioAtual()?.email ?? 'Equipe', msg)
+      aoSalvar()
+    } catch { /* silencioso */ }
+    setBusy('')
+  }
+
+  return (
+    <Cartao titulo="Ações rápidas" apoio="Inativar (arquivar), reativar ou repostar para nova análise.">
+      <div className="flex flex-wrap gap-2">
+        {arquivada ? (
+          <Botao type="button" variante="secundario" onClick={() => acao('em_analise', 'Manifestação reativada.', 'a')} disabled={!!busy}>
+            <CheckCircle2 size={15} aria-hidden /> Ativar (reabrir)
+          </Botao>
+        ) : (
+          <Botao type="button" variante="secundario" onClick={() => acao('arquivada', 'Manifestação arquivada.', 'i')} disabled={!!busy}>
+            <XCircle size={15} aria-hidden /> Inativar (arquivar)
+          </Botao>
+        )}
+        <Botao type="button" variante="secundario" onClick={() => acao('recebida', 'Manifestação reposta para nova análise.', 'r')} disabled={!!busy}>
+          <CheckCircle2 size={15} aria-hidden /> Repostar (nova análise)
+        </Botao>
+      </div>
+      <p className="mt-2 text-xs text-tinta-3">Para editar o conteúdo/tratativa, use os campos abaixo. Cada ação fica registrada no histórico.</p>
     </Cartao>
   )
 }
