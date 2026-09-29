@@ -19,6 +19,7 @@ import {
   limit,
 } from 'firebase/firestore'
 import { db, auth } from '../firebase'
+import { AREAS_SUGESTAO } from '../types'
 
 export const REACOES = [
   { chave: 'curtir', emoji: '👍', rotulo: 'Curtir' },
@@ -107,35 +108,100 @@ export async function getPesquisaPorSlug(slug: string) {
 // -------------------------------------------------------------
 export async function enviarManifestacao(p: {
   tipo: string
-  titulo: string
-  descricao: string
+  titulo?: string
+  descricao?: string
   nome: string
-  email: string
-  area: string
+  email?: string
+  area?: string
   anonima: boolean
+  // -------- contribuição estruturada --------
+  categoria?: string
+  departamento?: string
+  problema?: string
+  sugestao?: string
+  impactos?: string[]
+  impacto_outro?: string
 }) {
   const tipo = String(p.tipo ?? '')
-  const titulo = String(p.titulo ?? '').trim()
-  const descricao = String(p.descricao ?? '').trim()
   const nome = String(p.nome ?? '').trim()
   const email = String(p.email ?? '').trim().toLowerCase()
-  const area = String(p.area ?? '').trim()
   const anonima = p.anonima === true
+  const agora = new Date().toISOString()
 
   const TIPOS = ['contribuicao', 'sugestao', 'ideia', 'melhoria', 'reconhecimento']
   if (!TIPOS.includes(tipo)) throw new Error('Escolha o tipo da sua manifestação.')
-  // Identificação é OPCIONAL: só valida nome/e-mail em envio identificado.
+
+  const eventoInicial = {
+    status_novo: 'recebida',
+    mensagem: 'Manifestação recebida. Ela entrou na fila de análise da equipe de Gente & Cultura.',
+    autor: 'Sistema',
+    visivel_ao_colaborador: true,
+    criado_em: agora,
+  }
+
+  // ---------------- Contribuição = Programa de Melhoria Contínua ----------------
+  if (tipo === 'contribuicao') {
+    const categoria = String(p.categoria ?? '').trim()
+    const departamento = String(p.departamento ?? '').trim()
+    const problema = String(p.problema ?? '').trim()
+    const sugestao = String(p.sugestao ?? '').trim()
+    const impactos = Array.isArray(p.impactos) ? p.impactos.map((x) => String(x).trim()).filter(Boolean) : []
+    const impactoOutro = String(p.impacto_outro ?? '').trim()
+
+    if (!anonima && (nome.length < 3 || !nome.includes(' '))) throw new Error('Informe o nome completo, com sobrenome.')
+    if (!AREAS_SUGESTAO.includes(categoria as (typeof AREAS_SUGESTAO)[number])) throw new Error('Escolha a área da sugestão.')
+    if (problema.length < 10 || problema.length > 5000) throw new Error('Descreva o problema ou a oportunidade (de 10 a 5.000 caracteres).')
+    if (sugestao.length < 10 || sugestao.length > 5000) throw new Error('Descreva a sua sugestão prática (de 10 a 5.000 caracteres).')
+    if (impactos.length === 0) throw new Error('Marque ao menos um impacto principal.')
+    if (impactos.includes('Outro') && !impactoOutro) throw new Error('Descreva o "Outro" impacto que você marcou.')
+
+    const titulo = problema.length > 120 ? `${problema.slice(0, 117)}…` : problema
+    const descricao = `Problema/oportunidade:\n${problema}\n\nSugestão de melhoria:\n${sugestao}`
+
+    await addDoc(collection(db(), 'manifestacoes'), {
+      tipo,
+      titulo,
+      descricao,
+      area: categoria,                 // Área da Sugestão alimenta os indicadores
+      categoria,
+      departamento: anonima ? null : (departamento || null),
+      problema,
+      sugestao,
+      impactos,
+      impacto_outro: impactos.includes('Outro') ? impactoOutro : null,
+      nome: anonima ? null : nome,
+      email: anonima ? null : (email || null),
+      anonima,
+      status: 'recebida',
+      triagem: 'pendente',
+      resposta_privada: null,
+      triado_por: null,
+      triado_em: null,
+      prioridade: 'media',
+      responsavel: null,
+      resposta_publica: null,
+      publicar_no_mural: false,
+      criado_em: agora,
+      atualizado_em: agora,
+      analisada_em: null,
+      implementada_em: null,
+      updates: [eventoInicial],
+    })
+    return { anonima }
+  }
+
+  // ---------------- Reconhecimento (fluxo simples, inalterado) ----------------
+  const titulo = String(p.titulo ?? '').trim()
+  const descricao = String(p.descricao ?? '').trim()
+  const area = String(p.area ?? '').trim()
   if (!anonima) {
     if (nome.length < 3 || !nome.includes(' ')) throw new Error('Informe o nome completo, com sobrenome.')
     if (!EMAIL_RE.test(email)) throw new Error('Informe um e-mail válido.')
   }
-  // Área é SEMPRE obrigatória — é ela que alimenta os dashboards por setor.
   if (!area) throw new Error('Selecione a sua área ou setor.')
   if (titulo.length < 4 || titulo.length > 160) throw new Error('O título precisa ter de 4 a 160 caracteres.')
-  if (descricao.length < 15 || descricao.length > 5000)
-    throw new Error('A descrição precisa ter de 15 a 5.000 caracteres.')
+  if (descricao.length < 15 || descricao.length > 5000) throw new Error('A descrição precisa ter de 15 a 5.000 caracteres.')
 
-  const agora = new Date().toISOString()
   await addDoc(collection(db(), 'manifestacoes'), {
     tipo,
     titulo,
@@ -145,6 +211,10 @@ export async function enviarManifestacao(p: {
     email: anonima ? null : email,
     anonima,
     status: 'recebida',
+    triagem: 'pendente',
+    resposta_privada: null,
+    triado_por: null,
+    triado_em: null,
     prioridade: 'media',
     responsavel: null,
     resposta_publica: null,
@@ -153,15 +223,7 @@ export async function enviarManifestacao(p: {
     atualizado_em: agora,
     analisada_em: null,
     implementada_em: null,
-    updates: [
-      {
-        status_novo: 'recebida',
-        mensagem: 'Manifestação recebida. Ela entrou na fila de análise da equipe de Gente & Cultura.',
-        autor: 'Sistema',
-        visivel_ao_colaborador: true,
-        criado_em: agora,
-      },
-    ],
+    updates: [eventoInicial],
   })
   return { anonima }
 }

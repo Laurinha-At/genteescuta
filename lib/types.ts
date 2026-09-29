@@ -30,6 +30,39 @@ export type ManifestacaoStatus =
 export type Prioridade = 'baixa' | 'media' | 'alta'
 export type FaixaRisco = 'baixo' | 'moderado' | 'alto' | 'critico'
 
+// -------- Programa de Melhoria Contínua (contribuições estruturadas) --------
+/** Triagem de aprovação da manifestação (separada do funil de status). */
+export type Triagem = 'pendente' | 'aprovada' | 'reprovada'
+
+/** Áreas da sugestão (Item 4). Fácil de expandir: acrescente aqui. */
+export const AREAS_SUGESTAO = [
+  'Cultura, Clima e Benefícios',
+  'Processos Internos e Produtividade',
+  'Ferramentas, Tecnologia e Infraestrutura',
+  'Atendimento e Sucesso do Cliente',
+  'Vendas, Marketing e Presença Digital',
+  'Sustentabilidade, Inovação e Treinamento',
+] as const
+export type AreaSugestao = (typeof AREAS_SUGESTAO)[number]
+export const AREA_SUGESTAO_AJUDA: Record<string, string> = {
+  'Cultura, Clima e Benefícios': 'Bem-estar, integração, ergonomia',
+  'Processos Internos e Produtividade': 'Burocracia, reuniões, fluxos',
+  'Ferramentas, Tecnologia e Infraestrutura': 'Computadores, softwares, TI',
+  'Atendimento e Sucesso do Cliente': 'Canais de suporte, pós-venda',
+  'Vendas, Marketing e Presença Digital': 'Propostas, redes sociais, site',
+  'Sustentabilidade, Inovação e Treinamento': 'Reciclagem, cursos, IA',
+}
+
+/** Impacto principal esperado (Item 7 — múltipla escolha). */
+export const IMPACTOS = [
+  'Economia de tempo / Agilidade no dia a dia',
+  'Redução de custos financeiros para a empresa',
+  'Melhoria no bem-estar e no clima da equipe',
+  'Aumento da satisfação ou retenção de clientes',
+  'Redução de erros, retrabalho ou burocracia',
+  'Outro',
+] as const
+
 export interface Opcao {
   valor: number | string
   rotulo: string
@@ -116,6 +149,24 @@ export interface Manifestacao {
   atualizado_em: string
   analisada_em: string | null
   implementada_em: string | null
+  // -------- Contribuição estruturada (Programa de Melhoria Contínua) --------
+  categoria?: string | null       // Área da Sugestão (Item 4)
+  departamento?: string | null    // Setor de quem enviou (Item 3, só se identificado)
+  problema?: string | null        // Item 5
+  sugestao?: string | null        // Item 6
+  impactos?: string[]             // Item 7
+  impacto_outro?: string | null   // texto livre quando marca "Outro"
+  // -------- Triagem (aprovar/reprovar) --------
+  triagem?: Triagem               // 'pendente' por padrão
+  resposta_privada?: string | null // resposta ao autor na reprovação
+  triado_por?: string | null
+  triado_em?: string | null
+}
+
+export const TRIAGEM_LABEL: Record<Triagem, string> = {
+  pendente: 'Pendente',
+  aprovada: 'Aprovada',
+  reprovada: 'Reprovada',
 }
 
 export interface ManifestacaoUpdate {

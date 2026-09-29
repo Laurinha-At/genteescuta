@@ -101,6 +101,49 @@ export async function atualizarManifestacao(
   return { ok: true }
 }
 
+/**
+ * Triagem: aprova ou reprova a manifestação. Na reprovação, registra a
+ * resposta particular ao autor. Guarda o status e o histórico. A triagem é
+ * separada do funil de status.
+ */
+export async function triarManifestacao(
+  id: string,
+  p: { triagem: 'aprovada' | 'reprovada'; resposta_privada?: string; autor: string },
+) {
+  const ref = doc(db(), 'manifestacoes', id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Manifestação não encontrada.')
+  const atual = snap.data() as any
+  const agora = new Date().toISOString()
+  const resposta = String(p.resposta_privada ?? '').trim()
+  if (p.triagem === 'reprovada' && resposta.length < 5) {
+    throw new Error('Escreva a resposta ao autor (mínimo 5 caracteres).')
+  }
+
+  const updates = Array.isArray(atual.updates) ? [...atual.updates] : []
+  updates.push({
+    tipo: 'triagem',
+    triagem: p.triagem,
+    mensagem: p.triagem === 'aprovada'
+      ? 'Manifestação aprovada na triagem.'
+      : `Manifestação reprovada na triagem.${resposta ? ' Resposta ao autor registrada.' : ''}`,
+    resposta_privada: p.triagem === 'reprovada' ? resposta : null,
+    autor: p.autor,
+    visivel_ao_colaborador: false, // triagem é interna
+    criado_em: agora,
+  })
+
+  await updateDoc(ref, {
+    triagem: p.triagem,
+    resposta_privada: p.triagem === 'reprovada' ? resposta : (atual.resposta_privada ?? null),
+    triado_por: p.autor,
+    triado_em: agora,
+    atualizado_em: agora,
+    updates,
+  })
+  return { ok: true }
+}
+
 /** Publica (ou tira) no mural. Copia só campos seguros para a coleção pública. */
 export async function publicarMural(
   id: string,
