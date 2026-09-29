@@ -34,7 +34,7 @@ export default function VisaoGeral() {
   if (carregando || !canal || !clima) {
     return (
       <>
-        <CabecalhoPagina titulo="Visão geral" descricao="O que a empresa está dizendo — e o que foi feito a respeito." />
+        <CabecalhoPagina titulo="Visão geral" descricao="O que a empresa está dizendo, e o que foi feito a respeito." />
         <div className="p-6 text-sm text-tinta-3">Carregando…</div>
       </>
     )
@@ -49,7 +49,7 @@ export default function VisaoGeral() {
     <>
       <CabecalhoPagina
         titulo="Visão geral"
-        descricao="O que a empresa está dizendo — e o que foi feito a respeito."
+        descricao="O que a empresa está dizendo, e o que foi feito a respeito."
         acoes={
           souSuper ? (
             <BotaoLink href="/admin/pesquisas/nova">
@@ -115,7 +115,7 @@ export default function VisaoGeral() {
               </Cartao>
             </div>
 
-            <Cartao titulo="De onde vêm as manifestações" apoio="Por área — inclusive as anônimas, que registram a área mesmo sem identificar quem enviou">
+            <Cartao titulo="De onde vêm as manifestações" apoio="Por área, inclusive as anônimas, que registram a área mesmo sem identificar quem enviou">
               <BarrasArea dados={canal.porArea} />
             </Cartao>
 
@@ -178,7 +178,7 @@ export default function VisaoGeral() {
               <div className="cartao flex flex-wrap items-center gap-3 border-[#f2dfae] bg-[#fdf7e7] p-4">
                 <Megaphone size={18} className="flex-none text-[#6b4a00]" aria-hidden />
                 <p className="min-w-0 flex-1 text-sm leading-5 text-[#6b4a00]">
-                  <strong className="font-semibold">Nada publicado no mural ainda.</strong> Escutar sem devolver esvazia o canal — publique o que já foi feito.
+                  <strong className="font-semibold">Nada publicado no mural ainda.</strong> Escutar sem devolver esvazia o canal, publique o que já foi feito.
                 </p>
                 <BotaoLink href="/admin/mural" variante="secundario">Ir para o mural</BotaoLink>
               </div>

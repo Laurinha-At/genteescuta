@@ -42,7 +42,7 @@ function Painel() {
   if (a.totalRespostas === 0) {
     return (
       <>
-        <CabecalhoPagina titulo={`Painel — ${pesquisa.titulo}`} voltar={{ href: `/admin/pesquisas/ver?id=${id}`, rotulo: 'Voltar à pesquisa' }} />
+        <CabecalhoPagina titulo={`Painel: ${pesquisa.titulo}`} voltar={{ href: `/admin/pesquisas/ver?id=${id}`, rotulo: 'Voltar à pesquisa' }} />
         <div className="p-4 sm:p-6">
           <Vazio titulo="Nenhuma resposta ainda" descricao="O painel se monta sozinho conforme as respostas chegam." acao={<BotaoLink href={`/admin/pesquisas/ver?id=${id}`} variante="secundario">Ver o link de divulgação</BotaoLink>} />
         </div>
@@ -62,7 +62,7 @@ function Painel() {
   return (
     <>
       <CabecalhoPagina
-        titulo={`Painel — ${pesquisa.titulo}`}
+        titulo={`Painel: ${pesquisa.titulo}`}
         voltar={{ href: `/admin/pesquisas/ver?id=${id}`, rotulo: 'Voltar à pesquisa' }}
         descricao={`${a.totalRespostas} respostas${pesquisa.fecha_em ? ` · prazo ${fmtData(pesquisa.fecha_em)}` : ''}`}
         acoes={
@@ -110,7 +110,7 @@ function Painel() {
               {a.pontosPositivos.map((d: any) => (
                 <li key={d.dimensao} className="flex items-start gap-2.5">
                   <ThumbsUp size={15} className="mt-0.5 flex-none text-[#0b5d0b]" aria-hidden />
-                  <div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="text-xs text-tinta-3">Índice {d.indice} — {FAIXA_LABEL[d.faixa as keyof typeof FAIXA_LABEL]}</p></div>
+                  <div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="text-xs text-tinta-3">Índice {d.indice} ({FAIXA_LABEL[d.faixa as keyof typeof FAIXA_LABEL]})</p></div>
                   <Chip faixa={d.faixa}>{d.indice}</Chip>
                 </li>
               ))}
@@ -143,7 +143,7 @@ function Painel() {
           </Cartao>
         )}
 
-        <Cartao titulo="Os 15 itens de maior risco" apoio="Perguntas individuais — o nível em que se escreve a medida de controle" padding={false}>
+        <Cartao titulo="Os 15 itens de maior risco" apoio="Perguntas individuais (o nível em que se escreve a medida de controle)" padding={false}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[40rem] text-sm">
               <thead>
@@ -174,7 +174,7 @@ function Painel() {
         </Cartao>
 
         {a.abertas.map((bloco: any) => (
-          <Cartao key={bloco.perguntaId} titulo={bloco.enunciado} apoio={`${bloco.textos.length} ${bloco.textos.length === 1 ? 'resposta' : 'respostas'} — leia antes de fechar o plano de ação`}>
+          <Cartao key={bloco.perguntaId} titulo={bloco.enunciado} apoio={`${bloco.textos.length} ${bloco.textos.length === 1 ? 'resposta' : 'respostas'} (leia antes de fechar o plano de ação)`}>
             <ul className="space-y-2.5">
               {bloco.textos.slice(0, 40).map((t: any, i: number) => (
                 <li key={i} className="rounded-md border border-borda bg-superficie-2 px-3 py-2.5">

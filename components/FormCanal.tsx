@@ -104,7 +104,7 @@ export function FormCanal({
               <span>
                 <span className="block text-sm font-medium text-tinta">Prefiro não me identificar</span>
                 <span className="mt-0.5 block text-xs leading-4 text-tinta-3">
-                  Seu nome e e-mail não serão gravados — apenas a área, para que a equipe saiba onde agir.
+                  Seu nome e e-mail não serão gravados, apenas a área, para que a equipe saiba onde agir.
                 </span>
               </span>
             </label>
@@ -119,7 +119,7 @@ export function FormCanal({
                     </li>
                     <li>• A sua área <strong>continua registrada</strong> e aparece nos painéis.</li>
                     <li>
-                      • Sem e-mail gravado, você não conseguirá consultar o andamento depois —
+                      • Sem e-mail gravado, você não conseguirá consultar o andamento depois,
                       acompanhe o desfecho pelo mural.
                     </li>
                   </ul>

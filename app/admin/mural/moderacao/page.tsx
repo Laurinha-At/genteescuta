@@ -39,7 +39,7 @@ export default function Moderacao() {
       />
 
       <div className="max-w-4xl space-y-4 p-4 sm:p-6">
-        <Cartao titulo={`Reconhecimentos aguardando (${recs.length})`} apoio="Enviados pelo canal. Ao aprovar, viram post no mural — sem o nome de quem enviou.">
+        <Cartao titulo={`Reconhecimentos aguardando (${recs.length})`} apoio="Enviados pelo canal. Ao aprovar, viram post no mural (sem o nome de quem enviou).">
           {carregando ? (
             <p className="text-sm text-tinta-3">Carregando…</p>
           ) : recs.length === 0 ? (

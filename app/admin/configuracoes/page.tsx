@@ -76,7 +76,7 @@ export default function Configuracoes() {
 
           {inativas.length > 0 && (
             <div className="mt-5 border-t border-borda pt-4">
-              <p className="mb-2 text-xs font-medium text-tinta-3">Áreas desativadas — os dados históricos continuam preservados</p>
+              <p className="mb-2 text-xs font-medium text-tinta-3">Áreas desativadas (os dados históricos continuam preservados)</p>
               <div className="flex flex-wrap gap-1.5">
                 {inativas.map((area) => (
                   <span key={area.id} className="inline-flex items-center gap-1.5 rounded-full border border-borda bg-plano py-1 pl-3 pr-1.5 text-xs text-tinta-3">
@@ -96,7 +96,7 @@ export default function Configuracoes() {
         <div className="rounded-md border border-borda bg-white px-4 py-3">
           <p className="flex items-start gap-2.5 text-xs leading-4 text-tinta-2">
             <ShieldCheck size={16} className="mt-0.5 flex-none text-marca" aria-hidden />
-            O login usa o Firebase Authentication do Google. Para dar acesso a mais pessoas, crie o usuário em Authentication no Console do Firebase — e me avise para liberar o acesso dele nas regras.
+            O login usa o Firebase Authentication do Google. Para dar acesso a mais pessoas, crie o usuário em Authentication no Console do Firebase, e me avise para liberar o acesso dele nas regras.
           </p>
         </div>
       </div>

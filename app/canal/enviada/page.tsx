@@ -37,7 +37,7 @@ function EnviadaConteudo() {
           {anonima ? (
             <div className="mt-5">
               <Aviso tom="alerta" titulo="Você enviou de forma anônima">
-                Seu nome e e-mail não foram gravados — só a sua área, para que a equipe saiba onde
+                Seu nome e e-mail não foram gravados, só a sua área, para que a equipe saiba onde
                 agir. Como não há e-mail registrado, não temos como te responder diretamente:
                 acompanhe o desfecho pelo mural.
               </Aviso>

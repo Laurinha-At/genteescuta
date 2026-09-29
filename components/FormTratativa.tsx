@@ -72,7 +72,7 @@ export function FormTratativa({ m, aoSalvar }: { m: any; aoSalvar?: () => void }
         </Campo>
 
         <Campo rotulo="Responsável" ajuda="Quem está conduzindo essa tratativa.">
-          <input name="responsavel" defaultValue={m.responsavel ?? ''} className={ENTRADA} placeholder="Ex.: Ana — Gente & Cultura" />
+          <input name="responsavel" defaultValue={m.responsavel ?? ''} className={ENTRADA} placeholder="Ex.: Ana, Gente & Cultura" />
         </Campo>
 
         <Campo rotulo="Recado sobre esta movimentação" ajuda="Escreva em linguagem simples: é isso que a pessoa lê ao consultar pelo e-mail dela.">
@@ -120,7 +120,7 @@ export function FormMural({ m, aoSalvar }: { m: any; aoSalvar?: () => void }) {
         {erro && <Aviso tom="erro">{erro}</Aviso>}
         {salvo && !erro && <Aviso tom="sucesso">Mural atualizado.</Aviso>}
 
-        <Campo rotulo="O que foi feito" ajuda="Conte o desfecho de forma concreta. Se não foi possível atender, explique o porquê — isso também é retorno.">
+        <Campo rotulo="O que foi feito" ajuda="Conte o desfecho de forma concreta. Se não foi possível atender, explique o porquê, isso também é retorno.">
           <textarea name="resposta_publica" rows={5} defaultValue={m.resposta_publica ?? ''} className={ENTRADA} placeholder="Ex.: Instalamos uma segunda máquina de café no 2º andar em 12/03, e a reposição passou a ser diária." />
         </Campo>
 

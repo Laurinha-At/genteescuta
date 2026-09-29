@@ -251,8 +251,8 @@ function FormConvite({
       </Campo>
       <Campo rotulo="Nível de acesso">
         <select value={nivel} onChange={(e) => setNivel(e.target.value as Nivel)} className={ENTRADA}>
-          <option value="master">Master — moderação, manifestações e dashboards</option>
-          <option value="super">Super Admin — controle total</option>
+          <option value="master">Master: moderação, manifestações e dashboards</option>
+          <option value="super">Super Admin: controle total</option>
         </select>
       </Campo>
       <div className="flex items-end">

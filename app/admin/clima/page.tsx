@@ -66,7 +66,7 @@ export default function Clima() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Cartao titulo="Principais pontos positivos" apoio="O que está sustentando o clima — vale proteger">
+          <Cartao titulo="Principais pontos positivos" apoio="O que está sustentando o clima (vale proteger)">
             {clima.pontosPositivos.length === 0 ? <p className="text-sm text-tinta-3">Rode uma pesquisa NR-1 ou pulso.</p> : (
               <ul className="space-y-3">{clima.pontosPositivos.map((d: any) => (
                 <li key={d.dimensao} className="flex items-start gap-2.5"><ThumbsUp size={15} className="mt-0.5 flex-none text-[#0b5d0b]" aria-hidden /><div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="mt-0.5 text-xs leading-4 text-tinta-3">Melhor item: {d.itens[d.itens.length - 1]?.enunciado ?? '—'}</p></div><Chip faixa={d.faixa}>{d.indice}</Chip></li>

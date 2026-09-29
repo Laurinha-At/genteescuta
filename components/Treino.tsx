@@ -105,7 +105,7 @@ function Hub({
           <h1 className="titulo-hero text-[1.875rem] text-tinta">Treinamento e Desenvolvimento</h1>
           <p className="mt-2 max-w-xl text-[0.9688rem] leading-7 text-tinta-2">
             Trilhas de aprendizagem do time Soulan. Leia, responda os desafios e conquiste cada trilha
-            no seu ritmo — o seu progresso fica salvo.
+            no seu ritmo, o seu progresso fica salvo.
           </p>
         </div>
       </div>

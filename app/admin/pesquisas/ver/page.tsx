@@ -22,9 +22,9 @@ const ROTULO_TIPO: Record<string, string> = {
   escolha_multipla: 'múltipla escolha', texto: 'texto curto', texto_longo: 'texto livre', sim_nao: 'sim ou não',
 }
 const IDENT: Record<string, string> = {
-  confidencial: 'Confidencial — e-mail só para evitar duplicidade',
-  identificada: 'Identificada — e-mail visível para a administração',
-  anonima: 'Anônima — nenhum dado de identificação',
+  confidencial: 'Confidencial: e-mail só para evitar duplicidade',
+  identificada: 'Identificada: e-mail visível para a administração',
+  anonima: 'Anônima: nenhum dado de identificação',
 }
 
 function Detalhe() {
@@ -163,7 +163,7 @@ function Detalhe() {
               </Link>
             </div>
             <div className="mt-4 border-t border-borda pt-4">
-              <p className="mb-2 text-xs font-medium text-tinta-3">QR code — para cartaz, mural ou tela de fábrica</p>
+              <p className="mb-2 text-xs font-medium text-tinta-3">QR code (para cartaz, mural ou tela de fábrica)</p>
               <div className="inline-block rounded-md border border-borda bg-white p-2 [&_svg]:block [&_svg]:h-40 [&_svg]:w-40" dangerouslySetInnerHTML={{ __html: qr }} />
             </div>
           </Cartao>

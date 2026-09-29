@@ -158,7 +158,7 @@ export const TIPO_MANIFESTACAO_LABEL: Record<ManifestacaoTipo, string> = {
 }
 
 export const TIPO_MANIFESTACAO_DESC: Record<ManifestacaoTipo, string> = {
-  contribuicao: 'Uma ideia, sugestão ou melhoria — a classificação é feita pela equipe depois',
+  contribuicao: 'Uma ideia, sugestão ou melhoria. A classificação é feita pela equipe depois',
   sugestao: 'Algo que você propõe para a empresa considerar',
   reclamacao: 'Algo que está errado ou te incomoda no dia a dia',
   ideia: 'Uma proposta nova, ainda em formato de ideia',

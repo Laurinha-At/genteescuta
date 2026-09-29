@@ -28,7 +28,7 @@ export default function Obrigado() {
             Respostas registradas. Obrigado de verdade.
           </h1>
           <p className="mt-3 text-sm leading-6 text-tinta-2">
-            O que você respondeu entra no inventário de riscos psicossociais da {empresa} — o
+            O que você respondeu entra no inventário de riscos psicossociais da {empresa}, o
             levantamento que a NR-1 exige e que orienta as ações de saúde e segurança do próximo
             ciclo.
           </p>

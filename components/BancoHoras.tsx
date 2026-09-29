@@ -339,7 +339,7 @@ function imprimirPDF(rs: RegistroBH[], mesRef: string, escopo: string) {
     h1{font-size:18px;margin:0 0 4px}p{color:#57514a;margin:0 0 16px;font-size:12px}
     table{width:100%;border-collapse:collapse;font-size:12px}
     th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left}th{background:#eaf3f7;color:#1f5c73}</style>
-    </head><body><h1>Banco de Horas — ${mesRefLabel(mesRef)}</h1>
+    </head><body><h1>Banco de Horas: ${mesRefLabel(mesRef)}</h1>
     <p>Escopo: ${escopo} · Gerado em ${new Date().toLocaleString('pt-BR')} · ${linhas.length} registro(s)</p>
     <table><thead><tr>${cab.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
     <script>window.onload=function(){window.print()}</script></body></html>`)

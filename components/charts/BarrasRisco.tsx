@@ -120,7 +120,7 @@ export function BarrasRisco({ dados }: { dados: BarraRisco[] }) {
             >
               <p className="font-semibold">{dados[ativo].rotulo}</p>
               <p className="mt-0.5">
-                Índice {dados[ativo].indice} de 100 — {FAIXA_LABEL[dados[ativo].faixa]}
+                Índice {dados[ativo].indice} de 100 ({FAIXA_LABEL[dados[ativo].faixa]})
               </p>
               <p className="text-white/70">{dados[ativo].respondentes} respostas</p>
               {dados[ativo].detalhe && (

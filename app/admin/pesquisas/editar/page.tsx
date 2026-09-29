@@ -107,7 +107,7 @@ function Editor() {
         {salvo && <Aviso tom="sucesso">Alterações salvas.</Aviso>}
         {travado && (
           <Aviso tom="alerta" titulo="Esta pesquisa já tem respostas">
-            Você pode corrigir textos, mas <strong>excluir</strong> perguntas e seções fica bloqueado — as respostas já dadas seriam apagadas junto. Para mudar o instrumento, crie uma nova pesquisa.
+            Você pode corrigir textos, mas <strong>excluir</strong> perguntas e seções fica bloqueado (as respostas já dadas seriam apagadas junto). Para mudar o instrumento, crie uma nova pesquisa.
           </Aviso>
         )}
 

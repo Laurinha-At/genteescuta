@@ -120,7 +120,7 @@ export function MapaCalor({
                         setDica({
                           texto: [
                             `${linha.rotulo} · ${coluna.rotulo}`,
-                            `Índice ${valor} de 100 — ${FAIXA_LABEL[faixa]}`,
+                            `Índice ${valor} de 100 (${FAIXA_LABEL[faixa]})`,
                             `${coluna.n} respostas neste grupo`,
                           ],
                           x: e.clientX - caixa.left,
@@ -163,7 +163,7 @@ export function MapaCalor({
             </strong>{' '}
             por ter menos de {minGrupo} respostas ({rotuloColuna.toLowerCase()}:{' '}
             {ocultas.map((o) => `${o.rotulo} (${o.n})`).join(', ')}). Isso protege o anonimato de
-            quem respondeu — as respostas continuam contando no resultado geral.
+            quem respondeu, as respostas continuam contando no resultado geral.
           </p>
         </div>
       )}

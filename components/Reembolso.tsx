@@ -364,7 +364,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
           <div className="space-y-3">
             <div>
               <p className="text-sm font-semibold text-tinta">Identificação</p>
-              <p className="mt-1 text-xs text-tinta-3">Preenchido automaticamente do seu cadastro — confira e siga.</p>
+              <p className="mt-1 text-xs text-tinta-3">Preenchido automaticamente do seu cadastro, confira e siga.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <CampoLeitura Icone={User} rotulo="Solicitante" valor={perfil.nome || perfil.email || '—'} />
@@ -966,7 +966,7 @@ function imprimirPDF(itens: Reembolso[], escopo: string) {
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Reembolsos</title>
     <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;color:#1a1714;margin:32px}h1{font-size:18px;margin:0 0 4px}p{color:#57514a;margin:0 0 16px;font-size:12px}
     table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left;vertical-align:top}th{background:#eaf3f7;color:#1f5c73}tfoot td{font-weight:bold;background:#f7f5f2}</style></head><body>
-    <h1>Central das Solicitações — Soulan</h1><p>Escopo: ${escopo} · ${new Date().toLocaleString('pt-BR')} · ${itens.length} registro(s)</p>
+    <h1>Central das Solicitações: Soulan</h1><p>Escopo: ${escopo} · ${new Date().toLocaleString('pt-BR')} · ${itens.length} registro(s)</p>
     <table><thead><tr>${cab.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${body}</tbody>
     <tfoot><tr><td colspan="${Math.max(1, cab.length - 3)}">Total</td><td>${formatBRL(total)}</td><td></td><td></td></tr></tfoot></table>
     <script>window.onload=function(){window.print()}</script></body></html>`)

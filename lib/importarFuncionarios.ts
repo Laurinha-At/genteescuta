@@ -171,7 +171,7 @@ export async function lerEValidar(file: File, emailsExistentes: Set<string>): Pr
     else if (adm) {
       adm_dia = adm.dia; adm_mes = adm.mes; adm_ano = adm.ano
       admissao = adm.ano ? `${pad(adm.dia)}/${pad(adm.mes)}/${adm.ano}` : `${pad(adm.dia)}/${pad(adm.mes)}`
-      if (!adm.ano) avisos.push('Admissão sem ano — não dá para calcular o tempo de Soulan.')
+      if (!adm.ano) avisos.push('Admissão sem ano: não dá para calcular o tempo de Soulan.')
     }
 
     linhas.push({

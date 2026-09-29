@@ -345,7 +345,7 @@ function DetalheTopico({
 
           <div className="space-y-2.5">
             {topico.itens.length === 0 ? (
-              <p className="text-[0.875rem] text-tinta-3">{ehAdmin ? 'Nenhum item ainda — adicione links, vídeos, fotos, planilhas ou textos.' : 'Sem conteúdos ainda.'}</p>
+              <p className="text-[0.875rem] text-tinta-3">{ehAdmin ? 'Nenhum item ainda. Adicione links, vídeos, fotos, planilhas ou textos.' : 'Sem conteúdos ainda.'}</p>
             ) : (
               topico.itens.map((it, i) => (
                 <ItemView

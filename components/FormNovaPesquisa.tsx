@@ -18,7 +18,7 @@ const TITULO_PADRAO: Record<string, string> = {
 }
 
 const IDENTIFICACOES = [
-  { id: 'confidencial', nome: 'Confidencial (recomendado)', descricao: 'Pede o e-mail só para impedir resposta duplicada — convertido em código, não fica ligado às respostas.' },
+  { id: 'confidencial', nome: 'Confidencial (recomendado)', descricao: 'Pede o e-mail só para impedir resposta duplicada (convertido em código, não fica ligado às respostas).' },
   { id: 'identificada', nome: 'Identificada', descricao: 'O e-mail fica visível para a administração. Reduz a franqueza nas perguntas sensíveis.' },
   { id: 'anonima', nome: 'Anônima', descricao: 'Não pede e-mail. Máxima franqueza, mas a mesma pessoa pode responder mais de uma vez.' },
 ]
@@ -92,7 +92,7 @@ export function FormNovaPesquisa() {
         </div>
       </fieldset>
 
-      <Campo rotulo="Título da pesquisa" obrigatorio ajuda="Para aplicações periódicas, inclua o período (ex.: “… — 2º sem/2026”) para comparar no histórico.">
+      <Campo rotulo="Título da pesquisa" obrigatorio ajuda="Para aplicações periódicas, inclua o período (ex.: “2º sem/2026”) para comparar no histórico.">
         <input name="titulo" required minLength={4} value={titulo} onChange={(e) => setTitulo(e.target.value)} className={ENTRADA} placeholder="Ex.: NR-1 | Sua Voz, Nosso Compromisso" />
       </Campo>
 

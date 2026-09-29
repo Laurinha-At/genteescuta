@@ -171,7 +171,7 @@ export default function HumorEquipe() {
     const linha = (arr: unknown[]) => arr.map(esc).join(';')
     const pctHumor = (n: number) => `${Math.round((n / (r.total || 1)) * 100)}%`
     const L: string[] = []
-    L.push(esc(`Relatório de Humor — ${rotuloPeriodo}`))
+    L.push(esc(`Relatório de Humor: ${rotuloPeriodo}`))
     L.push('')
     L.push(esc('Resumo'))
     L.push(linha(['Registros', r.total]))
@@ -213,7 +213,7 @@ export default function HumorEquipe() {
     <>
       <CabecalhoPagina
         titulo="Humor da equipe (clima)"
-        descricao="Importe o CSV de humor e veja os indicadores agregados. Nomes e matrículas ficam só no banco — nunca aparecem aqui."
+        descricao="Importe o CSV de humor e veja os indicadores agregados. Nomes e matrículas ficam só no banco, nunca aparecem aqui."
         acoes={
           registros.length > 0 ? (
             <>
@@ -310,7 +310,7 @@ export default function HumorEquipe() {
 
             {/* Título do relatório (aparece no PDF/impressão) */}
             <div className="print-only">
-              <h2 className="text-lg font-bold text-tinta">Relatório de Humor da equipe — {rotuloPeriodo}</h2>
+              <h2 className="text-lg font-bold text-tinta">Relatório de Humor da equipe: {rotuloPeriodo}</h2>
               <p className="text-xs text-tinta-3">
                 {r.total} registros · {r.pessoas} pessoas · {fmtData(r.inicio)} a {fmtData(r.fim)}
               </p>
@@ -334,7 +334,7 @@ export default function HumorEquipe() {
 
               <div className="sem-impressao mt-5 border-t border-borda pt-4">
                 <p className="text-xs font-semibold text-tinta-2">
-                  Classificação dos humores — ajuste se quiser e salve
+                  Classificação dos humores (ajuste se quiser e salve)
                 </p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   {HUMORES.map((h) => (
@@ -376,7 +376,7 @@ export default function HumorEquipe() {
 
             {/* 3) Setores */}
             <div className="grid gap-4 lg:grid-cols-2">
-              <Cartao titulo="Participação por setor" apoio="Percentual de registros de humor por setor — quais setores mais participam.">
+              <Cartao titulo="Participação por setor" apoio="Percentual de registros de humor por setor (quais setores mais participam).">
                 <BarrasParticipacao dados={participacao} />
               </Cartao>
               <Cartao titulo="Clima por setor" apoio="Índice de clima de cada setor (do melhor ao pior). n = registros do setor.">
@@ -411,7 +411,7 @@ function NotaPrivacidade() {
       <p className="text-xs leading-4 text-tinta-2">
         <strong className="font-semibold text-tinta">Privacidade:</strong> o CSV é lido no seu
         navegador e o dado bruto (incluindo nome e matrícula) é guardado no Firestore com acesso
-        restrito ao administrador. Estas telas mostram <strong>apenas números agregados</strong> —
+        restrito ao administrador. Estas telas mostram <strong>apenas números agregados</strong>,
         nenhum nome ou matrícula é exibido.
       </p>
     </div>

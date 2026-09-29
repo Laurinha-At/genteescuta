@@ -76,7 +76,7 @@ export function BarrasArea({ dados }: { dados: AreaItem[] }) {
         <UserX size={12} className="flex-none" aria-hidden />
         {totalAnonimas === 0
           ? 'Nenhuma manifestação anônima até agora.'
-          : `${totalAnonimas} de ${total} vieram sem identificação — a área continua registrada, então dá para agir mesmo sem saber quem enviou.`}
+          : `${totalAnonimas} de ${total} vieram sem identificação (a área continua registrada, então dá para agir mesmo sem saber quem enviou).`}
       </p>
 
       {ativo !== null && dados[ativo] && (

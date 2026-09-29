@@ -449,8 +449,8 @@ function CampoPergunta({
             })}
           </div>
           <div className="mt-1.5 flex justify-between text-xs text-tinta-3">
-            <span>0 — de jeito nenhum</span>
-            <span>10 — com certeza</span>
+            <span>0: de jeito nenhum</span>
+            <span>10: com certeza</span>
           </div>
         </div>
       )
