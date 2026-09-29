@@ -10,7 +10,7 @@
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { PartyPopper, Cake, Clock, Megaphone, Award, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react'
+import { PartyPopper, Cake, Clock, Megaphone, Award, GraduationCap, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { destaquesDoDia } from '@/lib/fb/aniversarios'
 import { getPostsMural } from '@/lib/fb/publico'
 import { listarTrilhas } from '@/lib/fb/treinos'
@@ -44,6 +44,11 @@ export function Carrossel() {
   const [slides, setSlides] = useState<Slide[] | null>(null)
   const [i, setI] = useState(0)
   const [pausado, setPausado] = useState(false)
+  const [reduz, setReduz] = useState(false)
+
+  useEffect(() => {
+    setReduz(!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  }, [])
 
   useEffect(() => {
     let vivo = true
@@ -131,18 +136,18 @@ export function Carrossel() {
 
   // Troca automática (respeita "reduzir movimento" e pausa no hover).
   useEffect(() => {
-    if (!slides || total <= 1 || pausado) return
-    const reduz = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    if (reduz) return
+    if (!slides || total <= 1 || pausado || reduz) return
     const t = setInterval(() => setI((v) => (v + 1) % total), FONTES.intervaloMs)
     return () => clearInterval(t)
-  }, [slides, total, pausado])
+  }, [slides, total, pausado, reduz])
 
   if (!slides) {
     return <div className="mb-8 h-40 animate-pulse rounded-2xl bg-superficie-2" aria-hidden />
   }
 
-  const atual = slides[Math.min(i, total - 1)]
+  const idx = Math.min(i, total - 1)
+  const brilho = !reduz            // sempre chamativo (mesmo com 1 notícia)
+  const desliza = total > 1 && !reduz
 
   return (
     <section
@@ -152,55 +157,70 @@ export function Carrossel() {
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
     >
-      <div className="relative overflow-hidden rounded-2xl shadow-[0_10px_30px_rgba(26,23,20,0.18)]">
-        <Link
-          href={atual.href}
-          className="group block p-6 text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.22)] sm:p-8"
-          style={{ background: atual.cor }}
+      <div className="relative overflow-hidden rounded-2xl shadow-[0_12px_34px_rgba(26,23,20,0.2)]">
+        {/* Trilho deslizante */}
+        <div
+          className="flex transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          style={{ transform: `translateX(-${idx * 100}%)` }}
         >
-          <div className="flex items-center gap-4">
-            <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
-              <atual.Icone size={24} aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-white/85">{atual.tag}</p>
-              <p className="mt-1 line-clamp-2 text-xl font-semibold leading-snug tracking-[-0.01em] sm:text-2xl">{atual.titulo}</p>
-            </div>
-          </div>
-        </Link>
+          {slides.map((s) => (
+            <Link
+              key={s.id}
+              href={s.href}
+              tabIndex={s === slides[idx] ? 0 : -1}
+              className="group relative flex w-full flex-none items-center gap-4 p-6 text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.25)] sm:min-h-[11rem] sm:gap-5 sm:p-8"
+              style={{ background: s.cor }}
+            >
+              <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-white/20 shadow-inner backdrop-blur transition-transform duration-500 group-hover:scale-110 sm:h-16 sm:w-16">
+                <s.Icone size={28} aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-white/85">{s.tag}</p>
+                <p className="mt-1 line-clamp-2 text-xl font-semibold leading-snug tracking-[-0.01em] sm:text-[1.6rem]">{s.titulo}</p>
+                <span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-white/90">
+                  Ver <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Brilho que passa (chamativo) */}
+        {brilho && <span className="carrossel-brilho pointer-events-none absolute inset-0 z-10" aria-hidden />}
 
         {total > 1 && (
           <>
-            <button
-              type="button"
-              onClick={() => ir(i - 1)}
-              aria-label="Anterior"
-              className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur transition-colors hover:bg-white/40"
-            >
-              <ChevronLeft size={18} aria-hidden />
+            <button type="button" onClick={() => ir(i - 1)} aria-label="Anterior" className="absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur transition-colors hover:bg-white/45">
+              <ChevronLeft size={20} aria-hidden />
             </button>
-            <button
-              type="button"
-              onClick={() => ir(i + 1)}
-              aria-label="Próximo"
-              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur transition-colors hover:bg-white/40"
-            >
-              <ChevronRight size={18} aria-hidden />
+            <button type="button" onClick={() => ir(i + 1)} aria-label="Próximo" className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur transition-colors hover:bg-white/45">
+              <ChevronRight size={20} aria-hidden />
             </button>
           </>
+        )}
+
+        {/* Barrinha de progresso do tempo até o próximo */}
+        {desliza && (
+          <div className="absolute inset-x-0 bottom-0 z-20 h-1 bg-white/20">
+            <div
+              key={`${idx}-${pausado}`}
+              className="h-full bg-white/85 carrossel-progresso"
+              style={{ animationDuration: `${FONTES.intervaloMs}ms`, animationPlayState: pausado ? 'paused' : 'running' }}
+            />
+          </div>
         )}
       </div>
 
       {total > 1 && (
         <div className="mt-3 flex justify-center gap-1.5">
-          {slides.map((s, idx) => (
+          {slides.map((s, n) => (
             <button
               key={s.id}
               type="button"
-              onClick={() => ir(idx)}
-              aria-label={`Ir para a notícia ${idx + 1}`}
-              aria-current={idx === i ? 'true' : undefined}
-              className={`h-2 rounded-full transition-all ${idx === i ? 'w-6 bg-marca' : 'w-2 bg-borda-forte hover:bg-tinta-3'}`}
+              onClick={() => ir(n)}
+              aria-label={`Ir para a notícia ${n + 1}`}
+              aria-current={n === idx ? 'true' : undefined}
+              className={`h-2 rounded-full transition-all ${n === idx ? 'w-6 bg-marca' : 'w-2 bg-borda-forte hover:bg-tinta-3'}`}
             />
           ))}
         </div>

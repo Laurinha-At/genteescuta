@@ -500,3 +500,19 @@ body {
 }
 .anim-pop { animation: pop-in 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 .anim-fade-up { animation: fade-up 0.28s ease-out both; }
+
+/* Carrossel de notícias (home) */
+@keyframes carrossel-brilho {
+  from { background-position: 160% 0; }
+  to   { background-position: -60% 0; }
+}
+@keyframes carrossel-progresso {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.carrossel-brilho {
+  background: linear-gradient(100deg, transparent 44%, rgba(255,255,255,0.22) 50%, transparent 56%);
+  background-size: 220% 100%;
+  animation: carrossel-brilho 4.5s linear infinite;
+}
+.carrossel-progresso { transform-origin: left; animation: carrossel-progresso linear forwards; }
