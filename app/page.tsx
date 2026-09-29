@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, LifeBuoy, GraduationCap, Receipt, ClipboardList, Cake, Clock } from 'lucide-react'
+import { ArrowRight, LifeBuoy, GraduationCap, Receipt, ClipboardList, Cake, Clock, MessageSquarePlus } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
+import { Carrossel } from '@/components/Carrossel'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 
 type CardHome = { href: string; titulo: string; frase: string; Icone: typeof LifeBuoy; cor: string; destaque?: boolean }
@@ -13,6 +14,7 @@ type CardHome = { href: string; titulo: string; frase: string; Icone: typeof Lif
 // "Sobre nós" e "Missão, Visão e Valores" saíram daqui e viraram itens do
 // rodapé (RodapePublico), acessíveis de qualquer página.
 const CARDS: CardHome[] = [
+  { href: '/canal', titulo: 'Compartilhe sua voz', frase: 'Tem uma ideia, sugestão ou reconhecimento? Envie a sua manifestação.', Icone: MessageSquarePlus, cor: 'var(--gradiente)' },
   { href: '/aniversariantes', titulo: 'Aniversariantes do mês', frase: 'Veja quem aniversaria e quem completa tempo de casa neste mês.', Icone: Cake, cor: 'linear-gradient(135deg, #2f9e8a 0%, #1c6350 100%)' },
   { href: '/informacoes-administrativas', titulo: 'Informações Administrativas', frase: 'Tudo o que você precisa saber sobre os principais procedimentos administrativos da Soulan.', Icone: ClipboardList, cor: 'linear-gradient(135deg, #4a6fa5 0%, #263a5c 100%)' },
   { href: '/contato', titulo: 'Contato e Suporte', frase: 'Fale com a equipe de Gente & Cultura.', Icone: LifeBuoy, cor: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' },
@@ -46,25 +48,8 @@ export default function Inicio() {
       </section>
 
       <main className="mx-auto max-w-7xl px-4 pt-10">
-        {/* -------- Card em destaque: enviar manifestação -------- */}
-        <section className="mb-8">
-          <Link
-            href="/canal"
-            className="group flex flex-col gap-5 rounded-2xl p-6 text-white shadow-[0_10px_30px_rgba(26,23,20,0.18)] transition-transform hover:-translate-y-1 sm:flex-row sm:items-center sm:justify-between sm:p-8 [text-shadow:0_1px_6px_rgba(0,0,0,0.22)]"
-            style={{ background: 'var(--gradiente)' }}
-          >
-            <div className="min-w-0">
-              <h2 className="text-2xl font-semibold tracking-[-0.02em]">Compartilhe sua voz</h2>
-              <p className="mt-2 max-w-[54ch] text-[0.9688rem] leading-6 text-white/90">
-                Conte para nós o que você pensa, sente ou acredita que pode ser melhorado.
-              </p>
-            </div>
-            <span className="inline-flex flex-none items-center gap-1.5 self-start rounded-full bg-white px-5 py-3 text-base font-semibold text-marca-escura shadow-[0_4px_14px_rgba(0,0,0,0.18)] sm:self-auto [text-shadow:none]">
-              Enviar uma manifestação
-              <ArrowRight size={18} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
-            </span>
-          </Link>
-        </section>
+        {/* -------- Carrossel de notícias (aniversariantes, mural, …) -------- */}
+        <Carrossel />
 
         {/* -------- Grade de cards -------- */}
         <section className="mb-14">
