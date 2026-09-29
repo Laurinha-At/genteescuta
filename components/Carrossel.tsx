@@ -157,10 +157,10 @@ export function Carrossel() {
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
     >
-      <div className="relative overflow-hidden rounded-2xl shadow-[0_12px_34px_rgba(26,23,20,0.2)]">
+      <div className="group/car relative overflow-hidden rounded-[1.4rem] shadow-[0_18px_44px_rgba(26,23,20,0.24)] ring-1 ring-black/5">
         {/* Trilho deslizante */}
         <div
-          className="flex transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          className="flex transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
           style={{ transform: `translateX(-${idx * 100}%)` }}
         >
           {slides.map((s) => (
@@ -168,16 +168,19 @@ export function Carrossel() {
               key={s.id}
               href={s.href}
               tabIndex={s === slides[idx] ? 0 : -1}
-              className="group relative flex w-full flex-none items-center gap-4 p-6 text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.25)] sm:min-h-[11rem] sm:gap-5 sm:p-8"
+              className="group relative flex w-full flex-none flex-col justify-center overflow-hidden px-6 pb-6 pt-9 text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.28)] sm:min-h-[13rem] sm:px-9 sm:pb-8 sm:pt-11"
               style={{ background: s.cor }}
             >
-              <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-white/20 shadow-inner backdrop-blur transition-transform duration-500 group-hover:scale-110 sm:h-16 sm:w-16">
-                <s.Icone size={28} aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-white/85">{s.tag}</p>
-                <p className="mt-1 line-clamp-2 text-xl font-semibold leading-snug tracking-[-0.01em] sm:text-[1.6rem]">{s.titulo}</p>
-                <span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-white/90">
+              {/* profundidade: brilho radial + ícone marca-d'água */}
+              <span className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" aria-hidden />
+              <s.Icone className="pointer-events-none absolute -bottom-6 right-2 h-40 w-40 text-white/10 sm:h-52 sm:w-52" aria-hidden />
+
+              <div className="relative min-w-0">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.09em] text-white ring-1 ring-inset ring-white/25 backdrop-blur">
+                  <s.Icone size={13} aria-hidden /> {s.tag}
+                </span>
+                <p className="mt-3 line-clamp-2 max-w-[36ch] text-[1.4rem] font-bold leading-[1.15] tracking-[-0.02em] sm:text-[2rem]">{s.titulo}</p>
+                <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-marca-escura shadow-sm transition-transform group-hover:-translate-y-0.5 [text-shadow:none]">
                   Ver <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
                 </span>
               </div>
@@ -185,46 +188,51 @@ export function Carrossel() {
           ))}
         </div>
 
-        {/* Brilho que passa (chamativo) */}
-        {brilho && <span className="carrossel-brilho pointer-events-none absolute inset-0 z-10" aria-hidden />}
+        {/* Brilho que passa */}
+        {brilho && <span className="carrossel-brilho pointer-events-none absolute inset-0 z-10 opacity-70" aria-hidden />}
 
+        {/* Barras estilo "stories" (indicador + progresso do tempo) */}
+        {total > 1 && (
+          <div className="absolute inset-x-4 top-3.5 z-20 flex gap-1.5 sm:inset-x-6">
+            {slides.map((s, n) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => ir(n)}
+                aria-label={`Ir para a notícia ${n + 1}`}
+                aria-current={n === idx ? 'true' : undefined}
+                className="h-1 flex-1 overflow-hidden rounded-full bg-white/30"
+              >
+                <span
+                  key={n === idx ? `on-${idx}-${pausado}` : `off-${n}`}
+                  className={`block h-full origin-left rounded-full bg-white ${n === idx && desliza ? 'carrossel-progresso' : ''}`}
+                  style={
+                    n < idx
+                      ? { transform: 'scaleX(1)' }
+                      : n === idx && desliza
+                        ? { animationDuration: `${FONTES.intervaloMs}ms`, animationPlayState: pausado ? 'paused' : 'running' }
+                        : n === idx
+                          ? { transform: 'scaleX(1)' }
+                          : { transform: 'scaleX(0)' }
+                  }
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Setas discretas (aparecem no hover, desktop) */}
         {total > 1 && (
           <>
-            <button type="button" onClick={() => ir(i - 1)} aria-label="Anterior" className="absolute left-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur transition-colors hover:bg-white/45">
+            <button type="button" onClick={() => ir(i - 1)} aria-label="Anterior" className="absolute left-2.5 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/20 text-white opacity-0 backdrop-blur transition-opacity hover:bg-black/35 group-hover/car:opacity-100 sm:flex">
               <ChevronLeft size={20} aria-hidden />
             </button>
-            <button type="button" onClick={() => ir(i + 1)} aria-label="Próximo" className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur transition-colors hover:bg-white/45">
+            <button type="button" onClick={() => ir(i + 1)} aria-label="Próximo" className="absolute right-2.5 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/20 text-white opacity-0 backdrop-blur transition-opacity hover:bg-black/35 group-hover/car:opacity-100 sm:flex">
               <ChevronRight size={20} aria-hidden />
             </button>
           </>
         )}
-
-        {/* Barrinha de progresso do tempo até o próximo */}
-        {desliza && (
-          <div className="absolute inset-x-0 bottom-0 z-20 h-1 bg-white/20">
-            <div
-              key={`${idx}-${pausado}`}
-              className="h-full bg-white/85 carrossel-progresso"
-              style={{ animationDuration: `${FONTES.intervaloMs}ms`, animationPlayState: pausado ? 'paused' : 'running' }}
-            />
-          </div>
-        )}
       </div>
-
-      {total > 1 && (
-        <div className="mt-3 flex justify-center gap-1.5">
-          {slides.map((s, n) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => ir(n)}
-              aria-label={`Ir para a notícia ${n + 1}`}
-              aria-current={n === idx ? 'true' : undefined}
-              className={`h-2 rounded-full transition-all ${n === idx ? 'w-6 bg-marca' : 'w-2 bg-borda-forte hover:bg-tinta-3'}`}
-            />
-          ))}
-        </div>
-      )}
     </section>
   )
 }
