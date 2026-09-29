@@ -444,7 +444,13 @@ function ItemView({
           )}
 
           {(item.tipo === 'link' || item.tipo === 'arquivo') && item.url && (
-            <a href={item.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-marca-texto transition-colors hover:text-marca-escura">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={item.tipo === 'arquivo' && item.url.startsWith('data:') ? true : undefined}
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-marca-texto transition-colors hover:text-marca-escura"
+            >
               {item.tipo === 'arquivo' ? 'Abrir arquivo' : 'Abrir'} <ExternalLink size={13} aria-hidden />
             </a>
           )}
@@ -622,7 +628,7 @@ function EditorItem({
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [pendente, setPendente] = useState(false)
 
-  const permiteUpload = tipo === 'video' || tipo === 'foto' || tipo === 'arquivo'
+  const permiteUpload = tipo === 'foto' || tipo === 'arquivo'
   const jaTemUpload = !!item?.storage_path
 
   const dicaLink = useMemo(() => {
@@ -663,7 +669,9 @@ function EditorItem({
     }
   }
 
-  const aceite = tipo === 'video' ? 'video/*' : tipo === 'foto' ? 'image/*' : undefined
+  const aceite = tipo === 'foto'
+    ? 'image/*'
+    : '.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf,image/*'
 
   return (
     <Modal titulo={item ? 'Editar item' : 'Novo item'} onFechar={onFechar}>
@@ -717,7 +725,7 @@ function EditorItem({
                 <input value={urlLink} onChange={(e) => setUrlLink(e.target.value)} className={ENTRADA} placeholder="https://…" inputMode="url" />
               </Campo>
             ) : (
-              <Campo rotulo="Arquivo" ajuda={jaTemUpload ? 'Já existe um arquivo enviado. Escolha outro só se quiser substituir.' : 'Enviado ao Firebase Storage.'} obrigatorio={!jaTemUpload}>
+              <Campo rotulo="Arquivo" ajuda={jaTemUpload ? 'Já existe um arquivo enviado. Escolha outro só se quiser substituir.' : 'Word, PDF, planilha (Excel/CSV) ou imagem. Até ~700 KB; para arquivos grandes, cole um link do Google Drive/Sheets.'} obrigatorio={!jaTemUpload}>
                 <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-borda-forte bg-white px-4 py-3 text-sm text-tinta-2 transition-colors hover:border-marca">
                   <Upload size={16} className="text-marca" aria-hidden />
                   <span className="min-w-0 flex-1 truncate">{arquivo ? arquivo.name : (jaTemUpload ? 'Arquivo atual mantido' : 'Escolher arquivo…')}</span>

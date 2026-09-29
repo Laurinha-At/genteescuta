@@ -12,7 +12,7 @@
 // trava real está nas Regras do Firestore e do Storage.
 // =============================================================
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore'
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
+import { ref as storageRef, deleteObject } from 'firebase/storage'
 import { db, storage } from '../firebase'
 import { registrarLog } from './usuarios'
 import { sanitizeRich, richVazio } from '../sanitizeHtml'
@@ -87,14 +87,8 @@ export interface InfoTopico {
   atualizado_em?: string
 }
 
-// -------- Limites de upload (bytes) por tipo --------
-const LIMITES: Record<'video' | 'foto' | 'arquivo', number> = {
-  video: 200 * 1024 * 1024, // 200 MB
-  foto: 15 * 1024 * 1024,   // 15 MB
-  arquivo: 40 * 1024 * 1024, // 40 MB
-}
-
-const URL_RE = /^https?:\/\/.+/i
+// Aceita link externo (http/https) OU arquivo embutido (data URL).
+const URL_RE = /^(https?:\/\/|data:)/i
 
 function novoId(): string {
   return (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
@@ -245,33 +239,71 @@ export async function moverItem(topicoId: string, itemId: string, dir: -1 | 1): 
 }
 
 // -------------------------------------------------------------
-// Uploads (Firebase Storage)
+// Uploads SEM Firebase Storage: o arquivo é guardado como data URL.
+// Imagens são comprimidas; Word/PDF/planilha entram como estão (com teto).
 // -------------------------------------------------------------
-function nomeSeguro(nome: string): string {
-  return (nome || 'arquivo').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80)
+// Teto do data URL (o doc do Firestore tem ~1 MB; base64 infla ~33%).
+const MAX_ARQUIVO_CHARS = 900_000
+const EXT_DOC = /\.(pdf|docx?|xlsx?|csv|odt|ods|pptx?|txt)$/i
+
+function lerComoDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result))
+    r.onerror = () => reject(new Error('Não consegui ler o arquivo.'))
+    r.readAsDataURL(file)
+  })
 }
 
-/** Sobe um arquivo para o Storage e devolve a URL de download + o caminho. */
+async function comprimirImagem(file: File): Promise<string> {
+  const url = await lerComoDataURL(file)
+  const img = document.createElement('img')
+  await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error('Imagem inválida.')); img.src = url })
+  for (const maxDim of [1600, 1280, 1024, 800, 640]) {
+    const escala = Math.min(1, maxDim / Math.max(img.width, img.height))
+    const w = Math.max(1, Math.round(img.width * escala))
+    const h = Math.max(1, Math.round(img.height * escala))
+    const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h
+    const ctx = canvas.getContext('2d'); if (!ctx) break
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h)
+    for (const q of [0.82, 0.7, 0.6, 0.5, 0.4]) {
+      const out = canvas.toDataURL('image/jpeg', q)
+      if (out.length <= MAX_ARQUIVO_CHARS) return out
+    }
+  }
+  throw new Error('A imagem ficou grande demais mesmo após a compressão. Tente uma foto menor.')
+}
+
+/** Guarda o arquivo como data URL (sem Storage). Foto → comprime; documento → teto. */
 export async function subirArquivo(
-  topicoId: string,
+  _topicoId: string,
   file: File,
   kind: 'video' | 'foto' | 'arquivo',
 ): Promise<{ url: string; path: string }> {
   if (!file) throw new Error('Escolha um arquivo.')
-  if (file.size > LIMITES[kind]) {
-    throw new Error(`Arquivo muito grande (máx. ${Math.round(LIMITES[kind] / (1024 * 1024))} MB).`)
+  if (kind === 'video') throw new Error('Para vídeo, cole um link do YouTube ou do Google Drive.')
+
+  if (kind === 'foto' || file.type.startsWith('image/')) {
+    return { url: await comprimirImagem(file), path: '' }
   }
-  const path = `info_admin/${topicoId}/${Date.now()}-${nomeSeguro(file.name)}`
-  const r = storageRef(storage(), path)
-  await uploadBytes(r, file, { contentType: file.type || undefined })
-  const url = await getDownloadURL(r)
-  return { url, path }
+
+  // Documento: Word, PDF, planilha (Excel/CSV), etc.
+  const ehDoc = file.type === 'application/pdf'
+    || file.type.includes('word') || file.type.includes('officedocument')
+    || file.type.includes('excel') || file.type.includes('spreadsheet')
+    || file.type === 'text/csv' || file.type === 'text/plain'
+    || EXT_DOC.test(file.name)
+  if (!ehDoc) throw new Error('Envie uma imagem, um PDF, um Word ou uma planilha (ou cole um link).')
+
+  const dados = await lerComoDataURL(file)
+  if (dados.length > MAX_ARQUIVO_CHARS) {
+    throw new Error('Arquivo grande demais para guardar aqui (máx. ~700 KB). Suba no Google Drive/Sheets e cole o link.')
+  }
+  return { url: dados, path: '' }
 }
 
+/** Compat: itens antigos podiam ter arquivo no Storage. Best-effort. */
 export async function excluirArquivo(path: string): Promise<void> {
-  try {
-    await deleteObject(storageRef(storage(), path))
-  } catch {
-    // Best-effort: se o arquivo já não existe, seguimos em frente.
-  }
+  if (!path) return
+  try { await deleteObject(storageRef(storage(), path)) } catch { /* segue em frente */ }
 }
