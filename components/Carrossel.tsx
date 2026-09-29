@@ -10,15 +10,18 @@
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { PartyPopper, Cake, Clock, Megaphone, Award, ChevronLeft, ChevronRight } from 'lucide-react'
+import { PartyPopper, Cake, Clock, Megaphone, Award, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react'
 import { destaquesDoDia } from '@/lib/fb/aniversarios'
 import { getPostsMural } from '@/lib/fb/publico'
+import { listarTrilhas } from '@/lib/fb/treinos'
 
 // -------- Configuração (ligue/desligue as fontes aqui) --------
 const FONTES = {
   aniversariantes: true, // aniversários e tempo de casa do dia
   mural: true,           // novas publicações do mural
+  treinamento: true,     // novas trilhas de treinamento
   maxMural: 6,           // quantos posts recentes considerar
+  maxTreino: 3,          // quantas trilhas novas considerar
   intervaloMs: 6000,     // troca automática
 }
 
@@ -34,6 +37,7 @@ type Slide = {
 const GRAD_ANIV = 'linear-gradient(135deg, #4e9b2e 0%, #1f5f52 100%)'
 const GRAD_MURAL = 'linear-gradient(135deg, #2f8bb4 0%, #1f5c73 100%)'
 const GRAD_REC = 'linear-gradient(135deg, #557d26 0%, #2a7897 100%)'
+const GRAD_TREINO = 'linear-gradient(135deg, #3f7db0 0%, #223f6a 100%)'
 const GRAD_PADRAO = 'var(--gradiente)'
 
 export function Carrossel() {
@@ -79,6 +83,27 @@ export function Carrossel() {
                 cor: rec ? GRAD_REC : GRAD_MURAL,
               })
             })
+          }).catch(() => {}),
+        )
+      }
+
+      if (FONTES.treinamento) {
+        tarefas.push(
+          listarTrilhas().then((r) => {
+            ;(r.trilhas as any[])
+              .filter((t) => t.criado_em) // só as criadas recentemente têm data
+              .sort((a, b) => String(b.criado_em).localeCompare(String(a.criado_em)))
+              .slice(0, FONTES.maxTreino)
+              .forEach((t) => {
+                out.push({
+                  id: `trilha-${t.id}`,
+                  tag: 'Nova trilha de treinamento',
+                  titulo: String(t.title || 'Confira a nova trilha'),
+                  href: `/treinamento#trilha-${t.id}`,
+                  Icone: GraduationCap,
+                  cor: GRAD_TREINO,
+                })
+              })
           }).catch(() => {}),
         )
       }
