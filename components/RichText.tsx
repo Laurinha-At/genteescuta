@@ -12,7 +12,7 @@
 // clique) — evita o bug de "precisar clicar várias vezes para digitar".
 // =============================================================
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
-import { Bold, Italic, Underline, List } from 'lucide-react'
+import { Bold, Italic, Underline, List, Link2 } from 'lucide-react'
 import { sanitizeRich } from '@/lib/sanitizeHtml'
 
 export interface RichHandle {
@@ -48,6 +48,24 @@ export const RichTextEditor = forwardRef<RichHandle, {
     atualizarPlaceholder()
   }
 
+  function aplicarLink() {
+    elRef.current?.focus()
+    const sel = window.getSelection()
+    const url = window.prompt('Endereço do link (https://…). Deixe em branco para remover o link.', 'https://')
+    if (url === null) return
+    const u = url.trim()
+    if (!u) { document.execCommand('unlink'); atualizarPlaceholder(); return }
+    const seguro = /^(https?:\/\/|mailto:)/i.test(u) ? u : `https://${u}`
+    if (sel && sel.isCollapsed) {
+      // Sem texto selecionado: insere o próprio endereço como link.
+      const safe = seguro.replace(/"/g, '%22')
+      document.execCommand('insertHTML', false, `<a href="${safe}">${seguro}</a>`)
+    } else {
+      document.execCommand('createLink', false, seguro)
+    }
+    atualizarPlaceholder()
+  }
+
   const Bt = ({ acao, titulo, children }: { acao: string; titulo: string; children: React.ReactNode }) => (
     <button
       type="button"
@@ -67,6 +85,14 @@ export const RichTextEditor = forwardRef<RichHandle, {
         <Bt acao="italic" titulo="Itálico"><Italic size={15} aria-hidden /></Bt>
         <Bt acao="underline" titulo="Sublinhado"><Underline size={15} aria-hidden /></Bt>
         <Bt acao="insertUnorderedList" titulo="Lista"><List size={15} aria-hidden /></Bt>
+        <button
+          type="button"
+          title="Link"
+          onMouseDown={(e) => { e.preventDefault(); aplicarLink() }}
+          className="rounded p-1.5 text-tinta-2 transition-colors hover:bg-white hover:text-marca"
+        >
+          <Link2 size={15} aria-hidden />
+        </button>
       </div>
       <div className="relative">
         {placeholder && (
@@ -80,7 +106,7 @@ export const RichTextEditor = forwardRef<RichHandle, {
           suppressContentEditableWarning
           onInput={atualizarPlaceholder}
           style={{ minHeight }}
-          className="px-3.5 py-2.5 text-sm leading-6 text-tinta outline-none [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+          className="px-3.5 py-2.5 text-sm leading-6 text-tinta outline-none [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_a]:text-marca-texto [&_a]:underline"
         />
       </div>
     </div>
@@ -93,7 +119,7 @@ export function RichHtml({ html, className = '' }: { html: string; className?: s
   if (!limpo) return null
   return (
     <div
-      className={`[&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 ${className}`}
+      className={`[&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_a]:font-medium [&_a]:text-marca-texto [&_a]:underline [&_a:hover]:text-marca-escura ${className}`}
       dangerouslySetInnerHTML={{ __html: limpo }}
     />
   )

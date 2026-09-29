@@ -7,7 +7,8 @@
 // da lista são "desembrulhadas" (mantêm só o texto). Roda no navegador.
 // =============================================================
 
-const TAGS_PERMITIDAS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'DIV', 'SPAN'])
+const TAGS_PERMITIDAS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'DIV', 'SPAN', 'A'])
+const HREF_SEGURO = /^(https?:\/\/|mailto:)/i
 
 /** Tamanho máximo do HTML guardado (evita estourar o doc do Firestore). */
 export const MAX_HTML = 20_000
@@ -25,7 +26,23 @@ function limpar(node: Node) {
       el.replaceWith(...Array.from(el.childNodes))
       continue
     }
-    for (const attr of Array.from(el.attributes)) el.removeAttribute(attr.name)
+    // Link: mantém APENAS um href seguro (http/https/mailto) e abre em nova aba.
+    if (el.tagName === 'A') {
+      const href = (el.getAttribute('href') ?? '').trim()
+      for (const attr of Array.from(el.attributes)) el.removeAttribute(attr.name)
+      if (HREF_SEGURO.test(href)) {
+        el.setAttribute('href', href)
+        el.setAttribute('target', '_blank')
+        el.setAttribute('rel', 'noopener noreferrer')
+      } else {
+        // href inseguro/vazio → remove o link, preserva o texto.
+        limpar(el)
+        el.replaceWith(...Array.from(el.childNodes))
+        continue
+      }
+    } else {
+      for (const attr of Array.from(el.attributes)) el.removeAttribute(attr.name)
+    }
     limpar(el)
   }
 }
