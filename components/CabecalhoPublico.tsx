@@ -65,12 +65,8 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
     <header className="sticky top-0 z-40 border-b border-borda bg-white/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center" aria-label={empresa}>
             <img src="/logo-soulan.png" alt={empresa} className="h-9 w-auto sm:h-10" />
-            <span className="hidden items-center gap-3 sm:flex">
-              <span className="h-6 w-px bg-borda-forte" aria-hidden />
-              <span className="text-[0.9375rem] font-[620] tracking-[-0.018em] text-tinta">Gente Cultura</span>
-            </span>
           </Link>
 
           {/* Menu institucional "Sobre Nós" + "Nosso Mural" em destaque. */}
