@@ -34,11 +34,12 @@ type Slide = {
   cor: string
 }
 
-const GRAD_ANIV = 'linear-gradient(135deg, #4e9b2e 0%, #1f5f52 100%)'
-const GRAD_MURAL = 'linear-gradient(135deg, #2f8bb4 0%, #1f5c73 100%)'
-const GRAD_REC = 'linear-gradient(135deg, #557d26 0%, #2a7897 100%)'
-const GRAD_TREINO = 'linear-gradient(135deg, #3f7db0 0%, #223f6a 100%)'
-const GRAD_PADRAO = 'var(--gradiente)'
+const GRAD_ANIV = 'linear-gradient(135deg, #ff7eb3 0%, #ff6a3d 52%, #ffb648 100%)'   // festivo: rosa → laranja → âmbar
+const GRAD_TEMPO = 'linear-gradient(135deg, #7c5cff 0%, #4e7cf0 100%)'                // roxo → azul
+const GRAD_MURAL = 'linear-gradient(135deg, #17b6c9 0%, #2f8bb4 50%, #4b9e3a 100%)'   // ciano → azul → verde
+const GRAD_REC = 'linear-gradient(135deg, #3fa34d 0%, #8cc63f 50%, #f4b64a 100%)'     // verde → dourado
+const GRAD_TREINO = 'linear-gradient(135deg, #6d5efc 0%, #2f8bb4 100%)'               // índigo → azul
+const GRAD_PADRAO = 'linear-gradient(135deg, #8cc63f 0%, #2f8bb4 100%)'
 
 export function Carrossel() {
   const [slides, setSlides] = useState<Slide[] | null>(null)
@@ -67,7 +68,7 @@ export function Carrossel() {
                 titulo: d.texto,
                 href: '/aniversariantes',
                 Icone: aniv ? Cake : Clock,
-                cor: GRAD_ANIV,
+                cor: aniv ? GRAD_ANIV : GRAD_TEMPO,
               })
             })
           }).catch(() => {}),
