@@ -320,3 +320,26 @@ export async function enviarComentario(postId: string, texto: string, autor: { n
   })
   return { ok: true }
 }
+
+/** Edita o próprio comentário (só o texto), marcando como editado. */
+export async function editarComentario(postId: string, cid: string, texto: string) {
+  const t = String(texto ?? '').trim()
+  if (t.length < 2) throw new Error('Escreva o seu comentário.')
+  if (t.length > 800) throw new Error('Comentário muito longo (máximo 800 caracteres).')
+  const u = auth().currentUser
+  if (!u) throw new Error('Entre para editar o seu comentário.')
+  await updateDoc(doc(db(), 'posts', postId, 'comentarios', cid), {
+    texto: t,
+    editado: true,
+    editado_em: new Date().toISOString(),
+  })
+  return { ok: true }
+}
+
+/** Exclui o próprio comentário (as Regras garantem que só o autor ou admin). */
+export async function excluirComentario(postId: string, cid: string) {
+  const u = auth().currentUser
+  if (!u) throw new Error('Entre para excluir o seu comentário.')
+  await deleteDoc(doc(db(), 'posts', postId, 'comentarios', cid))
+  return { ok: true }
+}

@@ -361,7 +361,19 @@ service cloud.firestore {
           && request.resource.data.texto is string
           && request.resource.data.texto.size() > 0
           && request.resource.data.texto.size() <= 800;
-        allow update, delete: if admin();
+        // Edição: admin edita qualquer um; o AUTOR edita só o próprio texto
+        // (não altera aprovado/uid; só texto + marcas de "editado").
+        allow update: if admin() || (
+          participante()
+          && resource.data.uid == request.auth.uid
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['texto', 'editado', 'editado_em'])
+          && request.resource.data.texto is string
+          && request.resource.data.texto.size() > 0
+          && request.resource.data.texto.size() <= 800
+        );
+        // Exclusão: admin OU o próprio autor.
+        allow delete: if admin() || (participante() && resource.data.uid == request.auth.uid);
       }
     }
   }

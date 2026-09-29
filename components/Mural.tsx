@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Award, Megaphone, MessageCircle, Send, LogIn } from 'lucide-react'
-import { REACOES, reagir, getMinhaReacao, getComentarios, enviarComentario } from '@/lib/fb/publico'
+import { REACOES, reagir, getMinhaReacao, getComentarios, enviarComentario, editarComentario, excluirComentario } from '@/lib/fb/publico'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { fmtData } from '@/lib/format'
 
@@ -213,6 +213,10 @@ function Comentarios({ postId, perfil }: { postId: string; perfil: Perfil | null
     }
   }
 
+  function recarregar() {
+    getComentarios(postId).then(setLista).catch(() => {})
+  }
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
     setErro(null)
@@ -244,12 +248,7 @@ function Comentarios({ postId, perfil }: { postId: string; perfil: Perfil | null
           ) : (
             <ul className="space-y-2">
               {lista.map((c) => (
-                <li key={c.id} className="rounded-lg bg-superficie-2 px-3 py-2">
-                  <p className="whitespace-pre-line text-sm leading-5 text-tinta-2">{c.texto}</p>
-                  <p className="mt-1 text-[11px] text-tinta-3">
-                    {c.nome || 'Colega'} · {fmtData(c.criado_em)}
-                  </p>
-                </li>
+                <ItemComentario key={c.id} postId={postId} c={c} perfil={perfil} aoMudar={recarregar} />
               ))}
             </ul>
           )}
@@ -292,5 +291,82 @@ function Comentarios({ postId, perfil }: { postId: string; perfil: Perfil | null
         </div>
       )}
     </div>
+  )
+}
+
+function ItemComentario({ postId, c, perfil, aoMudar }: { postId: string; c: any; perfil: Perfil | null; aoMudar: () => void }) {
+  const podeGerir = !!perfil && (perfil.uid === c.uid || perfil.tipo === 'admin')
+  const [editando, setEditando] = useState(false)
+  const [texto, setTexto] = useState(c.texto ?? '')
+  const [busy, setBusy] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  async function salvar() {
+    setErro(null); setBusy(true)
+    try {
+      await editarComentario(postId, c.id, texto)
+      setEditando(false)
+      aoMudar()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui salvar.')
+    }
+    setBusy(false)
+  }
+
+  async function remover() {
+    if (!confirm('Excluir este comentário? Essa ação não pode ser desfeita.')) return
+    setErro(null); setBusy(true)
+    try {
+      await excluirComentario(postId, c.id)
+      aoMudar()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui excluir.')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <li className="rounded-lg bg-superficie-2 px-3 py-2">
+      {editando ? (
+        <div className="space-y-2">
+          {erro && <p className="text-xs font-medium text-critico">{erro}</p>}
+          <textarea
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            rows={2}
+            maxLength={800}
+            className="block w-full rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca"
+          />
+          <div className="flex gap-2">
+            <button type="button" onClick={salvar} disabled={busy || texto.trim().length < 2} className="rounded-lg bg-marca px-3 py-1 text-xs font-semibold text-white hover:bg-marca-escura disabled:opacity-50">
+              {busy ? 'Salvando…' : 'Salvar'}
+            </button>
+            <button type="button" onClick={() => { setEditando(false); setTexto(c.texto ?? ''); setErro(null) }} className="rounded-lg border border-borda-forte bg-white px-3 py-1 text-xs font-medium text-tinta-2 hover:bg-superficie-2">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="whitespace-pre-line text-sm leading-5 text-tinta-2">{c.texto}</p>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-tinta-3">
+              {c.nome || 'Colega'} · {fmtData(c.criado_em)}{c.editado ? ' · editado' : ''}
+            </p>
+            {podeGerir && (
+              <div className="flex flex-none gap-2">
+                <button type="button" onClick={() => { setTexto(c.texto ?? ''); setErro(null); setEditando(true) }} className="text-[11px] font-medium text-marca-texto hover:text-marca-escura">
+                  Editar
+                </button>
+                <button type="button" onClick={remover} disabled={busy} className="text-[11px] font-medium text-tinta-3 hover:text-critico disabled:opacity-50">
+                  Excluir
+                </button>
+              </div>
+            )}
+          </div>
+          {erro && <p className="mt-1 text-xs font-medium text-critico">{erro}</p>}
+        </>
+      )}
+    </li>
   )
 }
