@@ -16,7 +16,7 @@ import {
   type Conta,
   type Nivel,
 } from '@/lib/fb/usuarios'
-import { listarFuncionarios } from '@/lib/fb/funcionarios'
+import { listarFuncionarios, salvarPermissoesFuncionario } from '@/lib/fb/funcionarios'
 import { PAPEL_LABEL } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
 import { PainelPermissoes } from '@/components/PainelPermissoes'
@@ -65,14 +65,14 @@ export default function Usuarios() {
   const linhas = useMemo<LinhaAcesso[]>(() => {
     const doAdmins: LinhaAcesso[] = admins.map((u) => ({
       uid: u.uid, nome: u.nome ?? '', email: (u.email ?? '').toLowerCase(), ativo: u.ativo !== false,
-      origem: 'admins', nivel: u.nivel ?? 'master', permissoes: u.permissoes, _raw: u,
+      origem: 'admins', nivel: u.nivel ?? 'master', permissoes: u.permissoes, centro_custo: u.centro_custo, _raw: u,
     }))
     const doFuncs: LinhaAcesso[] = funcs
       .filter((f) => Array.isArray(f.papeis) && f.papeis.some((p: string) => PAPEIS_COM_ACESSO.includes(p)))
       .map((f) => ({
         uid: f.uid, nome: f.nome ?? '', email: (f.email ?? '').toLowerCase(), ativo: f.ativo !== false,
         origem: 'funcionarios', papeis: (f.papeis as string[]).filter((p) => PAPEIS_COM_ACESSO.includes(p)),
-        centro_custo: f.centro_custo, _raw: f,
+        centro_custo: f.centro_custo, permissoes: f.permissoes, _raw: f,
       }))
     return [...doAdmins, ...doFuncs].sort((a, b) => a.email.localeCompare(b.email))
   }, [admins, funcs])
@@ -210,8 +210,8 @@ export default function Usuarios() {
                             <div className="flex justify-end gap-1">
                               <button
                                 type="button"
-                                title="Permissões de acesso (telas e ações)"
-                                onClick={() => setPermsDe(u._raw)}
+                                title="Permissão de menu (telas e ações)"
+                                onClick={() => setPermsDe(u)}
                                 className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
                               >
                                 <ShieldCheck size={16} aria-hidden />
@@ -247,7 +247,17 @@ export default function Usuarios() {
                               </button>
                             </div>
                           ) : (
-                            <div className="flex justify-end">
+                            <div className="flex items-center justify-end gap-1">
+                              {(u.papeis?.includes('master') || u.papeis?.includes('administrador')) && (
+                                <button
+                                  type="button"
+                                  title="Permissão de menu (telas e ações)"
+                                  onClick={() => setPermsDe(u)}
+                                  className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                                >
+                                  <ShieldCheck size={16} aria-hidden />
+                                </button>
+                              )}
                               <Link
                                 href="/admin/funcionarios"
                                 title="Gerenciar papéis e centro de custo em Funcionários"
@@ -282,7 +292,7 @@ export default function Usuarios() {
       {permsDe && (
         <PainelPermissoes
           usuario={permsDe}
-          salvar={salvarPermissoes}
+          salvar={permsDe.origem === 'funcionarios' ? salvarPermissoesFuncionario : salvarPermissoes}
           onFechar={() => setPermsDe(null)}
           onSalvo={(msg) => { setPermsDe(null); setAviso(msg); recarregar() }}
           setErro={setErro}

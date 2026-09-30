@@ -45,6 +45,23 @@ async function escreverAniversario(uid: string, nome: string, d: DadosPessoais, 
  * incluindo a área (centro de custo). Idempotente (merge); só Master escreve.
  * Serve para preencher a área de quem foi cadastrado antes desse campo existir.
  */
+/**
+ * Salva as permissões (mapa { telaId: [ações] }) de um FUNCIONÁRIO com acesso
+ * ao painel (Master/Administrador). Só gerente (Master/Super) grava — imposto
+ * pelas Regras. Espelha salvarPermissoes (que grava em /admins).
+ */
+export async function salvarPermissoesFuncionario(
+  uid: string,
+  permissoes: Record<string, string[]>,
+  centro_custo?: string,
+  email?: string,
+) {
+  const dados: Record<string, unknown> = { permissoes }
+  if (centro_custo !== undefined) dados.centro_custo = String(centro_custo ?? '').trim()
+  await updateDoc(doc(db(), 'funcionarios', uid), dados)
+  await registrarLog('permissoes', email ?? uid)
+}
+
 export async function sincronizarAniversarios(): Promise<number> {
   const funcs = await listarFuncionarios()
   let n = 0

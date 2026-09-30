@@ -33,7 +33,7 @@ export function PainelPermissoes({
   setErro,
   salvar,
 }: {
-  usuario: { uid: string; email: string; nome?: string; nivel?: string; permissoes?: Permissoes; centro_custo?: string }
+  usuario: { uid: string; email: string; nome?: string; nivel?: string; papeis?: string[]; permissoes?: Permissoes; centro_custo?: string }
   onFechar: () => void
   onSalvo: (msg: string) => void
   setErro: (s: string | null) => void
@@ -43,7 +43,7 @@ export function PainelPermissoes({
   // padrão equivalente ao acesso atual (para o Super ver e ajustar).
   const inicial = useMemo<Permissoes>(() => {
     if (usuario.permissoes && Object.keys(usuario.permissoes).length) return clonar(usuario.permissoes)
-    return resolverPermissoes(perfilPadrao({ nivel: usuario.nivel }))
+    return resolverPermissoes(perfilPadrao({ nivel: usuario.nivel, papeis: usuario.papeis }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
