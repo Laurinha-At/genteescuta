@@ -177,10 +177,16 @@ service cloud.firestore {
     }
 
     // -------- Manifestações (contêm nome/e-mail/relato de assédio)
-    // Qualquer um CRIA; só o admin/administrador LÊ e trata. Público nunca lê.
+    // Qualquer um CRIA (identificado guarda autor_uid = quem enviou; anônimo = null).
+    // Admin/administrador LÊ e trata tudo. O AUTOR lê e exclui só as SUAS.
     match /manifestacoes/{id} {
-      allow create: if true;
-      allow read, update, delete: if podeConteudo();
+      allow create: if request.resource.data.autor_uid == null
+        || (request.auth != null && request.resource.data.autor_uid == request.auth.uid);
+      allow read: if podeConteudo()
+        || (request.auth != null && resource.data.get('autor_uid', null) == request.auth.uid);
+      allow update: if podeConteudo();
+      allow delete: if podeConteudo()
+        || (request.auth != null && resource.data.get('autor_uid', null) == request.auth.uid);
     }
 
     // -------- Humor da equipe (clima) — CSV importado pelo admin.

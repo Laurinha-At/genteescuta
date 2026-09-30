@@ -173,6 +173,7 @@ export async function enviarManifestacao(p: {
       nome: anonima ? null : nome,
       email: anonima ? null : (email || null),
       anonima,
+      autor_uid: anonima ? null : (auth().currentUser?.uid ?? null),
       status: 'recebida',
       triagem: 'pendente',
       resposta_privada: null,
@@ -211,6 +212,7 @@ export async function enviarManifestacao(p: {
     nome: anonima ? null : nome,
     email: anonima ? null : email,
     anonima,
+    autor_uid: anonima ? null : (auth().currentUser?.uid ?? null),
     status: 'recebida',
     triagem: 'pendente',
     resposta_privada: null,
@@ -227,6 +229,30 @@ export async function enviarManifestacao(p: {
     updates: [eventoInicial],
   })
   return { anonima }
+}
+
+// -------------------------------------------------------------
+// Minhas manifestações (para o colaborador logado acompanhar e excluir).
+// Só aparecem as que foram enviadas IDENTIFICADAS por ele (têm autor_uid).
+// Anônimas não são rastreadas de propósito.
+// -------------------------------------------------------------
+export async function listarMinhasManifestacoes(): Promise<any[]> {
+  const u = auth().currentUser
+  if (!u) return []
+  const snap = await getDocs(
+    query(collection(db(), 'manifestacoes'), where('autor_uid', '==', u.uid)),
+  ).catch(() => null)
+  if (!snap) return []
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as any)
+    .sort((a, b) => String(b.criado_em ?? '').localeCompare(String(a.criado_em ?? '')))
+}
+
+export async function excluirMinhaManifestacao(id: string): Promise<{ ok: true }> {
+  const u = auth().currentUser
+  if (!u) throw new Error('Entre para excluir a sua manifestação.')
+  await deleteDoc(doc(db(), 'manifestacoes', id))
+  return { ok: true }
 }
 
 // -------------------------------------------------------------

@@ -6,11 +6,22 @@ import {
   MessageSquarePlus,
   Award,
   ArrowRight,
+  Trash2,
+  Inbox,
 } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
-import { getConfig } from '@/lib/fb/publico'
+import { getConfig, listarMinhasManifestacoes, excluirMinhaManifestacao } from '@/lib/fb/publico'
+import { observarLogin } from '@/lib/fb/auth'
+import { TIPO_MANIFESTACAO_LABEL, STATUS_MANIFESTACAO_LABEL, TRIAGEM_LABEL } from '@/lib/types'
 import { CabecalhoPublico, RodapePublico } from '@/components/CabecalhoPublico'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
+import { Chip } from '@/components/ui'
+
+function fmtData(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR')
+}
 
 // Dois caminhos de entrada. "Contribuir" reúne sugestão, ideia e melhoria
 // num único formulário (a equipe classifica depois); "reconhecer" mantém o
@@ -77,8 +88,113 @@ export default function Canal() {
             </Link>
           ))}
         </div>
+
+        <MinhasManifestacoes />
       </main>
       <RodapePublico />
     </div>
+  )
+}
+
+// -------------------------------------------------------------
+// Minhas manifestações — o colaborador logado acompanha o que enviou
+// (identificado) e pode excluir. Anônimas não aparecem (não são rastreadas).
+// -------------------------------------------------------------
+function MinhasManifestacoes() {
+  const [logado, setLogado] = useState<boolean | null>(null)
+  const [itens, setItens] = useState<any[] | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
+
+  function recarregar() {
+    listarMinhasManifestacoes().then(setItens).catch(() => setItens([]))
+  }
+  useEffect(() => {
+    const cancelar = observarLogin((u) => {
+      setLogado(!!u)
+      if (u) recarregar()
+      else setItens([])
+    })
+    return cancelar
+  }, [])
+
+  async function excluir(m: any) {
+    if (!confirm('Excluir esta manifestação? Esta ação não pode ser desfeita.')) return
+    setErro(null); setExcluindo(m.id)
+    try {
+      await excluirMinhaManifestacao(m.id)
+      setItens((atual) => (atual ?? []).filter((x) => x.id !== m.id))
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui excluir.')
+    } finally {
+      setExcluindo(null)
+    }
+  }
+
+  if (!logado) return null // só para quem está logado
+
+  return (
+    <section className="mt-12">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-marca-clara text-marca">
+          <Inbox size={18} aria-hidden />
+        </span>
+        <h2 className="titulo-secao text-tinta">Minhas manifestações</h2>
+      </div>
+      <p className="mt-1.5 text-[0.875rem] text-tinta-3">
+        Acompanhe o que você enviou identificado. As enviadas de forma anônima não aparecem aqui.
+      </p>
+
+      {erro && <p className="mt-3 rounded-lg border border-[#f0c2c2] bg-[#fdeaea] px-3 py-2 text-sm text-[#8a1f1f]">{erro}</p>}
+
+      {itens === null ? (
+        <p className="mt-4 text-sm text-tinta-3">Carregando…</p>
+      ) : itens.length === 0 ? (
+        <div className="mt-4 cartao-g p-6 text-center text-sm text-tinta-3">
+          Você ainda não enviou nenhuma manifestação identificada.
+        </div>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {itens.map((m) => (
+            <li key={m.id} className="cartao-g p-4">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-superficie-2 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-tinta-2">
+                      {TIPO_MANIFESTACAO_LABEL[m.tipo as keyof typeof TIPO_MANIFESTACAO_LABEL] ?? m.tipo}
+                    </span>
+                    {m.categoria || m.area ? (
+                      <span className="text-xs text-tinta-3">{m.categoria || m.area}</span>
+                    ) : null}
+                    <span className="text-xs text-tinta-3">· {fmtData(m.criado_em)}</span>
+                  </div>
+                  <p className="mt-1.5 line-clamp-2 text-sm text-tinta">{m.titulo || m.problema || m.descricao || '—'}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Chip faixa="neutro">{STATUS_MANIFESTACAO_LABEL[m.status as keyof typeof STATUS_MANIFESTACAO_LABEL] ?? m.status}</Chip>
+                    {m.triagem && m.triagem !== 'pendente' && (
+                      <Chip faixa={m.triagem === 'aprovada' ? 'baixo' : 'critico'}>{TRIAGEM_LABEL[m.triagem as keyof typeof TRIAGEM_LABEL] ?? m.triagem}</Chip>
+                    )}
+                  </div>
+                  {m.resposta_privada && (
+                    <p className="mt-2.5 rounded-lg border border-borda bg-superficie-2 px-3 py-2 text-sm leading-6 text-tinta-2">
+                      <strong className="font-semibold text-tinta">Resposta da equipe:</strong> {m.resposta_privada}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  title="Excluir manifestação"
+                  disabled={excluindo === m.id}
+                  onClick={() => excluir(m)}
+                  className="flex-none rounded-lg p-2 text-tinta-3 transition-colors hover:bg-plano hover:text-critico disabled:opacity-40"
+                >
+                  <Trash2 size={17} aria-hidden />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
