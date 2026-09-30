@@ -6,6 +6,19 @@ import { Award, Megaphone, MessageCircle, Send, LogIn } from 'lucide-react'
 import { REACOES, reagir, getMinhaReacao, getComentarios, enviarComentario, editarComentario, excluirComentario } from '@/lib/fb/publico'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { fmtData } from '@/lib/format'
+import { RichHtml } from '@/components/RichText'
+
+/**
+ * Corpo do post: novos posts já vêm como HTML (com links). Posts antigos são
+ * texto puro — converte quebras de linha em <br> e transforma URLs em links.
+ */
+function corpoParaHtml(corpo: string): string {
+  const s = String(corpo ?? '')
+  if (/<[a-z][\s\S]*>/i.test(s)) return s // já é HTML rico
+  const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const comLinks = esc.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')
+  return comLinks.replace(/\n/g, '<br>')
+}
 
 type Post = {
   id: string
@@ -109,7 +122,7 @@ function CartaoPost({ post, perfil }: { post: Post; perfil: Perfil | null }) {
         </div>
 
         <h2 className="mt-3 text-lg font-semibold leading-6 text-tinta">{post.titulo}</h2>
-        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-tinta-2">{post.corpo}</p>
+        <RichHtml html={corpoParaHtml(post.corpo)} className="mt-2 text-sm leading-6 text-tinta-2" />
 
         <Reacoes postId={post.id} iniciais={post.reacoes} perfil={perfil} />
         <Comentarios postId={post.id} perfil={perfil} />

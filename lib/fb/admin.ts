@@ -30,6 +30,7 @@ import {
   ESCALA_FREQUENCIA,
 } from '../nr1-template'
 import { gerarSlug } from '../format'
+import { sanitizeRich, richVazio } from '../sanitizeHtml'
 
 const TIPO_LABEL: Record<string, string> = {
   contribuicao: 'Contribuição',
@@ -461,10 +462,11 @@ export async function salvarPostInforma(p: {
   publicado: boolean
 }) {
   const titulo = String(p.titulo ?? '').trim()
-  const corpo = String(p.corpo ?? '').trim()
+  // O corpo agora é rico (permite links); sanitiza e valida se não está vazio.
+  const corpo = sanitizeRich(String(p.corpo ?? ''))
   const autor = String(p.autor ?? '').trim() || 'Gente & Cultura'
   if (titulo.length < 3) throw new Error('Dê um título ao aviso.')
-  if (corpo.length < 5) throw new Error('Escreva o conteúdo do aviso.')
+  if (richVazio(corpo)) throw new Error('Escreva o conteúdo do aviso.')
   const agora = new Date().toISOString()
   if (p.id) {
     await updateDoc(doc(db(), 'posts', p.id), { titulo, corpo, autor, publicado: p.publicado, atualizado_em: agora })

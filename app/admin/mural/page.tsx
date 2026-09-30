@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Megaphone, Award, Plus, Pencil, Trash2, Eye, EyeOff, ShieldQuestion, X, ArrowUpToLine } from 'lucide-react'
+import { RichTextEditor, type RichHandle } from '@/components/RichText'
 import {
   listarPosts,
   salvarPostInforma,
@@ -150,6 +151,7 @@ function FormInforma({
 }) {
   const [erro, setErro] = useState<string | null>(null)
   const [pendente, setPendente] = useState(false)
+  const corpoRef = useRef<RichHandle>(null)
 
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -160,7 +162,7 @@ function FormInforma({
       await salvarPostInforma({
         id: inicial?.id,
         titulo: String(f.get('titulo') ?? ''),
-        corpo: String(f.get('corpo') ?? ''),
+        corpo: corpoRef.current?.getHtml() ?? '',
         autor: String(f.get('autor') ?? ''),
         publicado: f.get('publicado') === 'on',
       })
@@ -178,8 +180,8 @@ function FormInforma({
       <Campo rotulo="Título" obrigatorio>
         <input name="titulo" required minLength={3} defaultValue={inicial?.titulo ?? ''} className={ENTRADA} placeholder="Ex.: Campanha de vacinação da gripe" />
       </Campo>
-      <Campo rotulo="Conteúdo" obrigatorio>
-        <textarea name="corpo" required minLength={5} rows={5} defaultValue={inicial?.corpo ?? ''} className={ENTRADA} placeholder="Escreva a novidade, informação ou comunicado do RH…" />
+      <Campo rotulo="Conteúdo" obrigatorio ajuda="Use o botão de link para transformar um texto em link clicável (ex.: selecione “clique aqui” e cole o endereço).">
+        <RichTextEditor ref={corpoRef} valorInicial={inicial?.corpo ?? ''} placeholder="Escreva a novidade, informação ou comunicado do RH…" minHeight={120} />
       </Campo>
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo rotulo="Assinatura" ajuda="Quem publica (aparece como “por …”).">
