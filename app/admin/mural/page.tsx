@@ -53,7 +53,7 @@ export default function MuralAdmin() {
         }
       />
 
-      <div className="max-w-6xl space-y-4 p-4 sm:p-6">
+      <div className="max-w-7xl space-y-4 p-4 sm:p-6">
         {(pendRec > 0 || pendCom > 0) && (
           <Aviso tom="alerta">
             Há{' '}
@@ -67,18 +67,24 @@ export default function MuralAdmin() {
           </Aviso>
         )}
 
-        <Cartao titulo={editando ? 'Editar aviso do Gente Informa' : 'Novo aviso do Gente Informa'} apoio="Novidades, informações e assuntos do RH. Só o admin publica; o colaborador apenas vê.">
-          <FormInforma
-            key={editando?.id ?? 'novo'}
-            inicial={editando}
-            aoSalvar={() => {
-              setEditando(null)
-              recarregar()
-            }}
-            aoCancelar={editando ? () => setEditando(null) : undefined}
-          />
-        </Cartao>
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          {/* Coluna esquerda: formulário (fica fixo ao rolar em telas grandes) */}
+          <div className="lg:sticky lg:top-6">
+            <Cartao titulo={editando ? 'Editar aviso do Gente Informa' : 'Novo aviso do Gente Informa'} apoio="Novidades, informações e assuntos do RH. Só o admin publica; o colaborador apenas vê.">
+              <FormInforma
+                key={editando?.id ?? 'novo'}
+                inicial={editando}
+                aoSalvar={() => {
+                  setEditando(null)
+                  recarregar()
+                }}
+                aoCancelar={editando ? () => setEditando(null) : undefined}
+              />
+            </Cartao>
+          </div>
 
+          {/* Coluna direita: listas */}
+          <div className="space-y-4">
         <Cartao titulo={`Gente Informa (${informa.length})`} apoio="Seus avisos publicados e rascunhos">
           {carregando ? (
             <p className="text-sm text-tinta-3">Carregando…</p>
@@ -135,6 +141,8 @@ export default function MuralAdmin() {
             </ul>
           )}
         </Cartao>
+          </div>
+        </div>
       </div>
     </>
   )
