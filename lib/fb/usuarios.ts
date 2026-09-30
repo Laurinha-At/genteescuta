@@ -30,6 +30,12 @@ import {
   addDoc,
 } from 'firebase/firestore'
 import { db, auth, firebaseConfig } from '../firebase'
+import {
+  resolverPermissoes,
+  perfilPadrao,
+  type PerfilId,
+  type Permissoes,
+} from '../permissoes'
 
 export const EMAIL_SEMENTE = 'gentecultura@soulan.com.br'
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -58,6 +64,19 @@ export interface Conta {
   nivel: Nivel | 'nenhum'
   ativo: boolean
   senha_provisoria: boolean
+  /** Perfil nomeado (Colaborador, ADM, ADM Principal…). */
+  perfil: PerfilId
+  /** Permissões efetivas já resolvidas: { telaId: [ações] }. */
+  permissoes: Permissoes
+  /** Centro de custo (área), quando houver — usado nas telas por área. */
+  centro_custo?: string
+}
+
+/** Lê o perfil salvo (se existir) ou deriva do modelo antigo (nivel/papéis). */
+function perfilDe(d: Record<string, unknown>, nivel?: string | null): PerfilId {
+  const salvo = d.perfil as PerfilId | undefined
+  if (salvo) return salvo
+  return perfilPadrao({ nivel, papeis: (d.papeis as string[]) ?? [] })
 }
 
 /**
@@ -72,18 +91,26 @@ export async function minhaConta(): Promise<Conta | null> {
   const u = auth().currentUser
   if (!u) return null
   if ((u.email ?? '').toLowerCase() === EMAIL_SEMENTE) {
-    return { uid: u.uid, email: u.email!, nome: 'Administração', nivel: 'super', ativo: true, senha_provisoria: false }
+    return {
+      uid: u.uid, email: u.email!, nome: 'Administração', nivel: 'super', ativo: true, senha_provisoria: false,
+      perfil: 'adm_principal', permissoes: resolverPermissoes('adm_principal'),
+    }
   }
   const snap = await getDoc(doc(db(), 'admins', u.uid))
   if (snap.exists()) {
     const d = snap.data() as Record<string, unknown>
+    const nivel = (d.nivel as Nivel) ?? 'comum'
+    const perfil = perfilDe(d, nivel)
     return {
       uid: u.uid,
       email: (d.email as string) ?? u.email ?? '',
       nome: (d.nome as string) ?? '',
-      nivel: (d.nivel as Nivel) ?? 'comum',
+      nivel,
       ativo: d.ativo !== false,
       senha_provisoria: d.senha_provisoria === true,
+      perfil,
+      permissoes: resolverPermissoes(perfil, d.permissoes as Permissoes | undefined),
+      centro_custo: (d.centro_custo as string) ?? '',
     }
   }
   // Sem doc em /admins: um funcionário com papel "master" também é Master.
@@ -92,6 +119,7 @@ export async function minhaConta(): Promise<Conta | null> {
     const d = fSnap.data() as Record<string, unknown>
     const papeis = Array.isArray(d.papeis) ? (d.papeis as string[]) : []
     if (d.ativo !== false && papeis.includes('master')) {
+      const perfil = perfilDe(d, 'master')
       return {
         uid: u.uid,
         email: (d.email as string) ?? u.email ?? '',
@@ -99,10 +127,16 @@ export async function minhaConta(): Promise<Conta | null> {
         nivel: 'master',
         ativo: true,
         senha_provisoria: d.senha_provisoria === true,
+        perfil,
+        permissoes: resolverPermissoes(perfil, d.permissoes as Permissoes | undefined),
+        centro_custo: (d.centro_custo as string) ?? '',
       }
     }
   }
-  return { uid: u.uid, email: u.email ?? '', nome: '', nivel: 'nenhum', ativo: false, senha_provisoria: false }
+  return {
+    uid: u.uid, email: u.email ?? '', nome: '', nivel: 'nenhum', ativo: false, senha_provisoria: false,
+    perfil: 'colaborador', permissoes: {},
+  }
 }
 
 export function ehGerente(c: Conta | null): boolean {
