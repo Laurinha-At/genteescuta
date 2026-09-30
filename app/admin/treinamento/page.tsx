@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Save, Loader2, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Save, Loader2, X, Eye, EyeOff } from 'lucide-react'
 import {
-  listarTrilhas, importarTrilhasEstaticas, criarTrilha, atualizarTrilha, excluirTrilha, trocarOrdemTrilhas,
+  listarTrilhas, criarTrilha, atualizarTrilha, excluirTrilha, trocarOrdemTrilhas,
+  getTreinamentoEmBreve, setTreinamentoEmBreve,
   type TrilhaDoc,
 } from '@/lib/fb/treinos'
 import { CENTROS_CUSTO } from '@/lib/reembolso'
@@ -21,14 +22,29 @@ export default function AdminTreinamento() {
   const [doFirestore, setDoFirestore] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [editando, setEditando] = useState<Trilha | null>(null)
+  const [emBreve, setEmBreve] = useState<boolean | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
   function recarregar() {
     setCarregando(true)
     listarTrilhas().then((r) => { setTrilhas(r.trilhas as TrilhaDoc[]); setDoFirestore(r.doFirestore) }).catch(() => {}).finally(() => setCarregando(false))
+    getTreinamentoEmBreve().then(setEmBreve).catch(() => {})
   }
   useEffect(recarregar, [])
+
+  async function alternarEmBreve() {
+    if (emBreve === null) return
+    const novo = !emBreve
+    setErro(null); setAviso(null)
+    try {
+      await setTreinamentoEmBreve(novo)
+      setEmBreve(novo)
+      setAviso(novo ? 'Página pública em modo "Em breve" — os colaboradores não veem as trilhas.' : 'Treinamento publicado! As trilhas já aparecem no site.')
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui alterar.')
+    }
+  }
 
   async function acao(fn: () => Promise<unknown>, msg?: string) {
     setErro(null); setAviso(null)
@@ -46,20 +62,31 @@ export default function AdminTreinamento() {
         titulo="Treinamento e Desenvolvimento"
         descricao="Crie e edite as trilhas da página pública. As mudanças aparecem no site na hora."
         voltar={{ href: '/treinamento', rotulo: 'Ver página pública' }}
-        acoes={doFirestore ? <Botao type="button" onClick={() => setEditando({ ...VAZIA })}><Plus size={15} aria-hidden /> Nova trilha</Botao> : undefined}
+        acoes={<Botao type="button" onClick={() => setEditando({ ...VAZIA })}><Plus size={15} aria-hidden /> Nova trilha</Botao>}
       />
       <div className="max-w-4xl space-y-4 p-4 sm:p-6">
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 
-        {!doFirestore && !carregando && (
-          <Aviso tom="alerta" titulo="Trilhas ainda no código">
-            As 4 trilhas atuais estão fixas no sistema. Importe-as para o banco para poder editar, adicionar e remover.
-            <div className="mt-3">
-              <Botao type="button" onClick={() => acao(() => importarTrilhasEstaticas(), 'Trilhas importadas! Agora dá para editar.')}>Importar as trilhas atuais</Botao>
-            </div>
-          </Aviso>
-        )}
+        {/* Interruptor "Em breve" — controla o que os colaboradores veem. */}
+        <div className={`flex flex-wrap items-center gap-3 rounded-xl border p-4 ${emBreve ? 'border-[#f2dfae] bg-[#fdf7e7]' : 'border-[#cfe6b8] bg-[#f4faec]'}`}>
+          <span className={`flex h-10 w-10 flex-none items-center justify-center rounded-lg ${emBreve ? 'bg-[#f6e6bd] text-[#6b4a00]' : 'bg-[#dcefc7] text-verde-escuro'}`}>
+            {emBreve ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-tinta">
+              {emBreve === null ? 'Carregando…' : emBreve ? 'Página pública em “Em breve”' : 'Treinamento publicado'}
+            </p>
+            <p className="text-xs text-tinta-2">
+              {emBreve
+                ? 'Os colaboradores veem só o aviso “Em breve”. Monte as trilhas à vontade e publique quando estiver pronto.'
+                : 'As trilhas estão visíveis para os colaboradores no site.'}
+            </p>
+          </div>
+          <Botao type="button" variante={emBreve ? 'primario' : 'secundario'} onClick={alternarEmBreve} disabled={emBreve === null}>
+            {emBreve ? 'Publicar agora' : 'Voltar para “Em breve”'}
+          </Botao>
+        </div>
 
         {carregando ? (
           <p className="text-sm text-tinta-3">Carregando…</p>

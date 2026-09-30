@@ -6,13 +6,29 @@
 // o site usa as trilhas estáticas (lib/treinamentos.ts) como base — o
 // admin pode "importar" essas trilhas para começar a editar.
 // =============================================================
-import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore'
+import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore'
 import { db } from '../firebase'
 import { registrarLog } from './usuarios'
 import { TRILHAS, type Trilha } from '../treinamentos'
 
 export interface TrilhaDoc extends Trilha {
   ordem: number
+}
+
+// -------------------------------------------------------------
+// "Em breve": enquanto ligado, a página pública mostra um aviso e NÃO
+// exibe as trilhas (o admin monta tudo em paz e libera quando quiser).
+// Padrão: LIGADO (só desliga quando o admin publicar).
+// -------------------------------------------------------------
+export async function getTreinamentoEmBreve(): Promise<boolean> {
+  const snap = await getDoc(doc(db(), 'config', 'treinamento')).catch(() => null)
+  if (!snap || !snap.exists()) return true
+  return (snap.data() as any).em_breve !== false
+}
+
+export async function setTreinamentoEmBreve(emBreve: boolean): Promise<void> {
+  await setDoc(doc(db(), 'config', 'treinamento'), { em_breve: emBreve, atualizado_em: new Date().toISOString() }, { merge: true })
+  await registrarLog('treinamento_em_breve', emBreve ? 'ligado' : 'desligado (publicado)')
 }
 
 export async function listarTrilhas(): Promise<{ trilhas: Trilha[]; doFirestore: boolean }> {

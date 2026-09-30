@@ -111,7 +111,7 @@ service cloud.firestore {
       // (e Master) edita os conteúdos do site (Contato, Sobre, Missão/Visão/Valores).
       allow write: if souSuper()
         || (doc == 'humor' && admin())
-        || ((doc == 'contato' || doc == 'sobre' || doc == 'missao') && podeConteudo());
+        || ((doc == 'contato' || doc == 'sobre' || doc == 'missao' || doc == 'treinamento') && podeConteudo());
     }
 
     // -------- Áreas/setores: público lê; só SUPER edita (é configuração).
