@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, Search, KeyRound, Power, Trash2, MailCheck, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
+import { UserPlus, Search, KeyRound, Power, Trash2, MailCheck, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import {
   minhaConta,
   listarUsuarios,
@@ -15,12 +16,31 @@ import {
   type Conta,
   type Nivel,
 } from '@/lib/fb/usuarios'
+import { listarFuncionarios } from '@/lib/fb/funcionarios'
+import { PAPEL_LABEL } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
 import { PainelPermissoes } from '@/components/PainelPermissoes'
 
+// Papéis que representam "acesso além de Colaborador" (aparecem aqui).
+const PAPEIS_COM_ACESSO = ['master', 'administrador', 'gestor', 'financeiro']
+
+type LinhaAcesso = {
+  uid: string
+  nome: string
+  email: string
+  ativo: boolean
+  origem: 'admins' | 'funcionarios'
+  nivel?: Nivel
+  papeis?: string[]
+  centro_custo?: string
+  permissoes?: Record<string, string[]>
+  _raw: any
+}
+
 export default function Usuarios() {
   const [eu, setEu] = useState<Conta | null | undefined>(undefined)
-  const [lista, setLista] = useState<any[]>([])
+  const [admins, setAdmins] = useState<any[]>([])
+  const [funcs, setFuncs] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [aviso, setAviso] = useState<string | null>(null)
@@ -28,7 +48,10 @@ export default function Usuarios() {
   const [permsDe, setPermsDe] = useState<any | null>(null)
 
   function recarregar() {
-    listarUsuarios().then(setLista).catch(() => {}).finally(() => setCarregando(false))
+    Promise.all([listarUsuarios(), listarFuncionarios()])
+      .then(([u, f]) => { setAdmins(u); setFuncs(f) })
+      .catch(() => {})
+      .finally(() => setCarregando(false))
   }
   useEffect(() => {
     minhaConta().then(setEu).catch(() => setEu(null))
@@ -37,15 +60,28 @@ export default function Usuarios() {
 
   const souSuper = !!eu?.ativo && eu?.nivel === 'super'
 
+  // Junta os administradores (coleção admins) com os funcionários que têm
+  // papéis além de Colaborador — tudo num lugar só, ordenado por e-mail.
+  const linhas = useMemo<LinhaAcesso[]>(() => {
+    const doAdmins: LinhaAcesso[] = admins.map((u) => ({
+      uid: u.uid, nome: u.nome ?? '', email: (u.email ?? '').toLowerCase(), ativo: u.ativo !== false,
+      origem: 'admins', nivel: u.nivel ?? 'master', permissoes: u.permissoes, _raw: u,
+    }))
+    const doFuncs: LinhaAcesso[] = funcs
+      .filter((f) => Array.isArray(f.papeis) && f.papeis.some((p: string) => PAPEIS_COM_ACESSO.includes(p)))
+      .map((f) => ({
+        uid: f.uid, nome: f.nome ?? '', email: (f.email ?? '').toLowerCase(), ativo: f.ativo !== false,
+        origem: 'funcionarios', papeis: (f.papeis as string[]).filter((p) => PAPEIS_COM_ACESSO.includes(p)),
+        centro_custo: f.centro_custo, _raw: f,
+      }))
+    return [...doAdmins, ...doFuncs].sort((a, b) => a.email.localeCompare(b.email))
+  }, [admins, funcs])
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase()
-    if (!q) return lista
-    return lista.filter((u) => `${u.nome ?? ''} ${u.email ?? ''}`.toLowerCase().includes(q))
-  }, [lista, busca])
-
-  function podeMexer(u: any): boolean {
-    return u.uid !== eu?.uid // super gerencia todos, menos a própria conta
-  }
+    if (!q) return linhas
+    return linhas.filter((u) => `${u.nome} ${u.email}`.toLowerCase().includes(q))
+  }, [linhas, busca])
 
   async function acao(fn: () => Promise<unknown>, msg: string) {
     setErro(null)
@@ -62,7 +98,7 @@ export default function Usuarios() {
   if (eu === undefined) {
     return (
       <>
-        <CabecalhoPagina titulo="Gestão de Usuários" />
+        <CabecalhoPagina titulo="Usuários e acessos" />
         <p className="p-6 text-sm text-tinta-3">Carregando…</p>
       </>
     )
@@ -71,7 +107,7 @@ export default function Usuarios() {
   if (!souSuper) {
     return (
       <>
-        <CabecalhoPagina titulo="Gestão de Usuários" />
+        <CabecalhoPagina titulo="Usuários e acessos" />
         <div className="p-4 sm:p-6">
           <Aviso tom="alerta" titulo="Acesso restrito">
             Apenas o <strong>Super Admin</strong> pode gerenciar usuários administradores (Master e Super Admin).
@@ -85,8 +121,8 @@ export default function Usuarios() {
   return (
     <>
       <CabecalhoPagina
-        titulo="Gestão de Usuários"
-        descricao="Administradores do sistema (Master e Super Admin). Colaboradores comuns ficam em Funcionários."
+        titulo="Usuários e acessos"
+        descricao="Todas as pessoas com acesso além de Colaborador: administradores do sistema (Master/Super) e funcionários com papéis (Administrador, Gestor, Financeiro, Master)."
       />
 
       <div className="max-w-6xl space-y-4 p-4 sm:p-6">
@@ -98,7 +134,8 @@ export default function Usuarios() {
         </Cartao>
 
         <Cartao
-          titulo={`Usuários (${lista.length})`}
+          titulo={`Pessoas com acesso (${linhas.length})`}
+          apoio="Ordenadas por e-mail. Os administradores do sistema são geridos aqui; os papéis de funcionários, na tela Funcionários."
           acao={
             <div className="relative">
               <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-tinta-3" aria-hidden />
@@ -116,82 +153,110 @@ export default function Usuarios() {
             <p className="p-4 text-sm text-tinta-3">Carregando…</p>
           ) : filtrados.length === 0 ? (
             <p className="p-4 text-sm text-tinta-3">
-              {lista.length === 0 ? 'Nenhum usuário cadastrado ainda. Adicione o primeiro acima.' : 'Nenhum resultado para a busca.'}
+              {linhas.length === 0 ? 'Ninguém com acesso além de Colaborador ainda.' : 'Nenhum resultado para a busca.'}
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[46rem] text-sm">
+              <table className="w-full min-w-[48rem] text-sm">
                 <thead>
                   <tr className="border-b border-borda text-left text-xs font-semibold text-tinta-3">
-                    <th className="px-4 py-2.5 font-semibold">Nome / E-mail</th>
-                    <th className="px-4 py-2.5 font-semibold">Nível</th>
+                    <th className="px-4 py-2.5 font-semibold">E-mail / Nome</th>
+                    <th className="px-4 py-2.5 font-semibold">Acesso</th>
+                    <th className="px-4 py-2.5 font-semibold">Onde é gerido</th>
                     <th className="px-4 py-2.5 font-semibold">Status</th>
                     <th className="px-4 py-2.5 text-right font-semibold">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-borda">
                   {filtrados.map((u) => {
-                    const mexivel = podeMexer(u)
+                    const ehAdmin = u.origem === 'admins'
+                    const mexivel = u.uid !== eu?.uid
                     return (
-                      <tr key={u.uid} className="hover:bg-superficie-2">
+                      <tr key={`${u.origem}-${u.uid}`} className="hover:bg-superficie-2">
                         <td className="px-4 py-3">
-                          <span className="block font-medium text-tinta">{u.nome || '—'}</span>
-                          <span className="block text-xs text-tinta-3">{u.email}</span>
+                          <span className="block font-medium text-tinta">{u.email || '—'}</span>
+                          <span className="block text-xs text-tinta-3">{u.nome || '—'}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <select
-                            value={u.nivel}
-                            disabled={!mexivel}
-                            onChange={(e) => acao(() => alterarNivel(u.uid, e.target.value as Nivel, u.email), 'Nível atualizado.')}
-                            className="rounded-md border border-borda-forte bg-white px-2 py-1 text-xs text-tinta disabled:opacity-50"
-                          >
-                            <option value="master">Master</option>
-                            <option value="super">Super Admin</option>
-                          </select>
-                        </td>
-                        <td className="px-4 py-3">
-                          {u.ativo !== false ? <Chip faixa="baixo">Ativo</Chip> : <Chip faixa="neutro">Inativo</Chip>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <button
-                              type="button"
-                              title="Permissões de acesso (telas e ações)"
-                              onClick={() => setPermsDe(u)}
-                              className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
-                            >
-                              <ShieldCheck size={16} aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              title="Reenviar link de senha"
-                              onClick={() => acao(() => reenviarSenha(u.email), `Link de senha reenviado para ${u.email}.`)}
-                              className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
-                            >
-                              <KeyRound size={16} aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              title={u.ativo !== false ? 'Inativar' : 'Ativar'}
+                          {ehAdmin ? (
+                            <select
+                              value={u.nivel}
                               disabled={!mexivel}
-                              onClick={() => acao(() => definirAtivo(u.uid, u.ativo === false, u.email), u.ativo === false ? 'Usuário ativado.' : 'Usuário inativado.')}
-                              className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-tinta disabled:opacity-40"
+                              onChange={(e) => acao(() => alterarNivel(u.uid, e.target.value as Nivel, u.email), 'Nível atualizado.')}
+                              className="rounded-md border border-borda-forte bg-white px-2 py-1 text-xs text-tinta disabled:opacity-50"
                             >
-                              <Power size={16} aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              title="Excluir"
-                              disabled={!mexivel}
-                              onClick={() => {
-                                if (confirm(`Excluir o acesso de ${u.email}? Ele perde o acesso ao painel.`))
-                                  acao(() => excluirUsuario(u.uid, u.email), 'Usuário excluído.')
-                              }}
-                              className="rounded p-1.5 text-tinta-3 hover:bg-plano hover:text-critico disabled:opacity-40"
-                            >
-                              <Trash2 size={16} aria-hidden />
-                            </button>
-                          </div>
+                              <option value="master">Master</option>
+                              <option value="super">Super Admin</option>
+                            </select>
+                          ) : (
+                            <span className="flex flex-wrap items-center gap-1">
+                              {(u.papeis ?? []).map((p) => (
+                                <Chip key={p} faixa="marca">{PAPEL_LABEL[p as keyof typeof PAPEL_LABEL] ?? p}</Chip>
+                              ))}
+                              {u.papeis?.includes('gestor') && u.centro_custo && (
+                                <span className="text-xs text-tinta-3">· {u.centro_custo}</span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs text-tinta-3">{ehAdmin ? 'Usuários (sistema)' : 'Funcionários'}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {u.ativo ? <Chip faixa="baixo">Ativo</Chip> : <Chip faixa="neutro">Inativo</Chip>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {ehAdmin ? (
+                            <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                title="Permissões de acesso (telas e ações)"
+                                onClick={() => setPermsDe(u._raw)}
+                                className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                              >
+                                <ShieldCheck size={16} aria-hidden />
+                              </button>
+                              <button
+                                type="button"
+                                title="Reenviar link de senha"
+                                onClick={() => acao(() => reenviarSenha(u.email), `Link de senha reenviado para ${u.email}.`)}
+                                className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                              >
+                                <KeyRound size={16} aria-hidden />
+                              </button>
+                              <button
+                                type="button"
+                                title={u.ativo ? 'Inativar' : 'Ativar'}
+                                disabled={!mexivel}
+                                onClick={() => acao(() => definirAtivo(u.uid, !u.ativo, u.email), u.ativo ? 'Usuário inativado.' : 'Usuário ativado.')}
+                                className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-tinta disabled:opacity-40"
+                              >
+                                <Power size={16} aria-hidden />
+                              </button>
+                              <button
+                                type="button"
+                                title="Excluir"
+                                disabled={!mexivel}
+                                onClick={() => {
+                                  if (confirm(`Excluir o acesso de ${u.email}? Ele perde o acesso ao painel.`))
+                                    acao(() => excluirUsuario(u.uid, u.email), 'Usuário excluído.')
+                                }}
+                                className="rounded p-1.5 text-tinta-3 hover:bg-plano hover:text-critico disabled:opacity-40"
+                              >
+                                <Trash2 size={16} aria-hidden />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end">
+                              <Link
+                                href="/admin/funcionarios"
+                                title="Gerenciar papéis e centro de custo em Funcionários"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-2.5 py-1.5 text-xs font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"
+                              >
+                                <SlidersHorizontal size={14} aria-hidden /> Gerenciar
+                              </Link>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )
