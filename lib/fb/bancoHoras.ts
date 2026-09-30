@@ -8,7 +8,7 @@
 // guarda o uid do funcionário (casado pela Matrícula) e o centro de custo,
 // que as Regras usam para o filtro por área e o "só o próprio saldo".
 // =============================================================
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore'
+import { collection, doc, setDoc, updateDoc, getDocs, query, where } from 'firebase/firestore'
 import { db, auth } from '../firebase'
 import { registrarLog } from './usuarios'
 import { listarFuncionarios, type Perfil } from './funcionarios'
@@ -83,6 +83,40 @@ export async function importarBancoHoras(
   }
   await registrarLog('banco_horas_import', `${mesRef}: ${gravados} linha(s)`)
   return { gravados, semMatricula, semFuncionario }
+}
+
+/**
+ * Revincula os saldos existentes às pessoas pela MATRÍCULA, sem reenviar a
+ * planilha. Serve para quando a matrícula foi cadastrada DEPOIS da importação:
+ * os registros ficaram sem uid e o colaborador não via o saldo. Só Master.
+ */
+export async function sincronizarVinculos(): Promise<{ atualizados: number; total: number; semVinculo: number }> {
+  const [snap, funcs] = await Promise.all([
+    getDocs(collection(db(), 'banco_horas')),
+    listarFuncionarios(),
+  ])
+  const porMatricula = new Map<string, { uid: string; centro: string }>()
+  for (const f of funcs) {
+    const m = String((f as any).matricula ?? '').trim()
+    if (m) porMatricula.set(chaveMatricula(m), { uid: f.uid, centro: String((f as any).centro_custo ?? '') })
+  }
+
+  let atualizados = 0, semVinculo = 0
+  for (const d of snap.docs) {
+    const r = d.data() as any
+    const casado = r.matricula ? porMatricula.get(chaveMatricula(r.matricula)) : undefined
+    if (!casado) { if (!r.uid) semVinculo++; continue }
+    if (r.uid !== casado.uid) {
+      await updateDoc(doc(db(), 'banco_horas', d.id), {
+        uid: casado.uid,
+        centro_custo: r.centro_custo || casado.centro || '',
+        atualizado_em: new Date().toISOString(),
+      })
+      atualizados++
+    }
+  }
+  await registrarLog('banco_horas_revincular', `${atualizados} vínculo(s) atualizados`)
+  return { atualizados, total: snap.docs.length, semVinculo }
 }
 
 /**

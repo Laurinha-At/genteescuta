@@ -9,13 +9,13 @@
 // =============================================================
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Clock, Upload, Download, Printer, CheckCircle2, Loader2, Search } from 'lucide-react'
+import { Clock, Upload, Download, Printer, CheckCircle2, Loader2, Search, Link2 } from 'lucide-react'
 import { BotaoVoltar } from '@/components/BotaoVoltar'
 import {
   lerBancoHoras, formatSaldo, mesAtualRef, mesRefLabel, mesesRecentes, type LinhaBH,
 } from '@/lib/bancoHoras'
 import {
-  importarBancoHoras, listarBancoHoras, meuSaldoAtual, type RegistroBH,
+  importarBancoHoras, listarBancoHoras, meuSaldoAtual, sincronizarVinculos, type RegistroBH,
 } from '@/lib/fb/bancoHoras'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
@@ -178,6 +178,13 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
         <UploadMes onImportado={(msg, mes) => { setAviso(msg); setErro(null); setMesRef(mes) }} setErro={setErro} />
       )}
 
+      {master && (
+        <RevincularMatricula
+          onOk={(msg) => { setAviso(msg); setErro(null); recarregar() }}
+          setErro={setErro}
+        />
+      )}
+
       <div className="flex flex-wrap items-end gap-3">
         <Campo rotulo="Mês de referência">
           <select value={mesRef} onChange={(e) => setMesRef(e.target.value)} className={ENTRADA}>
@@ -250,6 +257,44 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
           </table>
         </div>
       )}
+    </div>
+  )
+}
+
+// -------------------------------------------------------------
+// Revincular saldos às pessoas pela matrícula (Master) — sem reenviar planilha
+// -------------------------------------------------------------
+function RevincularMatricula({ onOk, setErro }: { onOk: (msg: string) => void; setErro: (s: string | null) => void }) {
+  const [rodando, setRodando] = useState(false)
+  async function revincular() {
+    setRodando(true); setErro(null)
+    try {
+      const r = await sincronizarVinculos()
+      onOk(
+        r.atualizados > 0
+          ? `Pronto! ${r.atualizados} saldo(s) revinculado(s) às pessoas. Agora aparecem no login delas.`
+          : `Nada a revincular: ${r.semVinculo > 0 ? `${r.semVinculo} registro(s) ainda sem matrícula correspondente — confira as matrículas.` : 'todos os saldos já estão vinculados.'}`,
+      )
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui revincular.')
+    }
+    setRodando(false)
+  }
+  return (
+    <div className="cartao-g flex flex-wrap items-center justify-between gap-3 p-4">
+      <p className="max-w-xl text-xs leading-5 text-tinta-2">
+        Cadastrou as matrículas <strong>depois</strong> de importar? Clique para <strong>revincular</strong> os saldos
+        já enviados às pessoas pela matrícula — sem precisar reenviar a planilha.
+      </p>
+      <button
+        type="button"
+        onClick={revincular}
+        disabled={rodando}
+        className="inline-flex flex-none items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-4 py-2.5 text-sm font-semibold text-tinta transition-colors hover:border-marca hover:text-marca-texto disabled:opacity-60"
+      >
+        {rodando ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Link2 size={15} aria-hidden />}
+        {rodando ? 'Revinculando…' : 'Revincular por matrícula'}
+      </button>
     </div>
   )
 }
