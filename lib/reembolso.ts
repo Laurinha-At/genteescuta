@@ -157,6 +157,16 @@ export function estaPendente(s: StatusReembolso): boolean {
 }
 
 /**
+ * O próprio solicitante ainda pode AJUSTAR ou EXCLUIR o pedido?
+ * Sim enquanto NÃO foi aprovado: aguardando a 1ª aprovação (gestor/master)
+ * ou recusado. Depois de aprovado (segue para o Financeiro), pago/agendado,
+ * o colaborador não mexe mais.
+ */
+export function editavelPeloSolicitante(s: StatusReembolso): boolean {
+  return s === 'pendente_gestor' || s === 'pendente_master' || s === 'recusado'
+}
+
+/**
  * Uma pessoa (com seus papéis e centro de custo) pode agir na etapa atual
  * de um reembolso? Master age em tudo; gestor só no próprio centro; financeiro
  * na etapa financeira. Nunca no próprio pedido (checado à parte pela tela).

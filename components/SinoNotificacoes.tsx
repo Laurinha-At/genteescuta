@@ -22,6 +22,7 @@ const ICONE: Record<AvisoTipo, typeof Receipt> = {
   reembolso_agendado: CalendarClock,
   reembolso_pendente: Clock,
   reembolso_editado: Pencil,
+  reembolso_cancelado: XCircle,
   mural_post: Megaphone,
   treino_trilha: GraduationCap,
 }

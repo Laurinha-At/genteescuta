@@ -214,12 +214,17 @@ service cloud.firestore {
           || (!temPapel('gestor') && !ehMaster() && request.resource.data.status == 'pendente_gestor')
         );
 
-      // Reedição pelo SOLICITANTE após recusa: ajusta o próprio pedido e o
-      // reenvia ao fluxo. Só quando está 'recusado', o solicitante é o dono,
-      // o centro/solicitante não mudam e o novo status é uma etapa pendente.
-      function ehEdicaoSolicitante() {
+      // O solicitante pode mexer no próprio pedido ENQUANTO não foi aprovado:
+      // aguardando a 1ª aprovação (gestor/master) ou recusado.
+      function editavelPeloDono() {
         return resource.data.solicitante_uid == request.auth.uid
-          && resource.data.status == 'recusado'
+          && resource.data.status in ['pendente_gestor', 'pendente_master', 'recusado'];
+      }
+
+      // Reedição pelo SOLICITANTE: ajusta o próprio pedido e o reenvia ao fluxo.
+      // O centro/solicitante não mudam e o novo status é uma etapa pendente.
+      function ehEdicaoSolicitante() {
+        return editavelPeloDono()
           && request.resource.data.solicitante_uid == resource.data.solicitante_uid
           && request.resource.data.centro_custo == resource.data.centro_custo
           && request.resource.data.valor is number
@@ -241,9 +246,9 @@ service cloud.firestore {
                .hasOnly(['status', 'historico', 'atualizado_em', 'data_pagamento', 'pago_por_nome', 'pago_em']))
         || ehEdicaoSolicitante();
 
-      // Exclusão DESATIVADA para todos: um reembolso é aprovado ou recusado,
-      // nunca apagado (mantém a trilha de auditoria).
-      allow delete: if false;
+      // Exclusão: só o SOLICITANTE, e só enquanto NÃO foi aprovado (aguardando
+      // aprovação ou recusado). Aprovado/pago/agendado nunca se apaga.
+      allow delete: if editavelPeloDono();
     }
 
     // -------- Anexos dos reembolsos (comprovantes) --------
@@ -266,13 +271,16 @@ service cloud.firestore {
         && request.resource.data.solicitante_uid == request.auth.uid
         && existeReembolso()
         && reembolso().solicitante_uid == request.auth.uid;
-      // Substituição do comprovante SÓ pelo próprio solicitante e SÓ enquanto o
-      // pedido está 'recusado' (janela de reedição). Fora disso, imutável.
-      allow update: if existeReembolso()
-        && reembolso().solicitante_uid == request.auth.uid
-        && reembolso().status == 'recusado'
+      // Troca/remoção do comprovante SÓ pelo próprio solicitante e SÓ enquanto
+      // o pedido não foi aprovado (aguardando aprovação ou recusado).
+      function donoPodeMexer() {
+        return existeReembolso()
+          && reembolso().solicitante_uid == request.auth.uid
+          && reembolso().status in ['pendente_gestor', 'pendente_master', 'recusado'];
+      }
+      allow update: if donoPodeMexer()
         && request.resource.data.solicitante_uid == request.auth.uid;
-      allow delete: if false;
+      allow delete: if donoPodeMexer();
     }
 
     // -------- Notificações do portal (sino) --------

@@ -15,16 +15,16 @@ import {
   Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
   CheckCircle2, XCircle, Download, Printer, FileText, Image as ImageIcon, Search,
   X, ChevronUp, ChevronDown, ChevronsUpDown, Check, Lock, User, Building2, CalendarDays, AlertCircle,
-  ArrowLeft, ArrowRight, Pencil,
+  ArrowLeft, ArrowRight, Pencil, Trash2,
 } from 'lucide-react'
 import {
   CATEGORIAS, STATUS_LABEL, STATUS_FAIXA, PAPEL_LABEL,
-  formatBRL, formatData, podeAprovar, statusEfetivo, ehEtapaFinanceiro, estaPendente,
+  formatBRL, formatData, podeAprovar, statusEfetivo, ehEtapaFinanceiro, estaPendente, editavelPeloSolicitante,
   type StatusReembolso,
 } from '@/lib/reembolso'
 import {
   criarReembolso, prepararAnexo, listarMinhas, listarParaGestao,
-  aprovarReembolso, recusarReembolso, registrarPagamento, getAnexo, editarReembolso,
+  aprovarReembolso, recusarReembolso, registrarPagamento, getAnexo, editarReembolso, excluirReembolso,
   type Reembolso, type Anexo,
 } from '@/lib/fb/reembolso'
 import type { Perfil } from '@/lib/fb/funcionarios'
@@ -504,6 +504,7 @@ function ListaMinhas({ carregando, itens, perfil, aoAtualizar, setErro, setAviso
   setErro: (s: string | null) => void; setAviso: (s: string | null) => void
 }) {
   const [editar, setEditar] = useState<Reembolso | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
   const [fStatus, setFStatus] = useState('')
   const [fCategoria, setFCategoria] = useState('')
@@ -539,6 +540,20 @@ function ListaMinhas({ carregando, itens, perfil, aoAtualizar, setErro, setAviso
 
   const abrirEdicao = (r: Reembolso) => setEditar(r)
 
+  async function excluir(r: Reembolso) {
+    if (!confirm(`Excluir esta solicitação de ${formatBRL(r.valor)} (${r.categoria})? Esta ação não pode ser desfeita.`)) return
+    setErro(null); setAviso(null); setExcluindo(r.id)
+    try {
+      await excluirReembolso(r.id, perfil)
+      setAviso('Solicitação excluída.')
+      aoAtualizar()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui excluir a solicitação.')
+    } finally {
+      setExcluindo(null)
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* Filtros de pesquisa (mesmos do painel dos aprovadores) */}
@@ -565,8 +580,8 @@ function ListaMinhas({ carregando, itens, perfil, aoAtualizar, setErro, setAviso
         </div>
       )}
 
-      <SecaoMinhas titulo="Em aberto" itens={emAberto} vazio="Nada em aberto no momento." onEditar={abrirEdicao} />
-      <SecaoMinhas titulo="Concluído" itens={concluido} vazio="Nada concluído ainda." onEditar={abrirEdicao} />
+      <SecaoMinhas titulo="Em aberto" itens={emAberto} vazio="Nada em aberto no momento." onEditar={abrirEdicao} onExcluir={excluir} excluindo={excluindo} />
+      <SecaoMinhas titulo="Concluído" itens={concluido} vazio="Nada concluído ainda." onEditar={abrirEdicao} onExcluir={excluir} excluindo={excluindo} />
 
       {editar && (
         <ModalEditar
@@ -580,8 +595,9 @@ function ListaMinhas({ carregando, itens, perfil, aoAtualizar, setErro, setAviso
   )
 }
 
-function SecaoMinhas({ titulo, itens, vazio, onEditar }: {
-  titulo: string; itens: Reembolso[]; vazio: string; onEditar: (r: Reembolso) => void
+function SecaoMinhas({ titulo, itens, vazio, onEditar, onExcluir, excluindo }: {
+  titulo: string; itens: Reembolso[]; vazio: string
+  onEditar: (r: Reembolso) => void; onExcluir: (r: Reembolso) => void; excluindo: string | null
 }) {
   return (
     <section>
@@ -592,7 +608,7 @@ function SecaoMinhas({ titulo, itens, vazio, onEditar }: {
       {itens.length === 0 ? (
         <p className="mt-2 text-sm text-tinta-3">{vazio}</p>
       ) : (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">{itens.map((r) => <CardReembolso key={r.id} r={r} onEditar={onEditar} />)}</div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">{itens.map((r) => <CardReembolso key={r.id} r={r} onEditar={onEditar} onExcluir={onExcluir} excluindo={excluindo === r.id} />)}</div>
       )}
     </section>
   )
@@ -603,10 +619,14 @@ function StatusChip({ status, dataPagamento }: { status: StatusReembolso; dataPa
   return <Chip faixa={STATUS_FAIXA[s]}>{STATUS_LABEL[s]}</Chip>
 }
 
-function CardReembolso({ r, onEditar }: { r: Reembolso; onEditar?: (r: Reembolso) => void }) {
+function CardReembolso({ r, onEditar, onExcluir, excluindo }: {
+  r: Reembolso; onEditar?: (r: Reembolso) => void; onExcluir?: (r: Reembolso) => void; excluindo?: boolean
+}) {
   const [aberto, setAberto] = useState(false)
   const recusa = [...(r.historico ?? [])].reverse().find((h) => h.status_novo === 'recusado')
-  const foiRecusado = statusEfetivo(r.status, r.data_pagamento) === 'recusado'
+  const efetivo = statusEfetivo(r.status, r.data_pagamento)
+  const foiRecusado = efetivo === 'recusado'
+  const podeMexer = editavelPeloSolicitante(efetivo)
   return (
     <div className="cartao-g overflow-hidden">
       <button type="button" onClick={() => setAberto((v) => !v)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
@@ -627,14 +647,28 @@ function CardReembolso({ r, onEditar }: { r: Reembolso; onEditar?: (r: Reembolso
               <strong className="font-semibold">Motivo da recusa:</strong> {recusa.motivo}
             </p>
           )}
-          {foiRecusado && onEditar && (
-            <button
-              type="button"
-              onClick={() => onEditar(r)}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-marca px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-marca-escura"
-            >
-              <Pencil size={15} aria-hidden /> Editar e reenviar
-            </button>
+          {podeMexer && (onEditar || onExcluir) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {onEditar && (
+                <button
+                  type="button"
+                  onClick={() => onEditar(r)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-marca px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-marca-escura"
+                >
+                  <Pencil size={15} aria-hidden /> {foiRecusado ? 'Editar e reenviar' : 'Ajustar'}
+                </button>
+              )}
+              {onExcluir && (
+                <button
+                  type="button"
+                  onClick={() => onExcluir(r)}
+                  disabled={excluindo}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3.5 py-2 text-sm font-medium text-tinta-2 transition-colors hover:border-critico hover:text-critico disabled:opacity-50"
+                >
+                  <Trash2 size={15} aria-hidden /> {excluindo ? 'Excluindo…' : 'Excluir'}
+                </button>
+              )}
+            </div>
           )}
           <div className="mt-3"><FluxoReembolso status={r.status} dataPagamento={r.data_pagamento} /></div>
           <Timeline r={r} />

@@ -31,6 +31,7 @@ export type NotifTipo =
   | 'reembolso_agendado'
   | 'reembolso_pendente'
   | 'reembolso_editado'
+  | 'reembolso_cancelado'
 
 export interface Notificacao {
   id: string
@@ -89,6 +90,25 @@ export async function avisarPendencia(p: {
     tipo: 'reembolso_pendente' as NotifTipo,
     titulo: p.reenvio ? 'Reembolso reenviado para você' : 'Reembolso aguardando você',
     texto: `${p.solicitante}: ${p.resumo} está aguardando a sua ação.`,
+    link: '/reembolso',
+    reembolso_id: p.reembolsoId,
+    de_nome: p.solicitante,
+  }
+  const alvos: string[] = []
+  if (p.status === 'pendente_master') alvos.push('m')
+  else if (p.status === 'pendente_financeiro') alvos.push('f')
+  else alvos.push(`g:${p.centro}`)
+  await Promise.all(alvos.map((alvo) => criar({ alvo, ...base })))
+}
+
+/** Ao CANCELAR (excluir): avisa quem estava com a pendência. */
+export async function avisarCancelamento(p: {
+  reembolsoId: string; status: string; centro: string; solicitante: string; resumo: string
+}): Promise<void> {
+  const base = {
+    tipo: 'reembolso_cancelado' as NotifTipo,
+    titulo: 'Reembolso cancelado',
+    texto: `${p.solicitante} cancelou o reembolso (${p.resumo}) que aguardava você.`,
     link: '/reembolso',
     reembolso_id: p.reembolsoId,
     de_nome: p.solicitante,

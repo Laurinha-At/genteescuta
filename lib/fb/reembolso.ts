@@ -10,16 +10,16 @@
 // consultam. A segurança de verdade está nas Regras do Firestore.
 // =============================================================
 import {
-  collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, query, where,
+  collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where,
 } from 'firebase/firestore'
 import { db, auth } from '../firebase'
 import {
   statusInicial, proximoStatus, papelDaEtapa, mesmoCentro, centroAbrangeTudo, statusDoPagamento,
-  estaPendente, formatBRL, formatData, type StatusReembolso,
+  estaPendente, editavelPeloSolicitante, formatBRL, formatData, type StatusReembolso,
 } from '../reembolso'
 import type { Perfil } from './funcionarios'
 import { registrarLog } from './usuarios'
-import { avisarNovaSolicitacao, avisarDecisao, avisarPagamento, avisarPendencia, avisarEdicao } from './notificacoes'
+import { avisarNovaSolicitacao, avisarDecisao, avisarPagamento, avisarPendencia, avisarEdicao, avisarCancelamento } from './notificacoes'
 
 // Limite do data URL do anexo. O documento do Firestore tem teto de ~1 MB;
 // base64 infla ~33%, então seguramos o conteúdo bem abaixo disso.
@@ -419,7 +419,9 @@ export async function editarReembolso(
   const r = mapear(snap)
 
   if (r.solicitante_uid !== u.uid) throw new Error('Você só pode editar as suas próprias solicitações.')
-  if (r.status !== 'recusado') throw new Error('Só é possível editar um pedido que foi recusado.')
+  if (!editavelPeloSolicitante(r.status)) {
+    throw new Error('Este pedido já foi aprovado e não pode mais ser ajustado.')
+  }
 
   const agora = new Date().toISOString()
   // Volta ao início do fluxo, conforme os papéis de quem pede (igual à criação).
@@ -483,4 +485,41 @@ export async function editarReembolso(
     reenvio: true,
   })
   return { status: novoStatus }
+}
+
+// -------------------------------------------------------------
+// Excluir: o solicitante cancela o próprio pedido enquanto NÃO foi aprovado.
+// Remove o comprovante ANTES do pedido (a Regra do anexo confere o status do
+// pai). Avisa quem estava com a pendência, quando fazia sentido.
+// -------------------------------------------------------------
+export async function excluirReembolso(id: string, perfil: Perfil) {
+  const u = auth().currentUser
+  if (!u) throw new Error('Sua sessão expirou. Entre novamente.')
+
+  const ref = doc(db(), 'reembolsos', id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Solicitação não encontrada.')
+  const r = mapear(snap)
+
+  if (r.solicitante_uid !== u.uid) throw new Error('Você só pode excluir as suas próprias solicitações.')
+  if (!editavelPeloSolicitante(r.status)) {
+    throw new Error('Este pedido já foi aprovado e não pode mais ser excluído.')
+  }
+
+  // Anexo primeiro (enquanto o pedido ainda existe e está no status permitido).
+  await deleteDoc(doc(db(), 'reembolso_anexos', id)).catch(() => {})
+  await deleteDoc(ref)
+
+  await registrarLog('reembolso_excluido', `${id} · ${r.categoria} · ${formatBRL(r.valor)}`)
+  // Se estava aguardando alguém decidir, avisa que foi cancelado.
+  if (estaPendente(r.status)) {
+    await avisarCancelamento({
+      reembolsoId: id,
+      status: r.status,
+      centro: r.centro_custo,
+      solicitante: perfil.nome || u.email || 'Colaborador',
+      resumo: `${r.categoria} · ${formatBRL(r.valor)}`,
+    })
+  }
+  return { ok: true }
 }
