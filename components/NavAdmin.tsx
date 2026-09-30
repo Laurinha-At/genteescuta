@@ -21,6 +21,7 @@ import {
   BookOpen,
   GraduationCap,
   ChevronDown,
+  Users,
 } from 'lucide-react'
 import { podeVer, type Permissoes } from '@/lib/permissoes'
 
@@ -41,11 +42,20 @@ const VISAO: Item = { href: '/admin', rotulo: 'Visão geral', Icone: LayoutDashb
 // "abertoPadrao" mantém as seções mais usadas abertas; as demais começam recolhidas.
 const GRUPOS: Grupo[] = [
   {
+    id: 'gerencial',
+    titulo: 'Gerencial',
+    abertoPadrao: true,
+    itens: [
+      { href: '/admin/canal', rotulo: 'Manifestações', Icone: Inbox, tela: 'canal' },
+      { href: '/admin/usuarios', rotulo: 'Usuários e acessos', Icone: Users, super: true, tela: 'usuarios' },
+      { href: '/admin/logs', rotulo: 'Login e Logs', Icone: ScrollText, super: true, tela: 'logs' },
+    ],
+  },
+  {
     id: 'comunicacao',
     titulo: 'Comunicação',
     abertoPadrao: true,
     itens: [
-      { href: '/admin/canal', rotulo: 'Canal', Icone: Inbox, tela: 'canal' },
       { href: '/admin/mural', rotulo: 'Mural', Icone: Megaphone, exato: true, tela: 'mural' },
       { href: '/admin/mural/moderacao', rotulo: 'Moderação', Icone: ShieldQuestion, tela: 'moderacao' },
     ],
@@ -87,7 +97,6 @@ const GRUPOS: Grupo[] = [
     abertoPadrao: false,
     itens: [
       { href: '/admin/configuracoes', rotulo: 'Configurações', Icone: Settings, super: true, tela: 'configuracoes' },
-      { href: '/admin/logs', rotulo: 'Logs', Icone: ScrollText, super: true, tela: 'logs' },
     ],
   },
 ]
