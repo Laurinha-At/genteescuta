@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import QRCode from 'qrcode'
 import { BarChart3, Play, Square, Undo2, ExternalLink, Trash2, Pencil } from 'lucide-react'
 import { getPesquisa, contarRespostas, mudarStatusPesquisa, excluirPesquisa } from '@/lib/fb/admin'

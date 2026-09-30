@@ -10,7 +10,7 @@
 // Segurança reforçada nas Regras do Firestore.
 // =============================================================
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import {
   Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
   CheckCircle2, XCircle, Download, Printer, FileText, Image as ImageIcon, Search,

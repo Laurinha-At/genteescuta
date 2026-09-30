@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { ThumbsUp, TriangleAlert, Users } from 'lucide-react'
 import { indicadoresClima } from '@/lib/fb/admin'
 import { classificarENPS } from '@/lib/scoring'

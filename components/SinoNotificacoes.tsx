@@ -6,7 +6,7 @@
 // não lidas. O "lido" é por dispositivo (localStorage).
 // =============================================================
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { Bell, Check, Receipt, XCircle, CheckCircle2, CalendarClock, Megaphone, GraduationCap, Clock, Pencil } from 'lucide-react'
 import {
   listarAvisos, marcarTudoVisto, contarNaoLidas, ultimaVisita,

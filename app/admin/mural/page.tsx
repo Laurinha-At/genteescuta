@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { Megaphone, Award, Plus, Pencil, Trash2, Eye, EyeOff, ShieldQuestion, X, ArrowUpToLine } from 'lucide-react'
 import { RichTextEditor, type RichHandle } from '@/components/RichText'
 import {

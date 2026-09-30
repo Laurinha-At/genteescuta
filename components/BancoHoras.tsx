@@ -8,7 +8,7 @@
 // A segurança de verdade está nas Regras do Firestore.
 // =============================================================
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { Clock, Upload, Download, Printer, CheckCircle2, Loader2, Search, Link2 } from 'lucide-react'
 import { BotaoVoltar } from '@/components/BotaoVoltar'
 import {

@@ -7,7 +7,7 @@
 // e faz; correção de quiz/caça-palavras acontece no cliente (interno).
 // =============================================================
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import {
   GraduationCap, Clock, Lock, CheckCircle2, ArrowLeft, ArrowRight,
   Trophy, Star, BookOpen, HelpCircle, Grid2x2, PartyPopper, LogIn, ExternalLink, Video,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { Plus, BarChart3 } from 'lucide-react'
 import { listarPesquisas } from '@/lib/fb/admin'
 import { minhaConta, type Conta } from '@/lib/fb/usuarios'

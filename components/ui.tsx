@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import type { ReactNode } from 'react'
 import type { FaixaRisco } from '@/lib/types'
 import { CLASSE_CHIP } from '@/lib/format'

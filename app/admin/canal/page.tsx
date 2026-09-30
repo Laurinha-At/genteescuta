@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { UserX } from 'lucide-react'
 import { listarManifestacoes } from '@/lib/fb/admin'
 import { CabecalhoPagina, Cartao, Chip, Scorecard, Vazio } from '@/components/ui'

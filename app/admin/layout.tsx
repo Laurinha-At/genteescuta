@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { LogOut, ExternalLink, Menu, X } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'

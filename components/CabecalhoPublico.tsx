@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { useEffect, useRef, useState } from 'react'
 import { LogIn, LogOut, LayoutDashboard, ChevronDown, Megaphone } from 'lucide-react'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'

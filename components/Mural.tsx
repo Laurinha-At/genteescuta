@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { Award, Megaphone, MessageCircle, Send, LogIn } from 'lucide-react'
 import { REACOES, reagir, getMinhaReacao, getComentarios, enviarComentario, editarComentario, excluirComentario } from '@/lib/fb/publico'
 import type { Perfil } from '@/lib/fb/funcionarios'

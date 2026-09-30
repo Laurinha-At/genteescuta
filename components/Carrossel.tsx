@@ -9,7 +9,7 @@
 // Para configurar QUAIS conteúdos aparecem, edite FONTES abaixo.
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/LinkSemPrefetch'
 import { PartyPopper, Cake, Clock, Megaphone, Award, GraduationCap, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { destaquesDoDia } from '@/lib/fb/aniversarios'
 import { getPostsMural } from '@/lib/fb/publico'
