@@ -29,6 +29,8 @@ export type NotifTipo =
   | 'reembolso_recusado'
   | 'reembolso_pago'
   | 'reembolso_agendado'
+  | 'reembolso_pendente'
+  | 'reembolso_editado'
 
 export interface Notificacao {
   id: string
@@ -73,6 +75,44 @@ export async function avisarNovaSolicitacao(p: {
   else alvos.push(`g:${p.centro}`)
   alvos.push('f') // o Financeiro sempre fica ciente do novo pedido
   await Promise.all(alvos.map((alvo) => criar({ alvo, ...comum })))
+}
+
+/**
+ * Avisa QUEM É RESPONSÁVEL pela etapa atual (pendência): o gestor da área,
+ * o Master ou o Financeiro, conforme o status. Usado quando o pedido chega
+ * a uma nova etapa (aprovação) ou é reenviado após ajuste.
+ */
+export async function avisarPendencia(p: {
+  reembolsoId: string; status: string; centro: string; solicitante: string; resumo: string; reenvio?: boolean
+}): Promise<void> {
+  const base = {
+    tipo: 'reembolso_pendente' as NotifTipo,
+    titulo: p.reenvio ? 'Reembolso reenviado para você' : 'Reembolso aguardando você',
+    texto: `${p.solicitante}: ${p.resumo} está aguardando a sua ação.`,
+    link: '/reembolso',
+    reembolso_id: p.reembolsoId,
+    de_nome: p.solicitante,
+  }
+  const alvos: string[] = []
+  if (p.status === 'pendente_master') alvos.push('m')
+  else if (p.status === 'pendente_financeiro') alvos.push('f')
+  else alvos.push(`g:${p.centro}`)
+  await Promise.all(alvos.map((alvo) => criar({ alvo, ...base })))
+}
+
+/** Ao EDITAR/REENVIAR após recusa: avisa o solicitante (confirmação) e o responsável. */
+export async function avisarEdicao(p: {
+  solicitanteUid: string; reembolsoId: string; solicitante: string; resumo: string
+}): Promise<void> {
+  await criar({
+    alvo: `u:${p.solicitanteUid}`,
+    tipo: 'reembolso_editado',
+    titulo: 'Reembolso reenviado',
+    texto: `Você ajustou e reenviou o reembolso (${p.resumo}). Ele voltou para aprovação.`,
+    link: '/reembolso',
+    reembolso_id: p.reembolsoId,
+    de_nome: p.solicitante,
+  })
 }
 
 /** Ao APROVAR/RECUSAR: avisa o colaborador que fez o pedido. */

@@ -214,15 +214,32 @@ service cloud.firestore {
           || (!temPapel('gestor') && !ehMaster() && request.resource.data.status == 'pendente_gestor')
         );
 
+      // Reedição pelo SOLICITANTE após recusa: ajusta o próprio pedido e o
+      // reenvia ao fluxo. Só quando está 'recusado', o solicitante é o dono,
+      // o centro/solicitante não mudam e o novo status é uma etapa pendente.
+      function ehEdicaoSolicitante() {
+        return resource.data.solicitante_uid == request.auth.uid
+          && resource.data.status == 'recusado'
+          && request.resource.data.solicitante_uid == resource.data.solicitante_uid
+          && request.resource.data.centro_custo == resource.data.centro_custo
+          && request.resource.data.valor is number
+          && request.resource.data.valor > 0
+          && request.resource.data.status in ['pendente_gestor', 'pendente_master', 'pendente_financeiro']
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'historico', 'atualizado_em', 'data_despesa', 'categoria', 'descricao', 'valor', 'tem_anexo', 'anexo_tipo', 'anexo_nome']);
+      }
+
       // Atualização = decisão de aprovação/recusa (gestor/master) OU registro
-      // de pagamento (financeiro/master). O núcleo é imutável; só status,
-      // histórico, data de atualização e os campos de pagamento podem mudar.
-      allow update: if podeDecidir()
-        && request.resource.data.solicitante_uid == resource.data.solicitante_uid
-        && request.resource.data.valor == resource.data.valor
-        && request.resource.data.centro_custo == resource.data.centro_custo
-        && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['status', 'historico', 'atualizado_em', 'data_pagamento', 'pago_por_nome', 'pago_em']);
+      // de pagamento (financeiro/master) OU reedição do solicitante após recusa.
+      // O núcleo é imutável na decisão; só status, histórico, data de
+      // atualização e os campos de pagamento podem mudar.
+      allow update: if (podeDecidir()
+          && request.resource.data.solicitante_uid == resource.data.solicitante_uid
+          && request.resource.data.valor == resource.data.valor
+          && request.resource.data.centro_custo == resource.data.centro_custo
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'historico', 'atualizado_em', 'data_pagamento', 'pago_por_nome', 'pago_em']))
+        || ehEdicaoSolicitante();
 
       // Exclusão DESATIVADA para todos: um reembolso é aprovado ou recusado,
       // nunca apagado (mantém a trilha de auditoria).
@@ -249,8 +266,13 @@ service cloud.firestore {
         && request.resource.data.solicitante_uid == request.auth.uid
         && existeReembolso()
         && reembolso().solicitante_uid == request.auth.uid;
-      // Comprovante é imutável e não pode ser apagado (trilha de auditoria).
-      allow update, delete: if false;
+      // Substituição do comprovante SÓ pelo próprio solicitante e SÓ enquanto o
+      // pedido está 'recusado' (janela de reedição). Fora disso, imutável.
+      allow update: if existeReembolso()
+        && reembolso().solicitante_uid == request.auth.uid
+        && reembolso().status == 'recusado'
+        && request.resource.data.solicitante_uid == request.auth.uid;
+      allow delete: if false;
     }
 
     // -------- Notificações do portal (sino) --------

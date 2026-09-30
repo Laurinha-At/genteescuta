@@ -15,7 +15,7 @@ import {
   Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
   CheckCircle2, XCircle, Download, Printer, FileText, Image as ImageIcon, Search,
   X, ChevronUp, ChevronDown, ChevronsUpDown, Check, Lock, User, Building2, CalendarDays, AlertCircle,
-  ArrowLeft, ArrowRight,
+  ArrowLeft, ArrowRight, Pencil,
 } from 'lucide-react'
 import {
   CATEGORIAS, STATUS_LABEL, STATUS_FAIXA, PAPEL_LABEL,
@@ -24,7 +24,7 @@ import {
 } from '@/lib/reembolso'
 import {
   criarReembolso, prepararAnexo, listarMinhas, listarParaGestao,
-  aprovarReembolso, recusarReembolso, registrarPagamento, getAnexo,
+  aprovarReembolso, recusarReembolso, registrarPagamento, getAnexo, editarReembolso,
   type Reembolso, type Anexo,
 } from '@/lib/fb/reembolso'
 import type { Perfil } from '@/lib/fb/funcionarios'
@@ -132,7 +132,7 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
         {aba === 'solicitar' && (
           <FormReembolso perfil={perfil} aoEnviar={() => { setErro(null); recarregar(); setAba('minhas'); setSucesso(true) }} setAviso={setAviso} setErro={setErro} />
         )}
-        {aba === 'minhas' && <ListaMinhas carregando={carregando} itens={minhas} />}
+        {aba === 'minhas' && <ListaMinhas carregando={carregando} itens={minhas} perfil={perfil} aoAtualizar={recarregar} setErro={setErro} setAviso={setAviso} />}
         {aba === 'fila' && (
           <Fila perfil={perfil} carregando={carregando} pendentes={pendentes} aoDecidir={recarregar} />
         )}
@@ -150,9 +150,11 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
 // Mensagem de sucesso após enviar a solicitação
 // -------------------------------------------------------------
 function ModalSucesso({ onFechar }: { onFechar: () => void }) {
+  // Persiste na tela até a pessoa clicar em "Ciente": o clique fora do cartão
+  // NÃO fecha (sem onClick no fundo) e a tecla Esc é ignorada.
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onFechar}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl sm:p-7" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="alertdialog" aria-modal="true">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl sm:p-7">
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#eef7e3] text-verde-escuro">
           <CheckCircle2 size={34} aria-hidden />
         </span>
@@ -165,7 +167,7 @@ function ModalSucesso({ onFechar }: { onFechar: () => void }) {
           <p>Acompanhe o andamento da solicitação e aguarde a conclusão das etapas.</p>
         </div>
         <Botao type="button" onClick={onFechar} className="mt-6 w-full justify-center">
-          Acompanhar minhas solicitações
+          <Check size={16} aria-hidden /> Ciente
         </Botao>
       </div>
     </div>
@@ -491,7 +493,41 @@ function Resumo({ rotulo, valor }: { rotulo: string; valor: string }) {
 // -------------------------------------------------------------
 // Minhas solicitações (cartões)
 // -------------------------------------------------------------
-function ListaMinhas({ carregando, itens }: { carregando: boolean; itens: Reembolso[] }) {
+/** "Em aberto" = ainda tramitando (pendências e pagamento agendado). */
+function emAbertoReembolso(r: Reembolso): boolean {
+  const s = statusEfetivo(r.status, r.data_pagamento)
+  return estaPendente(s) || s === 'agendado'
+}
+
+function ListaMinhas({ carregando, itens, perfil, aoAtualizar, setErro, setAviso }: {
+  carregando: boolean; itens: Reembolso[]; perfil: Perfil; aoAtualizar: () => void
+  setErro: (s: string | null) => void; setAviso: (s: string | null) => void
+}) {
+  const [editar, setEditar] = useState<Reembolso | null>(null)
+  const [busca, setBusca] = useState('')
+  const [fStatus, setFStatus] = useState('')
+  const [fCategoria, setFCategoria] = useState('')
+
+  const statuses = useMemo(() => Array.from(new Set(itens.map((r) => statusEfetivo(r.status, r.data_pagamento)))), [itens])
+  const categorias = useMemo(() => Array.from(new Set(itens.map((r) => r.categoria).filter(Boolean))).sort(), [itens])
+
+  const filtrados = useMemo(() => {
+    const q = normalizar(busca)
+    return itens.filter((r) => {
+      if (fStatus && statusEfetivo(r.status, r.data_pagamento) !== fStatus) return false
+      if (fCategoria && r.categoria !== fCategoria) return false
+      if (q) {
+        const blob = normalizar(`${formatBRL(r.valor)} ${r.categoria} ${r.centro_custo} ${r.descricao ?? ''} ${STATUS_LABEL[statusEfetivo(r.status, r.data_pagamento)]}`)
+        if (!blob.includes(q)) return false
+      }
+      return true
+    })
+  }, [itens, busca, fStatus, fCategoria])
+
+  const emAberto = filtrados.filter(emAbertoReembolso)
+  const concluido = filtrados.filter((r) => !emAbertoReembolso(r))
+  const temFiltro = !!(busca || fStatus || fCategoria)
+
   if (carregando) return <p className="text-sm text-tinta-3">Carregando…</p>
   if (itens.length === 0)
     return (
@@ -500,7 +536,66 @@ function ListaMinhas({ carregando, itens }: { carregando: boolean; itens: Reembo
         <p className="mt-1 text-sm text-tinta-3">Use a aba "Solicitar" para pedir seu primeiro reembolso.</p>
       </div>
     )
-  return <div className="grid gap-3 sm:grid-cols-2">{itens.map((r) => <CardReembolso key={r.id} r={r} />)}</div>
+
+  const abrirEdicao = (r: Reembolso) => setEditar(r)
+
+  return (
+    <div className="space-y-5">
+      {/* Filtros de pesquisa (mesmos do painel dos aprovadores) */}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="relative">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3" aria-hidden />
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} className={`${ENTRADA} pl-9`} placeholder="Buscar (valor, categoria, motivo…)" />
+        </div>
+        <select value={fStatus} onChange={(e) => setFStatus(e.target.value)} className={ENTRADA}>
+          <option value="">Todos os status</option>
+          {statuses.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+        </select>
+        <select value={fCategoria} onChange={(e) => setFCategoria(e.target.value)} className={ENTRADA}>
+          <option value="">Todas as categorias</option>
+          {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+      {temFiltro && (
+        <div className="-mt-3 flex items-center justify-between text-xs text-tinta-3">
+          <span>{filtrados.length} de {itens.length} solicitação(ões)</span>
+          <button type="button" onClick={() => { setBusca(''); setFStatus(''); setFCategoria('') }} className="inline-flex items-center gap-1 font-medium hover:text-critico">
+            <X size={12} aria-hidden /> Limpar filtros
+          </button>
+        </div>
+      )}
+
+      <SecaoMinhas titulo="Em aberto" itens={emAberto} vazio="Nada em aberto no momento." onEditar={abrirEdicao} />
+      <SecaoMinhas titulo="Concluído" itens={concluido} vazio="Nada concluído ainda." onEditar={abrirEdicao} />
+
+      {editar && (
+        <ModalEditar
+          r={editar}
+          perfil={perfil}
+          onFechar={() => setEditar(null)}
+          aoSalvo={(msg) => { setEditar(null); setErro(null); setAviso(msg); aoAtualizar() }}
+        />
+      )}
+    </div>
+  )
+}
+
+function SecaoMinhas({ titulo, itens, vazio, onEditar }: {
+  titulo: string; itens: Reembolso[]; vazio: string; onEditar: (r: Reembolso) => void
+}) {
+  return (
+    <section>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-tinta">
+        {titulo}
+        <span className="rounded-full bg-superficie-2 px-2 py-0.5 text-[0.6875rem] font-semibold text-tinta-3">{itens.length}</span>
+      </h3>
+      {itens.length === 0 ? (
+        <p className="mt-2 text-sm text-tinta-3">{vazio}</p>
+      ) : (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">{itens.map((r) => <CardReembolso key={r.id} r={r} onEditar={onEditar} />)}</div>
+      )}
+    </section>
+  )
 }
 
 function StatusChip({ status, dataPagamento }: { status: StatusReembolso; dataPagamento?: string | null }) {
@@ -508,9 +603,10 @@ function StatusChip({ status, dataPagamento }: { status: StatusReembolso; dataPa
   return <Chip faixa={STATUS_FAIXA[s]}>{STATUS_LABEL[s]}</Chip>
 }
 
-function CardReembolso({ r }: { r: Reembolso }) {
+function CardReembolso({ r, onEditar }: { r: Reembolso; onEditar?: (r: Reembolso) => void }) {
   const [aberto, setAberto] = useState(false)
   const recusa = [...(r.historico ?? [])].reverse().find((h) => h.status_novo === 'recusado')
+  const foiRecusado = statusEfetivo(r.status, r.data_pagamento) === 'recusado'
   return (
     <div className="cartao-g overflow-hidden">
       <button type="button" onClick={() => setAberto((v) => !v)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
@@ -531,6 +627,15 @@ function CardReembolso({ r }: { r: Reembolso }) {
               <strong className="font-semibold">Motivo da recusa:</strong> {recusa.motivo}
             </p>
           )}
+          {foiRecusado && onEditar && (
+            <button
+              type="button"
+              onClick={() => onEditar(r)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-marca px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-marca-escura"
+            >
+              <Pencil size={15} aria-hidden /> Editar e reenviar
+            </button>
+          )}
           <div className="mt-3"><FluxoReembolso status={r.status} dataPagamento={r.data_pagamento} /></div>
           <Timeline r={r} />
           <div className="mt-3"><BotaoAnexo id={r.id} tipo={r.anexo_tipo} /></div>
@@ -545,16 +650,18 @@ function Timeline({ r }: { r: Reembolso }) {
     <ol className="mt-4 space-y-2">
       {(r.historico ?? []).map((h, i) => {
         const recusado = h.status_novo === 'recusado'
+        const edicao = h.tipo === 'edicao'
         return (
           <li key={i} className="flex items-start gap-2.5 text-sm">
-            <span className={`mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full ${recusado ? 'bg-[#fdeaea] text-critico' : 'bg-[#eef7e3] text-verde-escuro'}`}>
-              {recusado ? <XCircle size={13} aria-hidden /> : <CheckCircle2 size={13} aria-hidden />}
+            <span className={`mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full ${recusado ? 'bg-[#fdeaea] text-critico' : edicao ? 'bg-marca-clara text-marca-texto' : 'bg-[#eef7e3] text-verde-escuro'}`}>
+              {recusado ? <XCircle size={13} aria-hidden /> : edicao ? <Pencil size={12} aria-hidden /> : <CheckCircle2 size={13} aria-hidden />}
             </span>
             <span className="text-tinta-2">
-              <strong className="font-semibold text-tinta">{STATUS_LABEL[h.status_novo]}</strong>
-              {h.papel !== 'solicitante' && <> · por {h.por_nome || '—'}</>}
+              <strong className="font-semibold text-tinta">{edicao ? 'Editado e reenviado' : STATUS_LABEL[h.status_novo]}</strong>
+              {(edicao || h.papel !== 'solicitante') && <> · por {h.por_nome || '—'}</>}
               <span className="text-tinta-3"> · {formatData(h.em)}</span>
               {h.data_pagamento && <span className="text-tinta-3"> · pagamento em {formatData(h.data_pagamento)}</span>}
+              {edicao && h.alteracoes && <span className="mt-0.5 block text-xs text-tinta-3">{h.alteracoes}</span>}
             </span>
           </li>
         )
@@ -581,6 +688,103 @@ function BotaoAnexo({ id, tipo }: { id: string; tipo: 'image' | 'pdf' | null }) 
       {tipo === 'pdf' ? <FileText size={15} aria-hidden /> : <ImageIcon size={15} aria-hidden />}
       {carregando ? 'Abrindo…' : 'Ver comprovante'}
     </button>
+  )
+}
+
+// -------------------------------------------------------------
+// Editar após recusa (solicitante) — ajusta o pedido e reenvia ao fluxo
+// -------------------------------------------------------------
+function ModalEditar({ r, perfil, onFechar, aoSalvo }: {
+  r: Reembolso; perfil: Perfil; onFechar: () => void; aoSalvo: (msg: string) => void
+}) {
+  const hoje = new Date().toISOString().slice(0, 10)
+  const [data, setData] = useState(String(r.data_despesa ?? '').slice(0, 10))
+  const [categoria, setCategoria] = useState(r.categoria ?? '')
+  const [valor, setValor] = useState(String(r.valor ?? '').replace('.', ','))
+  const [descricao, setDescricao] = useState(r.descricao ?? '')
+  const [arquivo, setArquivo] = useState<File | null>(null)
+  const [pendente, setPendente] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const recusa = [...(r.historico ?? [])].reverse().find((h) => h.status_novo === 'recusado')
+
+  const valorNum = Number(String(valor).replace(/\./g, '').replace(',', '.'))
+
+  async function salvar() {
+    setErro(null)
+    if (!data) return setErro('Informe a data da compra/gasto.')
+    if (!categoria) return setErro('Escolha a categoria.')
+    if (!(valorNum > 0)) return setErro('Informe um valor maior que zero.')
+    if (descricao.trim().length < 3) return setErro('Descreva o motivo (mínimo 3 letras).')
+    setPendente(true)
+    try {
+      const anexo = arquivo ? await prepararAnexo(arquivo) : null
+      await editarReembolso(r.id, { data_despesa: data, categoria, descricao, valor: valorNum }, perfil, anexo)
+      aoSalvo('Reembolso ajustado e reenviado para aprovação.')
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui reenviar.')
+      setPendente(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onFechar}>
+      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-tinta">Editar e reenviar</h3>
+            <p className="mt-0.5 text-xs text-tinta-3">Ajuste o pedido recusado. Ele volta para aprovação e o histórico guarda a alteração.</p>
+          </div>
+          <button type="button" onClick={onFechar} className="rounded-lg p-1.5 text-tinta-3 hover:bg-superficie-2" aria-label="Fechar"><X size={18} aria-hidden /></button>
+        </div>
+
+        {recusa?.motivo && (
+          <p className="mt-3 rounded-lg border border-[#f0c2c2] bg-[#fdeaea] px-3 py-2 text-sm text-[#8a1f1f]">
+            <strong className="font-semibold">Motivo da recusa:</strong> {recusa.motivo}
+          </p>
+        )}
+        {erro && <div className="mt-3"><Aviso tom="erro">{erro}</Aviso></div>}
+
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-tinta">Data da compra / gasto</label>
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} className={ENTRADA} max={hoje} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-tinta">Categoria</label>
+              <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={ENTRADA}>
+                <option value="">Escolha…</option>
+                {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-tinta">Valor (R$)</label>
+            <input inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ex.: 150,00" className={ENTRADA} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-tinta">Descrição</label>
+            <textarea rows={3} value={descricao} onChange={(e) => setDescricao(e.target.value)} className={ENTRADA} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-tinta">Comprovante</label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-borda-forte bg-white px-4 py-3 text-sm text-tinta-2 transition-colors hover:border-marca">
+              <Paperclip size={16} className="text-marca" aria-hidden />
+              <span className="min-w-0 flex-1 truncate">{arquivo ? arquivo.name : (r.anexo_nome ? `Atual: ${r.anexo_nome} — trocar (opcional)` : 'Anexar foto ou PDF (opcional)')}</span>
+              <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+            </label>
+            <p className="mt-1 text-xs text-tinta-3">Deixe em branco para manter o comprovante atual.</p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Botao type="button" variante="secundario" onClick={onFechar} disabled={pendente}>Cancelar</Botao>
+          <Botao type="button" onClick={salvar} disabled={pendente}>
+            {pendente ? 'Reenviando…' : <><Check size={15} aria-hidden /> Salvar e reenviar</>}
+          </Botao>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -15,11 +15,11 @@ import {
 import { db, auth } from '../firebase'
 import {
   statusInicial, proximoStatus, papelDaEtapa, mesmoCentro, centroAbrangeTudo, statusDoPagamento,
-  formatBRL, type StatusReembolso,
+  estaPendente, formatBRL, formatData, type StatusReembolso,
 } from '../reembolso'
 import type { Perfil } from './funcionarios'
 import { registrarLog } from './usuarios'
-import { avisarNovaSolicitacao, avisarDecisao, avisarPagamento } from './notificacoes'
+import { avisarNovaSolicitacao, avisarDecisao, avisarPagamento, avisarPendencia, avisarEdicao } from './notificacoes'
 
 // Limite do data URL do anexo. O documento do Firestore tem teto de ~1 MB;
 // base64 infla ~33%, então seguramos o conteúdo bem abaixo disso.
@@ -40,6 +40,10 @@ export interface EventoHistorico {
   em: string
   motivo?: string
   data_pagamento?: string
+  /** 'edicao' = o solicitante ajustou e reenviou o pedido após recusa. */
+  tipo?: 'edicao'
+  /** Resumo legível do que mudou nesta edição (ex.: "Valor: R$100,00 → R$120,00"). */
+  alteracoes?: string
 }
 
 export interface Reembolso {
@@ -297,6 +301,17 @@ async function decidir(id: string, perfil: Perfil, aprovar: boolean, motivo?: st
     porNome: perfil.nome || u.email || '',
     motivo,
   })
+  // Se avançou para outra etapa pendente (ex.: Gestor → Financeiro), avisa
+  // quem passa a ser o responsável por decidir.
+  if (aprovar && estaPendente(novoStatus)) {
+    await avisarPendencia({
+      reembolsoId: id,
+      status: novoStatus,
+      centro: r.centro_custo,
+      solicitante: r.solicitante_nome || r.solicitante_email || 'Colaborador',
+      resumo: `${r.categoria} · ${formatBRL(r.valor)}`,
+    })
+  }
   return { status: novoStatus }
 }
 
@@ -357,6 +372,115 @@ export async function registrarPagamento(id: string, perfil: Perfil, dataPagamen
     porNome: perfil.nome || u.email || '',
     agendado: novoStatus === 'agendado',
     data,
+  })
+  return { status: novoStatus }
+}
+
+// -------------------------------------------------------------
+// Editar após recusa: o próprio solicitante ajusta o pedido existente
+// (sem criar outro do zero). O pedido volta ao início do fluxo e o
+// histórico registra QUEM editou, O QUÊ mudou e QUANDO.
+// -------------------------------------------------------------
+/** Monta um resumo legível das mudanças entre o pedido atual e o ajuste. */
+function resumirAlteracoes(
+  antigo: Reembolso,
+  novo: { data_despesa: string; categoria: string; descricao: string; valor: number },
+  trocouAnexo: boolean,
+): string {
+  const partes: string[] = []
+  if (antigo.valor !== novo.valor) partes.push(`Valor: ${formatBRL(antigo.valor)} → ${formatBRL(novo.valor)}`)
+  if (antigo.categoria !== novo.categoria) partes.push(`Categoria: ${antigo.categoria} → ${novo.categoria}`)
+  if (String(antigo.data_despesa).slice(0, 10) !== String(novo.data_despesa).slice(0, 10)) {
+    partes.push(`Data: ${formatData(antigo.data_despesa)} → ${formatData(novo.data_despesa)}`)
+  }
+  if ((antigo.descricao ?? '').trim() !== novo.descricao.trim()) partes.push('Descrição atualizada')
+  if (trocouAnexo) partes.push('Novo comprovante')
+  return partes.join(' · ') || 'Reenviado sem alterações de conteúdo'
+}
+
+export async function editarReembolso(
+  id: string,
+  dados: { data_despesa: string; categoria: string; descricao: string; valor: number },
+  perfil: Perfil,
+  anexo?: Anexo | null,
+) {
+  const u = auth().currentUser
+  if (!u) throw new Error('Sua sessão expirou. Entre novamente.')
+
+  const valor = Number(dados.valor)
+  if (!(valor > 0)) throw new Error('Informe um valor maior que zero.')
+  if (!dados.data_despesa) throw new Error('Informe a data da despesa.')
+  if (!dados.categoria) throw new Error('Escolha a categoria da despesa.')
+  if (String(dados.descricao ?? '').trim().length < 3) throw new Error('Descreva o motivo da despesa.')
+
+  const ref = doc(db(), 'reembolsos', id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Solicitação não encontrada.')
+  const r = mapear(snap)
+
+  if (r.solicitante_uid !== u.uid) throw new Error('Você só pode editar as suas próprias solicitações.')
+  if (r.status !== 'recusado') throw new Error('Só é possível editar um pedido que foi recusado.')
+
+  const agora = new Date().toISOString()
+  // Volta ao início do fluxo, conforme os papéis de quem pede (igual à criação).
+  const novoStatus = statusInicial(perfil.papeis)
+  const trocouAnexo = !!anexo
+  const alteracoes = resumirAlteracoes(r, { ...dados, valor }, trocouAnexo)
+
+  const evento: EventoHistorico = {
+    status_novo: novoStatus,
+    por_uid: u.uid,
+    por_nome: perfil.nome || u.email || '',
+    papel: 'solicitante',
+    em: agora,
+    tipo: 'edicao',
+    alteracoes,
+  }
+
+  // Substitui o comprovante (doc separado) ANTES de mudar o status — a Regra
+  // do anexo autoriza a troca enquanto o pedido ainda está "recusado".
+  if (anexo) {
+    await setDoc(doc(db(), 'reembolso_anexos', id), {
+      solicitante_uid: u.uid,
+      tipo: anexo.tipo,
+      nome: anexo.nome,
+      dados: anexo.dados,
+      tamanho: anexo.tamanho,
+      criado_em: agora,
+    }, { merge: true })
+  }
+
+  const patch: Record<string, unknown> = {
+    status: novoStatus,
+    data_despesa: dados.data_despesa,
+    categoria: dados.categoria,
+    descricao: String(dados.descricao).trim(),
+    valor,
+    historico: [...(r.historico ?? []), evento],
+    atualizado_em: agora,
+  }
+  if (anexo) {
+    patch.tem_anexo = true
+    patch.anexo_tipo = anexo.tipo
+    patch.anexo_nome = anexo.nome
+  }
+  await updateDoc(ref, patch)
+
+  await registrarLog('reembolso_editado', `${id}: ${alteracoes}`)
+  // Avisos: confirma para o solicitante e chama o responsável pela nova etapa.
+  await avisarEdicao({
+    solicitanteUid: r.solicitante_uid,
+    reembolsoId: id,
+    solicitante: perfil.nome || u.email || 'Você',
+    resumo: `${dados.categoria} · ${formatBRL(valor)}`,
+  })
+  await avisarPendencia({
+    reembolsoId: id,
+    status: novoStatus,
+    centro: r.centro_custo,
+    solicitante: perfil.nome || u.email || 'Colaborador',
+    resumo: `${dados.categoria} · ${formatBRL(valor)}`,
+    reenvio: true,
   })
   return { status: novoStatus }
 }

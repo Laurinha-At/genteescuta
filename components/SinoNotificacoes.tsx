@@ -7,7 +7,7 @@
 // =============================================================
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Bell, Check, Receipt, XCircle, CheckCircle2, CalendarClock, Megaphone, GraduationCap } from 'lucide-react'
+import { Bell, Check, Receipt, XCircle, CheckCircle2, CalendarClock, Megaphone, GraduationCap, Clock, Pencil } from 'lucide-react'
 import {
   listarAvisos, marcarTudoVisto, contarNaoLidas, ultimaVisita,
   type Aviso, type AvisoTipo,
@@ -20,6 +20,8 @@ const ICONE: Record<AvisoTipo, typeof Receipt> = {
   reembolso_recusado: XCircle,
   reembolso_pago: CheckCircle2,
   reembolso_agendado: CalendarClock,
+  reembolso_pendente: Clock,
+  reembolso_editado: Pencil,
   mural_post: Megaphone,
   treino_trilha: GraduationCap,
 }
