@@ -15,7 +15,7 @@ import {
   lerBancoHoras, formatSaldo, mesAtualRef, mesRefLabel, mesesRecentes, type LinhaBH,
 } from '@/lib/bancoHoras'
 import {
-  importarBancoHoras, listarBancoHoras, meuSaldo, type RegistroBH,
+  importarBancoHoras, listarBancoHoras, meuSaldoAtual, type RegistroBH,
 } from '@/lib/fb/bancoHoras'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
@@ -52,9 +52,8 @@ export function BancoHorasApp({ perfil }: { perfil: Perfil }) {
 
 /** Resumo compacto do próprio saldo (para embutir em Informações Administrativas). */
 export function MeuBancoHorasResumo() {
-  const mesRef = mesAtualRef()
   const [reg, setReg] = useState<RegistroBH | null | undefined>(undefined)
-  useEffect(() => { meuSaldo(mesRef).then(setReg).catch(() => setReg(null)) }, [mesRef])
+  useEffect(() => { meuSaldoAtual().then(setReg).catch(() => setReg(null)) }, [])
 
   if (reg === undefined) return null
   return (
@@ -64,7 +63,9 @@ export function MeuBancoHorasResumo() {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-tinta">Seu banco de horas</span>
-        <span className="block text-xs text-tinta-3">{mesRefLabel(mesRef)}</span>
+        <span className="block text-xs text-tinta-3">
+          {reg ? `Competência: ${mesRefLabel(reg.mes_ref)}` : 'Sem saldo registrado'}
+        </span>
       </span>
       <span className={`text-lg font-[680] ${reg && reg.saldo_min != null ? (reg.saldo_min < 0 ? 'text-critico' : 'text-verde-escuro') : 'text-tinta-3'}`}>
         {reg && reg.saldo_min != null ? formatSaldo(reg.saldo_min) : '—'}
@@ -77,21 +78,23 @@ export function MeuBancoHorasResumo() {
 // Colaborador: só o próprio saldo
 // -------------------------------------------------------------
 function MeuSaldo() {
-  const mesRef = mesAtualRef()
   const [reg, setReg] = useState<RegistroBH | null | undefined>(undefined)
-  useEffect(() => { meuSaldo(mesRef).then(setReg).catch(() => setReg(null)) }, [mesRef])
+  useEffect(() => { meuSaldoAtual().then(setReg).catch(() => setReg(null)) }, [])
 
   return (
     <div className="cartao-g max-w-md p-6 text-center">
-      <p className="text-xs font-medium uppercase tracking-wide text-tinta-3">{mesRefLabel(mesRef)}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-tinta-3">Saldo atual</p>
       {reg === undefined ? (
         <p className="mt-4 text-sm text-tinta-3">Carregando…</p>
       ) : reg && reg.saldo_min != null ? (
-        <p className={`mt-2 text-[2.5rem] font-[680] tracking-tight ${reg.saldo_min < 0 ? 'text-critico' : 'text-verde-escuro'}`}>
-          {formatSaldo(reg.saldo_min)}
-        </p>
+        <>
+          <p className={`mt-2 text-[2.5rem] font-[680] tracking-tight ${reg.saldo_min < 0 ? 'text-critico' : 'text-verde-escuro'}`}>
+            {formatSaldo(reg.saldo_min)}
+          </p>
+          <p className="mt-1 text-xs font-medium text-tinta-3">Competência: {mesRefLabel(reg.mes_ref)}</p>
+        </>
       ) : (
-        <p className="mt-4 text-sm text-tinta-2">Sem saldo registrado para este mês.</p>
+        <p className="mt-4 text-sm text-tinta-2">Sem saldo registrado ainda.</p>
       )}
       <p className="mt-2 text-xs text-tinta-3">Dúvidas sobre o cálculo? Fale com Gente &amp; Cultura.</p>
     </div>
@@ -272,15 +275,28 @@ function UploadMes({ onImportado, setErro }: { onImportado: (msg: string, mes: s
   }
 
   return (
-    <div className="cartao-g space-y-3 p-5">
-      <h2 className="text-[0.9375rem] font-semibold text-tinta">Subir planilha do mês</h2>
-      <p className="text-xs leading-5 text-tinta-3">
-        Colunas: Matrícula, Funcionário, Empresa, Cargo, Centro de custo, Falta, Saldo acumulado.
-        O saldo aceita negativos (ex.: −19:31) e “−” = sem saldo. Reenviar o mesmo mês atualiza (não duplica).
-      </p>
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="cartao-g space-y-4 p-5">
+      <div>
+        <h2 className="text-[0.9375rem] font-semibold text-tinta">Importar Banco de Horas</h2>
+        <p className="mt-1 text-xs leading-5 text-tinta-3">
+          Colunas: Matrícula, Funcionário, Empresa, Cargo, Centro de custo, Falta, Saldo acumulado.
+          O saldo aceita negativos (ex.: −19:31) e “−” = sem saldo. Reimportar a mesma competência atualiza (não duplica).
+        </p>
+      </div>
+
+      {/* Competência sempre visível, no topo (vincula os dados ao mês/ano). */}
+      <Campo rotulo="Competência (mês/ano)" ajuda="Mês de referência ao qual esta planilha será vinculada.">
+        <input
+          type="month"
+          value={mes}
+          onChange={(e) => setMes(e.target.value || mesAtualRef())}
+          className={`${ENTRADA} max-w-[13rem]`}
+        />
+      </Campo>
+
+      <div className="flex flex-wrap items-center gap-3">
         <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-4 py-2.5 text-sm font-semibold text-tinta transition-colors hover:border-marca hover:text-marca-texto">
-          <Upload size={15} aria-hidden /> {lendo ? 'Lendo…' : 'Escolher planilha'}
+          <Upload size={15} aria-hidden /> {lendo ? 'Lendo…' : 'Escolher planilha (.xlsx, .xls, .csv)'}
           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => aoEscolher(e.target.files?.[0] ?? null)} />
         </label>
         {nome && <span className="text-xs text-tinta-3">{nome}</span>}
@@ -288,16 +304,11 @@ function UploadMes({ onImportado, setErro }: { onImportado: (msg: string, mes: s
 
       {linhas && linhas.length > 0 && (
         <div className="space-y-3 border-t border-borda pt-3">
-          <div className="flex flex-wrap items-end gap-3">
-            <Campo rotulo="Mês desta planilha">
-              <select value={mes} onChange={(e) => setMes(e.target.value)} className={ENTRADA}>
-                {mesesRecentes().map((m) => <option key={m} value={m}>{mesRefLabel(m)}</option>)}
-              </select>
-            </Campo>
-            <p className="text-sm text-tinta-2">{linhas.length} linha(s) na planilha.</p>
-          </div>
+          <p className="text-sm text-tinta-2">
+            {linhas.length} linha(s) lidas. Serão vinculadas à competência <strong className="text-tinta">{mesRefLabel(mes)}</strong>.
+          </p>
           <Botao type="button" onClick={confirmar} disabled={importando}>
-            {importando ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Importando…</> : <><CheckCircle2 size={15} aria-hidden /> Confirmar {mesRefLabel(mes)}</>}
+            {importando ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Importando…</> : <><CheckCircle2 size={15} aria-hidden /> Processar e importar</>}
           </Botao>
         </div>
       )}

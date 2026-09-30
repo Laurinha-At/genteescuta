@@ -111,3 +111,18 @@ export async function meuSaldo(mesRef: string): Promise<RegistroBH | null> {
   const doMes = snap.docs.map(mapear).find((r) => r.mes_ref === mesRef)
   return doMes ?? null
 }
+
+/**
+ * Saldo ATUAL do próprio usuário: o registro da competência mais recente
+ * disponível (independe do mês corrente já ter sido importado ou não).
+ * Como `mes_ref` está no formato AAAA-MM, ordena lexicográfica = cronológica.
+ */
+export async function meuSaldoAtual(): Promise<RegistroBH | null> {
+  const u = auth().currentUser
+  if (!u) return null
+  const snap = await getDocs(query(collection(db(), 'banco_horas'), where('uid', '==', u.uid))).catch(() => null)
+  if (!snap) return null
+  const regs = snap.docs.map(mapear)
+  if (regs.length === 0) return null
+  return regs.reduce((mais, r) => (r.mes_ref > mais.mes_ref ? r : mais))
+}
