@@ -10,6 +10,7 @@ import {
   excluirFuncionario,
   reenviarSenhaFuncionario,
   atualizarPapeisFuncionario,
+  sincronizarAniversarios,
 } from '@/lib/fb/funcionarios'
 import { CENTROS_CUSTO, TODOS_CENTROS, PAPEL_LABEL, PAPEL_DESC } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
@@ -52,7 +53,14 @@ export default function Funcionarios() {
     listarFuncionarios().then(setLista).catch(() => {}).finally(() => setCarregando(false))
   }
   useEffect(() => {
-    minhaConta().then(setEu).catch(() => setEu(null))
+    minhaConta()
+      .then((c) => {
+        setEu(c)
+        // Mantém a projeção pública de aniversários com a ÁREA em dia
+        // (preenche quem foi cadastrado antes do campo existir). Só Master.
+        if (ehGerente(c)) sincronizarAniversarios().catch(() => {})
+      })
+      .catch(() => setEu(null))
     recarregar()
   }, [])
 

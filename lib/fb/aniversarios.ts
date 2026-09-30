@@ -66,6 +66,7 @@ export interface PessoaMes {
   hoje: boolean
   foto?: string | null
   anos?: number
+  area?: string | null
 }
 
 export interface AniversariantesMes {
@@ -92,13 +93,14 @@ export async function aniversariantesDoMes(mesSel?: number): Promise<Aniversaria
     const nome = String(x.nome ?? '').trim()
     if (!nome) continue
     const foto = (x.foto as string) ?? null
+    const area = (x.area as string) ?? null
 
     if (x.aniv_mes === alvo && x.aniv_dia) {
-      aniversarios.push({ nome, dia: Number(x.aniv_dia), hoje: ehMesAtual && x.aniv_dia === dia, foto })
+      aniversarios.push({ nome, dia: Number(x.aniv_dia), hoje: ehMesAtual && x.aniv_dia === dia, foto, area })
     }
     if (x.adm_mes === alvo && x.adm_dia && x.adm_ano) {
       const anos = ano - Number(x.adm_ano)
-      if (anos >= 1) tempos.push({ nome, dia: Number(x.adm_dia), hoje: ehMesAtual && x.adm_dia === dia, anos, foto })
+      if (anos >= 1) tempos.push({ nome, dia: Number(x.adm_dia), hoje: ehMesAtual && x.adm_dia === dia, anos, foto, area })
     }
   }
 

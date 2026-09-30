@@ -24,21 +24,45 @@ export interface DadosPessoais {
   admissao?: string | null
 }
 
-/** Projeção PÚBLICA para o Mural (só nome + dia/mês; nada sensível). */
-async function escreverAniversario(uid: string, nome: string, d: DadosPessoais) {
-  await setDoc(
-    doc(db(), 'aniversarios', uid),
-    {
-      nome,
-      aniv_dia: d.aniv_dia ?? null,
-      aniv_mes: d.aniv_mes ?? null,
-      adm_dia: d.adm_dia ?? null,
-      adm_mes: d.adm_mes ?? null,
-      adm_ano: d.adm_ano ?? null,
-      atualizado_em: new Date().toISOString(),
-    },
-    { merge: true },
-  )
+/** Projeção PÚBLICA para o Mural (nome + área + dia/mês; nada sensível). */
+async function escreverAniversario(uid: string, nome: string, d: DadosPessoais, area?: string) {
+  const dados: Record<string, unknown> = {
+    nome,
+    aniv_dia: d.aniv_dia ?? null,
+    aniv_mes: d.aniv_mes ?? null,
+    adm_dia: d.adm_dia ?? null,
+    adm_mes: d.adm_mes ?? null,
+    adm_ano: d.adm_ano ?? null,
+    atualizado_em: new Date().toISOString(),
+  }
+  // Só sobrescreve a área quando ela foi informada (evita apagar no merge).
+  if (area !== undefined) dados.area = area.trim() || null
+  await setDoc(doc(db(), 'aniversarios', uid), dados, { merge: true })
+}
+
+/**
+ * Reescreve a projeção pública de aniversários a partir dos funcionários,
+ * incluindo a área (centro de custo). Idempotente (merge); só Master escreve.
+ * Serve para preencher a área de quem foi cadastrado antes desse campo existir.
+ */
+export async function sincronizarAniversarios(): Promise<number> {
+  const funcs = await listarFuncionarios()
+  let n = 0
+  for (const f of funcs) {
+    try {
+      await escreverAniversario(
+        f.uid,
+        String(f.nome ?? ''),
+        {
+          aniv_dia: f.aniv_dia ?? null, aniv_mes: f.aniv_mes ?? null,
+          adm_dia: f.adm_dia ?? null, adm_mes: f.adm_mes ?? null, adm_ano: f.adm_ano ?? null,
+        },
+        String(f.centro_custo ?? ''),
+      )
+      n++
+    } catch { /* ignora um registro problemático e segue */ }
+  }
+  return n
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -165,7 +189,7 @@ export async function cadastrarFuncionario(p: {
   } finally {
     await deleteApp(secApp).catch(() => {})
   }
-  if (uidCriado) await escreverAniversario(uidCriado, nome, extras)
+  if (uidCriado) await escreverAniversario(uidCriado, nome, extras, centro_custo)
   await registrarLog(reaproveitada ? 'vincular_funcionario' : 'cadastro_funcionario', email)
   return { ok: true, reaproveitada }
 }
@@ -200,7 +224,7 @@ export async function atualizarPapeisFuncionario(
     ...campos,
     ...(extras?.nome ? { nome: String(extras.nome).trim() } : {}),
   })
-  if (extras) await escreverAniversario(uid, extras.nome ?? '', campos)
+  if (extras) await escreverAniversario(uid, extras.nome ?? '', campos, centro_custo)
   await registrarLog('papeis_funcionario', `${email ?? uid}: ${limpos.join(', ')}${centro_custo ? ' @ ' + centro_custo : ''}`)
 }
 
@@ -241,7 +265,7 @@ export async function importarFuncionarios(
           mapa.set(l.email, uid)
           criados++
         }
-        await escreverAniversario(uid, l.nome, l)
+        await escreverAniversario(uid, l.nome, l, l.centro_custo)
       } catch {
         falhas++
       }
