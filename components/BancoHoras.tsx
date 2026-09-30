@@ -63,19 +63,28 @@ export function MeuBancoHorasResumo() {
   useEffect(() => { meuSaldoAtual().then(setReg).catch(() => setReg(null)) }, [])
 
   if (reg === undefined) return null
+  const temSaldo = !!reg && reg.saldo_min != null
   return (
-    <Link href="/banco-horas" className="cartao-g flex items-center gap-3 p-4 transition-colors hover:border-marca">
-      <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-marca-clara text-marca">
-        <Clock size={19} aria-hidden />
+    <Link
+      href="/banco-horas"
+      className="group flex items-center gap-4 overflow-hidden rounded-2xl p-5 shadow-[0_8px_24px_rgba(26,23,20,0.12)] transition-transform hover:-translate-y-0.5 sm:gap-5 sm:p-6"
+      style={{ background: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' }}
+    >
+      <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm sm:h-16 sm:w-16">
+        <Clock size={30} aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-tinta">Seu banco de horas</span>
-        <span className="block text-xs text-tinta-3">
-          {reg ? `Competência: ${mesRefLabel(reg.mes_ref)}` : 'Sem saldo registrado'}
+        <span className="block text-[0.7rem] font-bold uppercase tracking-wide text-white/70">Seu banco de horas</span>
+        <span className="block text-lg font-semibold text-white sm:text-xl">Saldo atual</span>
+        <span className="block text-xs text-white/75">
+          {reg ? `Competência: ${mesRefLabel(reg.mes_ref)}` : 'Sem saldo registrado ainda'}
         </span>
       </span>
-      <span className={`text-lg font-[680] ${reg && reg.saldo_min != null ? (reg.saldo_min < 0 ? 'text-critico' : 'text-verde-escuro') : 'text-tinta-3'}`}>
-        {reg && reg.saldo_min != null ? formatSaldo(reg.saldo_min) : '—'}
+      <span className="flex-none rounded-xl bg-white px-4 py-2.5 text-center shadow-sm sm:px-5 sm:py-3">
+        <span className={`block text-2xl font-[720] tracking-tight sm:text-[1.75rem] ${temSaldo ? (reg!.saldo_min! < 0 ? 'text-critico' : 'text-verde-escuro') : 'text-tinta-3'}`}>
+          {temSaldo ? formatSaldo(reg!.saldo_min) : '—'}
+        </span>
+        <span className="mt-0.5 block text-[0.625rem] font-semibold uppercase tracking-wide text-tinta-3">horas</span>
       </span>
     </Link>
   )

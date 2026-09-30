@@ -134,11 +134,19 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
   }
 
   const termo = busca.trim().toLowerCase()
-  // Colaborador não vê os assuntos marcados como "apenas administradores".
-  const base = useMemo(
-    () => (ehAdmin ? topicos : topicos.filter((t) => (t.visivel ?? 'todos') !== 'admin' && t.ativo !== false)),
-    [topicos, ehAdmin],
-  )
+  const ehGestor = Array.isArray(perfil.papeis) && perfil.papeis.includes('gestor')
+  // Filtro por público: admin vê tudo; os demais veem 'todos' e, se forem
+  // Gestor Aprovador, também os marcados como 'gestor'. Nunca os 'admin'.
+  const base = useMemo(() => {
+    if (ehAdmin) return topicos
+    return topicos.filter((t) => {
+      if (t.ativo === false) return false
+      const v = t.visivel ?? 'todos'
+      if (v === 'todos') return true
+      if (v === 'gestor') return ehGestor
+      return false // 'admin'
+    })
+  }, [topicos, ehAdmin, ehGestor])
   const filtrados = useMemo(() => {
     if (!termo) return base
     return base.filter((t) =>
@@ -264,14 +272,15 @@ function CartaoPreview({
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir() } }}
       className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-borda bg-white text-left shadow-[0_1px_3px_rgba(26,23,20,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-borda-forte hover:shadow-[0_10px_28px_rgba(26,23,20,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-marca focus-visible:ring-offset-2"
     >
-      {/* Faixa de cor + ícone grande */}
-      <div className="relative flex h-20 items-center gap-3 px-5" style={{ background: grad }}>
+      {/* Faixa de cor + ícone grande. O gradiente escuro por cima garante que o
+          título (branco) fique sempre legível, independente da cor escolhida. */}
+      <div className="relative flex h-24 items-center gap-3 px-5" style={{ background: `linear-gradient(90deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.10) 60%, rgba(0,0,0,0.02) 100%), ${grad}` }}>
         <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-white/25 text-white ring-1 ring-inset ring-white/30 backdrop-blur-sm">
           <IconeTopico nome={topico.icone} size={26} />
         </span>
         <RichHtml
           html={topico.titulo}
-          className="line-clamp-2 min-w-0 flex-1 text-[1.0625rem] font-bold leading-tight text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.25)]"
+          className="line-clamp-2 min-w-0 flex-1 text-[1.1875rem] font-bold leading-snug text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.45)]"
         />
         {ehAdmin && (
           <div className="absolute right-2 top-2 flex gap-0.5" onClick={stop}>
@@ -301,7 +310,12 @@ function CartaoPreview({
           )}
           {topico.visivel === 'admin' && (
             <span className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
-              <Lock size={11} aria-hidden /> Só admin
+              <Lock size={11} aria-hidden /> Só administrativo
+            </span>
+          )}
+          {topico.visivel === 'gestor' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
+              <Lock size={11} aria-hidden /> Gestor Aprovador
             </span>
           )}
           {tipos.map((tp) => {
@@ -519,7 +533,9 @@ function EditorTopico({
 }) {
   const [icone, setIcone] = useState(topico?.icone ?? 'ClipboardList')
   const [cor, setCor] = useState<string>(topico?.cor && CORES[topico.cor] ? topico.cor : 'azul')
-  const [visivel, setVisivel] = useState<Visibilidade>(topico?.visivel === 'admin' ? 'admin' : 'todos')
+  const [visivel, setVisivel] = useState<Visibilidade>(
+    topico?.visivel === 'admin' || topico?.visivel === 'gestor' ? topico.visivel : 'todos',
+  )
   const tituloRef = useRef<RichHandle>(null)
   const descRef = useRef<RichHandle>(null)
   const [pendente, setPendente] = useState(false)
@@ -569,21 +585,28 @@ function EditorTopico({
             ))}
           </div>
         </Campo>
-        <Campo rotulo="Quem vê este assunto" ajuda="“Apenas administradores” esconde o card dos colaboradores.">
-          <div className="flex gap-2">
+        <Campo rotulo="Quem vê este assunto" ajuda="Escolha o público que enxerga o card no site. Administradores sempre veem tudo.">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setVisivel('todos')}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'todos' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
             >
-              <Users size={13} aria-hidden /> Todos os colaboradores
+              <Users size={13} aria-hidden /> Todo mundo
             </button>
             <button
               type="button"
               onClick={() => setVisivel('admin')}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'admin' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
             >
-              <Lock size={13} aria-hidden /> Apenas administradores
+              <Lock size={13} aria-hidden /> Apenas administrativo
+            </button>
+            <button
+              type="button"
+              onClick={() => setVisivel('gestor')}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'gestor' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
+            >
+              <Lock size={13} aria-hidden /> Gestor Aprovador
             </button>
           </div>
         </Campo>

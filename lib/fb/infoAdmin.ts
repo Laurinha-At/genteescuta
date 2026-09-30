@@ -71,7 +71,9 @@ export const CORES_TOPICO = [
 ] as const
 export type CorTopico = (typeof CORES_TOPICO)[number]
 
-export type Visibilidade = 'todos' | 'admin'
+// 'todos' = todos os colaboradores; 'admin' = só administradores;
+// 'gestor' = administradores + Gestor Aprovador.
+export type Visibilidade = 'todos' | 'admin' | 'gestor'
 
 export interface InfoTopico {
   id: string
@@ -111,7 +113,7 @@ function normalizarTopico(p: { icone: string; cor?: string; visivel?: string; ti
   const titulo = sanitizeRich(p.titulo ?? '')
   if (richVazio(titulo)) throw new Error('Dê um título ao tópico.')
   const cor = CORES_TOPICO.includes(p.cor as CorTopico) ? (p.cor as CorTopico) : 'azul'
-  const visivel: Visibilidade = p.visivel === 'admin' ? 'admin' : 'todos'
+  const visivel: Visibilidade = (p.visivel === 'admin' || p.visivel === 'gestor') ? p.visivel : 'todos'
   return {
     icone: String(p.icone ?? 'Info'),
     cor,
