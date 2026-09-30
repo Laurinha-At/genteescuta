@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, Search, KeyRound, Power, Trash2, Users, SlidersHorizontal, X } from 'lucide-react'
+import { UserPlus, Search, KeyRound, Power, Trash2, Users, SlidersHorizontal, X, ShieldCheck } from 'lucide-react'
 import { minhaConta, ehGerente, SENHA_PADRAO, type Conta } from '@/lib/fb/usuarios'
 import {
   listarFuncionarios,
@@ -10,12 +10,17 @@ import {
   excluirFuncionario,
   reenviarSenhaFuncionario,
   atualizarPapeisFuncionario,
+  salvarPermissoesFuncionario,
   sincronizarAniversarios,
 } from '@/lib/fb/funcionarios'
 import { CENTROS_CUSTO, TODOS_CENTROS, PAPEL_LABEL, PAPEL_DESC } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
 import { ImportarFuncionarios } from '@/components/ImportarFuncionarios'
+import { PainelPermissoes } from '@/components/PainelPermissoes'
 import { analisarDataBR } from '@/lib/importarFuncionarios'
+
+// Papéis que dão acesso ao PAINEL (têm menu a personalizar).
+const PAPEIS_COM_MENU = ['master', 'administrador']
 
 // Papéis que um FUNCIONÁRIO pode acumular (colaborador é sempre incluído).
 // "master" = admin completo (mesmo poder do e-mail semente).
@@ -48,6 +53,7 @@ export default function Funcionarios() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [editando, setEditando] = useState<any | null>(null)
+  const [permsDe, setPermsDe] = useState<any | null>(null)
 
   function recarregar() {
     listarFuncionarios().then(setLista).catch(() => {}).finally(() => setCarregando(false))
@@ -110,7 +116,7 @@ export default function Funcionarios() {
     <>
       <CabecalhoPagina
         titulo="Funcionários"
-        descricao="Cadastre os colaboradores que poderão entrar para reagir e comentar no mural."
+        descricao="Cadastre, edite, ative/inative e gerencie os acessos das pessoas — tudo em um lugar só. Defina os papéis e, para quem tem acesso ao painel, ajuste a Permissão de menu (🛡️)."
       />
 
       <div className="max-w-6xl space-y-4 p-4 sm:p-6">
@@ -196,6 +202,16 @@ export default function Funcionarios() {
                           >
                             <SlidersHorizontal size={16} aria-hidden />
                           </button>
+                          {Array.isArray(u.papeis) && u.papeis.some((p: string) => PAPEIS_COM_MENU.includes(p)) && (
+                            <button
+                              type="button"
+                              title="Permissão de menu (telas e ações que a pessoa acessa)"
+                              onClick={() => setPermsDe(u)}
+                              className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                            >
+                              <ShieldCheck size={16} aria-hidden />
+                            </button>
+                          )}
                           <button
                             type="button"
                             title="Enviar link de redefinição por e-mail"
@@ -238,8 +254,10 @@ export default function Funcionarios() {
             Funcionários entram pela opção <strong className="font-semibold text-tinta">“Acesso”</strong> no
             topo do site, com o e-mail e a senha padrão{' '}
             <strong className="rounded bg-superficie-2 px-1 font-mono text-tinta">{SENHA_PADRAO}</strong>, e criam a
-            própria senha no primeiro acesso. O nível de acesso (Colaborador, Gestor, Financeiro ou Master) é definido
-            pelos papéis marcados acima.
+            própria senha no primeiro acesso. O perfil de acesso (Colaborador, Administrador, Gestor, Financeiro ou
+            Master) é definido pelos papéis de cada pessoa (ícone <strong className="font-semibold text-tinta">Papéis</strong>).
+            Para quem tem acesso ao painel (Administrador ou Master), o ícone <strong className="font-semibold text-tinta">Permissão de menu</strong> ajusta
+            exatamente quais telas e ações a pessoa enxerga.
           </p>
         </div>
       </div>
@@ -249,6 +267,16 @@ export default function Funcionarios() {
           usuario={editando}
           onFechar={() => setEditando(null)}
           onSalvo={(msg) => { setEditando(null); setAviso(msg); recarregar() }}
+          setErro={setErro}
+        />
+      )}
+
+      {permsDe && (
+        <PainelPermissoes
+          usuario={permsDe}
+          salvar={salvarPermissoesFuncionario}
+          onFechar={() => setPermsDe(null)}
+          onSalvo={(msg) => { setPermsDe(null); setAviso(msg); recarregar() }}
           setErro={setErro}
         />
       )}
