@@ -67,7 +67,7 @@ export default function MuralAdmin() {
           </Aviso>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
           {/* Coluna esquerda: formulário (fica fixo ao rolar em telas grandes) */}
           <div className="lg:sticky lg:top-6">
             <Cartao titulo={editando ? 'Editar aviso do Gente Informa' : 'Novo aviso do Gente Informa'} apoio="Novidades, informações e assuntos do RH. Só o admin publica; o colaborador apenas vê.">
@@ -189,7 +189,7 @@ function FormInforma({
         <input name="titulo" required minLength={3} defaultValue={inicial?.titulo ?? ''} className={ENTRADA} placeholder="Ex.: Campanha de vacinação da gripe" />
       </Campo>
       <Campo rotulo="Conteúdo" obrigatorio ajuda="Use o botão de link para transformar um texto em link clicável (ex.: selecione “clique aqui” e cole o endereço).">
-        <RichTextEditor ref={corpoRef} valorInicial={inicial?.corpo ?? ''} placeholder="Escreva a novidade, informação ou comunicado do RH…" minHeight={120} />
+        <RichTextEditor ref={corpoRef} valorInicial={inicial?.corpo ?? ''} placeholder="Escreva a novidade, informação ou comunicado do RH…" minHeight={280} />
       </Campo>
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo rotulo="Assinatura" ajuda="Quem publica (aparece como “por …”).">
