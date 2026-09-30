@@ -144,17 +144,13 @@ export const PERFIS: Perfil[] = [
   },
   {
     id: 'adm',
-    nome: 'ADM',
-    desc: 'Edita e adiciona conteúdo do dia a dia. Sem gerenciar usuários, configurações ou logs.',
+    nome: 'Administrador',
+    desc: 'Edita, altera e adiciona conteúdo do dia a dia. Sem gerenciar usuários, configurações ou logs.',
     base: {
       visao: ['ver'],
       canal: ['ver', 'aprovar'],
       mural: todas('mural'),
       moderacao: todas('moderacao'),
-      clima: ['ver'],
-      humor: todas('humor'),
-      pesquisas: todas('pesquisas'),
-      funcionarios: ['ver', 'adicionar', 'editar'],
       informacoes: todas('informacoes'),
       treinamento: todas('treinamento'),
       contato: todas('contato'),
@@ -230,6 +226,7 @@ export function perfilPadrao(entrada: {
   const papeis = Array.isArray(entrada.papeis) ? entrada.papeis : []
   if (entrada.nivel === 'super') return 'adm_principal'
   if (entrada.nivel === 'master' || papeis.includes('master')) return 'adm_principal'
+  if (papeis.includes('administrador')) return 'adm'
   if (entrada.nivel === 'comum') return 'adm'
   if (papeis.includes('financeiro')) return 'financeiro'
   if (papeis.includes('gestor')) return 'gestor'

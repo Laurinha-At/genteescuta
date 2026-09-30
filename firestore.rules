@@ -40,6 +40,19 @@ service cloud.firestore {
         || funcMasterAtivo()
       );
     }
+    // Funcionário ATIVO com o papel "administrador" (acesso LIMITADO: só edita
+    // e adiciona CONTEÚDO; não mexe em usuários, configurações nem logs).
+    function funcAdministradorAtivo() {
+      return logado()
+        && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.ativo == true
+        && ('administrador' in get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.get('papeis', []));
+    }
+    // Pode gerir CONTEÚDO do site (mural, informações, treinamento, contato,
+    // sobre/missão) e tratar o Canal: admin completo OU administrador limitado.
+    function podeConteudo() {
+      return admin() || funcAdministradorAtivo();
+    }
     // Super Admin = controle total (edita config, gerencia admins, cria níveis).
     function souSuper() {
       return logado() && ( seed() || (temConta() && conta().ativo == true && conta().nivel == 'super') );
@@ -94,9 +107,11 @@ service cloud.firestore {
     // é de dashboard, então master também pode salvar.
     match /config/{doc} {
       allow read: if true;
-      // Super edita tudo; admin (Master) edita a classificação de humor e os
-      // conteúdos editáveis (Contato, Sobre, Missão/Visão/Valores).
-      allow write: if souSuper() || ((doc == 'humor' || doc == 'contato' || doc == 'sobre' || doc == 'missao') && admin());
+      // Super edita tudo; Master edita a classificação de humor; o Administrador
+      // (e Master) edita os conteúdos do site (Contato, Sobre, Missão/Visão/Valores).
+      allow write: if souSuper()
+        || (doc == 'humor' && admin())
+        || ((doc == 'contato' || doc == 'sobre' || doc == 'missao') && podeConteudo());
     }
 
     // -------- Áreas/setores: público lê; só SUPER edita (é configuração).
@@ -162,10 +177,10 @@ service cloud.firestore {
     }
 
     // -------- Manifestações (contêm nome/e-mail/relato de assédio)
-    // Qualquer um CRIA; só o admin LÊ e trata. Público nunca lê.
+    // Qualquer um CRIA; só o admin/administrador LÊ e trata. Público nunca lê.
     match /manifestacoes/{id} {
       allow create: if true;
-      allow read, update, delete: if admin();
+      allow read, update, delete: if podeConteudo();
     }
 
     // -------- Humor da equipe (clima) — CSV importado pelo admin.
@@ -316,20 +331,20 @@ service cloud.firestore {
     // (legado) itens avulsos.
     match /info_admin/{id} {
       allow read: if participante();
-      allow create, update, delete: if admin();
+      allow create, update, delete: if podeConteudo();
     }
 
     // Tópicos (cards) com vários itens (link/vídeo/foto/arquivo/texto).
-    // Colaborador logado LÊ; só o admin (Master) cria/edita/remove.
+    // Colaborador logado LÊ; admin/administrador cria/edita/remove.
     match /info_topicos/{id} {
       allow read: if participante();
-      allow create, update, delete: if admin();
+      allow create, update, delete: if podeConteudo();
     }
 
-    // Trilhas de Treinamento & Desenvolvimento. Público lê; só admin grava.
+    // Trilhas de Treinamento & Desenvolvimento. Público lê; admin/administrador grava.
     match /trilhas/{id} {
       allow read: if true;
-      allow create, update, delete: if admin();
+      allow create, update, delete: if podeConteudo();
     }
 
     // -------- Banco de Horas (planilha mensal por matrícula) --------
@@ -358,7 +373,7 @@ service cloud.firestore {
     // -------- Mural público (legado "Você disse, nós fizemos")
     match /mural/{id} {
       allow read: if true;
-      allow create, update, delete: if admin();
+      allow create, update, delete: if podeConteudo();
     }
 
     // -------- Posts do mural: reconhecimentos aprovados + "Gente Informa"
@@ -366,10 +381,10 @@ service cloud.firestore {
     // Reações: qualquer um soma no campo `reacoes` (e SÓ nesse campo),
     // e apenas em posts já publicados. Nada mais o público pode alterar.
     match /posts/{id} {
-      allow read: if resource.data.publicado == true || admin();
-      allow create, delete: if admin();
+      allow read: if resource.data.publicado == true || podeConteudo();
+      allow create, delete: if podeConteudo();
       // Reações: só PARTICIPANTE logado altera o contador (e só o campo `reacoes`).
-      allow update: if admin() || (
+      allow update: if podeConteudo() || (
         participante() &&
         resource.data.publicado == true &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reacoes'])
@@ -377,23 +392,23 @@ service cloud.firestore {
 
       // Reação individual (identidade p/ moderação + trava de 1 por pessoa).
       match /reacoes/{ruid} {
-        allow read: if admin() || (logado() && request.auth.uid == ruid);
+        allow read: if podeConteudo() || (logado() && request.auth.uid == ruid);
         allow create, update, delete: if participante() && request.auth.uid == ruid;
       }
 
       // Comentários: só participante logado cria, IDENTIFICADO e pendente.
-      // Público lê só os aprovados; admin lê todos, aprova e remove.
+      // Público lê só os aprovados; admin/administrador lê todos, aprova e remove.
       match /comentarios/{cid} {
-        allow read: if resource.data.aprovado == true || admin();
+        allow read: if resource.data.aprovado == true || podeConteudo();
         allow create: if participante()
           && request.resource.data.aprovado == false
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.texto is string
           && request.resource.data.texto.size() > 0
           && request.resource.data.texto.size() <= 800;
-        // Edição: admin edita qualquer um; o AUTOR edita só o próprio texto
-        // (não altera aprovado/uid; só texto + marcas de "editado").
-        allow update: if admin() || (
+        // Edição: admin/administrador edita qualquer um; o AUTOR edita só o
+        // próprio texto (não altera aprovado/uid; só texto + marcas de "editado").
+        allow update: if podeConteudo() || (
           participante()
           && resource.data.uid == request.auth.uid
           && request.resource.data.uid == resource.data.uid
@@ -403,8 +418,8 @@ service cloud.firestore {
           && request.resource.data.texto.size() > 0
           && request.resource.data.texto.size() <= 800
         );
-        // Exclusão: admin OU o próprio autor.
-        allow delete: if admin() || (participante() && resource.data.uid == request.auth.uid);
+        // Exclusão: admin/administrador OU o próprio autor.
+        allow delete: if podeConteudo() || (participante() && resource.data.uid == request.auth.uid);
       }
     }
   }

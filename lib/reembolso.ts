@@ -5,22 +5,24 @@
 // =============================================================
 
 // -------- Papéis de acesso (uma pessoa pode ter VÁRIOS) --------
-export type Papel = 'master' | 'gestor' | 'financeiro' | 'colaborador'
+export type Papel = 'master' | 'administrador' | 'gestor' | 'financeiro' | 'colaborador'
 
-export const PAPEIS: Papel[] = ['master', 'gestor', 'financeiro', 'colaborador']
+export const PAPEIS: Papel[] = ['master', 'administrador', 'gestor', 'financeiro', 'colaborador']
 
 export const PAPEL_LABEL: Record<Papel, string> = {
   master: 'Master Administrador',
+  administrador: 'Administrador',
   gestor: 'Gestor Aprovador',
   financeiro: 'Financeiro',
   colaborador: 'Colaborador',
 }
 
 export const PAPEL_DESC: Record<Papel, string> = {
-  master: 'Controle geral: gerencia pessoas, aprova qualquer reembolso e faz tudo.',
-  gestor: 'Aprova reembolsos da própria área (centro de custo) e visualiza os painéis. Só leitura + exportação.',
-  financeiro: 'Dá a aprovação final (pagamento) dos reembolsos.',
-  colaborador: 'Solicita reembolsos, faz manifestações e treinamentos.',
+  master: 'Faz tudo, igual à equipe de Gente & Cultura (inclusive usuários e configurações).',
+  administrador: 'Pode editar, alterar e adicionar conteúdo do dia a dia. Sem gerenciar usuários, configurações ou logs.',
+  gestor: 'Aprova reembolsos e baixa as planilhas do próprio centro de custo (área).',
+  financeiro: 'Cuida da etapa financeira (pagamento) dos reembolsos.',
+  colaborador: 'Base de todos: solicita reembolsos, faz manifestações e treinamentos.',
 }
 
 // -------- Centros de custo (= áreas da Soulan) --------

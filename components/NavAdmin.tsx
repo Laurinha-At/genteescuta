@@ -22,6 +22,7 @@ import {
   GraduationCap,
   ChevronDown,
 } from 'lucide-react'
+import { podeVer, type Permissoes } from '@/lib/permissoes'
 
 type Item = {
   href: string
@@ -29,11 +30,12 @@ type Item = {
   Icone: typeof LayoutDashboard
   exato?: boolean
   super?: boolean // só aparece para o Super Admin
+  tela?: string   // id da tela no modelo de permissões (filtra por acesso)
 }
 type Grupo = { id: string; titulo: string; abertoPadrao: boolean; itens: Item[] }
 
 // Item solto no topo (sem grupo).
-const VISAO: Item = { href: '/admin', rotulo: 'Visão geral', Icone: LayoutDashboard, exato: true }
+const VISAO: Item = { href: '/admin', rotulo: 'Visão geral', Icone: LayoutDashboard, exato: true, tela: 'visao' }
 
 // Seções (apenas organização visual — cada item mantém rota/ícone/permissão).
 // "abertoPadrao" mantém as seções mais usadas abertas; as demais começam recolhidas.
@@ -43,9 +45,9 @@ const GRUPOS: Grupo[] = [
     titulo: 'Comunicação',
     abertoPadrao: true,
     itens: [
-      { href: '/admin/canal', rotulo: 'Canal', Icone: Inbox },
-      { href: '/admin/mural', rotulo: 'Mural', Icone: Megaphone, exato: true },
-      { href: '/admin/mural/moderacao', rotulo: 'Moderação', Icone: ShieldQuestion },
+      { href: '/admin/canal', rotulo: 'Canal', Icone: Inbox, tela: 'canal' },
+      { href: '/admin/mural', rotulo: 'Mural', Icone: Megaphone, exato: true, tela: 'mural' },
+      { href: '/admin/mural/moderacao', rotulo: 'Moderação', Icone: ShieldQuestion, tela: 'moderacao' },
     ],
   },
   {
@@ -53,9 +55,9 @@ const GRUPOS: Grupo[] = [
     titulo: 'Bem-estar',
     abertoPadrao: true,
     itens: [
-      { href: '/admin/clima', rotulo: 'Clima', Icone: HeartPulse },
-      { href: '/admin/humor', rotulo: 'Humor', Icone: SmilePlus },
-      { href: '/admin/pesquisas', rotulo: 'Pesquisas', Icone: ClipboardList, super: true },
+      { href: '/admin/clima', rotulo: 'Clima', Icone: HeartPulse, tela: 'clima' },
+      { href: '/admin/humor', rotulo: 'Humor', Icone: SmilePlus, tela: 'humor' },
+      { href: '/admin/pesquisas', rotulo: 'Pesquisas', Icone: ClipboardList, super: true, tela: 'pesquisas' },
     ],
   },
   {
@@ -63,9 +65,9 @@ const GRUPOS: Grupo[] = [
     titulo: 'Pessoas',
     abertoPadrao: true,
     itens: [
-      { href: '/admin/funcionarios', rotulo: 'Funcionários', Icone: Contact },
-      { href: '/banco-horas', rotulo: 'Banco de Horas', Icone: Clock },
-      { href: '/reembolso', rotulo: 'Reembolsos', Icone: Receipt },
+      { href: '/admin/funcionarios', rotulo: 'Funcionários', Icone: Contact, tela: 'funcionarios' },
+      { href: '/banco-horas', rotulo: 'Banco de Horas', Icone: Clock, tela: 'banco_horas' },
+      { href: '/reembolso', rotulo: 'Reembolsos', Icone: Receipt, tela: 'reembolsos' },
     ],
   },
   {
@@ -73,10 +75,10 @@ const GRUPOS: Grupo[] = [
     titulo: 'Conteúdo do site',
     abertoPadrao: false,
     itens: [
-      { href: '/admin/informacoes', rotulo: 'Informações Adm.', Icone: Info },
-      { href: '/admin/treinamento', rotulo: 'Treinamento', Icone: GraduationCap },
-      { href: '/admin/contato', rotulo: 'Contato', Icone: LifeBuoy },
-      { href: '/admin/institucional', rotulo: 'Sobre / Missão', Icone: BookOpen },
+      { href: '/admin/informacoes', rotulo: 'Informações Adm.', Icone: Info, tela: 'informacoes' },
+      { href: '/admin/treinamento', rotulo: 'Treinamento', Icone: GraduationCap, tela: 'treinamento' },
+      { href: '/admin/contato', rotulo: 'Contato', Icone: LifeBuoy, tela: 'contato' },
+      { href: '/admin/institucional', rotulo: 'Sobre / Missão', Icone: BookOpen, tela: 'institucional' },
     ],
   },
   {
@@ -84,8 +86,8 @@ const GRUPOS: Grupo[] = [
     titulo: 'Sistema',
     abertoPadrao: false,
     itens: [
-      { href: '/admin/configuracoes', rotulo: 'Configurações', Icone: Settings, super: true },
-      { href: '/admin/logs', rotulo: 'Logs', Icone: ScrollText, super: true },
+      { href: '/admin/configuracoes', rotulo: 'Configurações', Icone: Settings, super: true, tela: 'configuracoes' },
+      { href: '/admin/logs', rotulo: 'Logs', Icone: ScrollText, super: true, tela: 'logs' },
     ],
   },
 ]
@@ -93,15 +95,29 @@ const GRUPOS: Grupo[] = [
 export function NavAdmin({
   pendentes,
   souSuper,
+  permissoes,
   aoNavegar,
 }: {
   pendentes: number
   souSuper: boolean
+  permissoes?: Permissoes
   aoNavegar?: () => void
 }) {
   const caminho = usePathname()
   const estaAtivo = (it: Item) => (it.exato ? caminho === it.href : caminho.startsWith(it.href))
-  const visiveis = (g: Grupo) => g.itens.filter((it) => !it.super || souSuper)
+
+  // Filtro de acesso:
+  //  - itens "super" continuam só para o Super Admin;
+  //  - os demais são filtrados pelas permissões (quando informadas). Master/Super
+  //    têm acesso total (veem tudo); Administrador vê só o conteúdo liberado.
+  //  - sem permissões (fallback), mantém o comportamento antigo.
+  const temPerm = !!permissoes && Object.keys(permissoes).length > 0
+  const itemVisivel = (it: Item) => {
+    if (it.super) return souSuper
+    if (temPerm && it.tela) return podeVer(permissoes, it.tela)
+    return true
+  }
+  const visiveis = (g: Grupo) => g.itens.filter(itemVisivel)
 
   const [abertos, setAbertos] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(GRUPOS.map((g) => [g.id, g.abertoPadrao])),

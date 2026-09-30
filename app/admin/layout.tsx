@@ -8,7 +8,8 @@ import { configurado } from '@/lib/firebase'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { getConfig } from '@/lib/fb/publico'
 import { listarManifestacoes } from '@/lib/fb/admin'
-import { minhaConta, definirNovaSenhaInicial, NIVEL_LABEL, type Conta } from '@/lib/fb/usuarios'
+import { minhaConta, definirNovaSenhaInicial, type Conta } from '@/lib/fb/usuarios'
+import { PERFIL_POR_ID } from '@/lib/permissoes'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 import { NavAdmin } from '@/components/NavAdmin'
 
@@ -83,7 +84,10 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
   }
 
   const souSuper = conta.nivel === 'super'
-  const nivelLabel = (NIVEL_LABEL as Record<string, string>)[conta.nivel] ?? '—'
+  const nivelLabel =
+    conta.nivel === 'super' ? 'Super Admin'
+      : conta.nivel === 'master' ? 'Master'
+        : PERFIL_POR_ID[conta.perfil]?.nome ?? '—'
 
   return (
     <div className="min-h-screen bg-plano lg:flex">
@@ -148,7 +152,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
         <div className="fio-marca mx-4 my-3" aria-hidden />
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <NavAdmin pendentes={pendentes} souSuper={souSuper} aoNavegar={() => setMenuAberto(false)} />
+          <NavAdmin pendentes={pendentes} souSuper={souSuper} permissoes={conta.permissoes} aoNavegar={() => setMenuAberto(false)} />
         </div>
 
         <div className="border-t border-borda px-4 py-3">

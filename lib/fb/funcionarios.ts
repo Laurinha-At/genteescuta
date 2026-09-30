@@ -69,7 +69,7 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 export type PerfilTipo = 'admin' | 'funcionario' | 'nenhum'
 
-const PAPEIS_VALIDOS = ['master', 'gestor', 'financeiro', 'colaborador'] as const
+const PAPEIS_VALIDOS = ['master', 'administrador', 'gestor', 'financeiro', 'colaborador'] as const
 
 /** Normaliza o array de papéis vindo do banco (aceita só valores conhecidos). */
 function limparPapeis(v: unknown): string[] {
@@ -130,8 +130,8 @@ export async function perfilAtual(): Promise<Perfil | null> {
     // Todo funcionário é, no mínimo, colaborador.
     const papeis = Array.from(new Set(['colaborador', ...limparPapeis(d.papeis)]))
     return {
-      // Papel "master" pela tela Funcionários = admin completo.
-      tipo: papeis.includes('master') ? 'admin' : 'funcionario',
+      // Papel "master" (completo) ou "administrador" (limitado) = acesso ao painel.
+      tipo: (papeis.includes('master') || papeis.includes('administrador')) ? 'admin' : 'funcionario',
       uid: u.uid,
       email: (d.email as string) ?? u.email ?? '',
       nome: (d.nome as string) ?? '',

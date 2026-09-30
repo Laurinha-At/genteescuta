@@ -144,6 +144,22 @@ export async function minhaConta(): Promise<Conta | null> {
         centro_custo: (d.centro_custo as string) ?? '',
       }
     }
+    // Funcionário com papel "administrador": entra no painel com acesso LIMITADO
+    // (edita/adiciona conteúdo). Nível "comum" (não é Super nem Master).
+    if (d.ativo !== false && papeis.includes('administrador')) {
+      const perfil = perfilDe(d, null)
+      return {
+        uid: u.uid,
+        email: (d.email as string) ?? u.email ?? '',
+        nome: (d.nome as string) ?? '',
+        nivel: 'comum',
+        ativo: true,
+        senha_provisoria: d.senha_provisoria === true,
+        perfil,
+        permissoes: permissoesEfetivas(d, perfil),
+        centro_custo: (d.centro_custo as string) ?? '',
+      }
+    }
   }
   return {
     uid: u.uid, email: u.email ?? '', nome: '', nivel: 'nenhum', ativo: false, senha_provisoria: false,
