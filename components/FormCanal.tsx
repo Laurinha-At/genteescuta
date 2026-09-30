@@ -25,6 +25,7 @@ function FormMelhoria() {
   const [anonima, setAnonima] = useState(false)
   const [nome, setNome] = useState('')
   const [departamento, setDepartamento] = useState('')
+  const [email, setEmail] = useState('')
   const [categoria, setCategoria] = useState('')
   const [problema, setProblema] = useState('')
   const [sugestao, setSugestao] = useState('')
@@ -44,6 +45,7 @@ function FormMelhoria() {
         tipo: 'contribuicao',
         anonima,
         nome,
+        email,
         departamento,
         categoria,
         problema,
@@ -87,14 +89,20 @@ function FormMelhoria() {
             Prefiro não me identificar. Seu nome e e-mail não serão gravados, apenas a área, para que a equipe saiba onde agir.
           </p>
         ) : (
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            {/* Item 2 — Nome Completo */}
-            <Campo rotulo="Nome completo" obrigatorio>
-              <input value={nome} onChange={(e) => setNome(e.target.value)} required minLength={3} className={ENTRADA} placeholder="Ex.: Joana Ribeiro da Silva" autoComplete="name" />
-            </Campo>
-            {/* Item 3 — Departamento / Setor */}
-            <Campo rotulo="Seu departamento / setor" obrigatorio>
-              <input value={departamento} onChange={(e) => setDepartamento(e.target.value)} required minLength={2} className={ENTRADA} placeholder="Ex.: Marketing" />
+          <div className="mt-3 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Item 2 — Nome Completo */}
+              <Campo rotulo="Nome completo" obrigatorio>
+                <input value={nome} onChange={(e) => setNome(e.target.value)} required minLength={3} className={ENTRADA} placeholder="Ex.: Joana Ribeiro da Silva" autoComplete="name" />
+              </Campo>
+              {/* Item 3 — Departamento / Setor */}
+              <Campo rotulo="Seu departamento / setor" obrigatorio>
+                <input value={departamento} onChange={(e) => setDepartamento(e.target.value)} required minLength={2} className={ENTRADA} placeholder="Ex.: Marketing" />
+              </Campo>
+            </div>
+            {/* E-mail */}
+            <Campo rotulo="E-mail" ajuda="Fica visível só para a equipe, para responder você." obrigatorio>
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required className={ENTRADA} placeholder="voce@empresa.com.br" autoComplete="email" />
             </Campo>
           </div>
         )}

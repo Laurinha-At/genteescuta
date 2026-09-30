@@ -149,6 +149,7 @@ export async function enviarManifestacao(p: {
     const impactoOutro = String(p.impacto_outro ?? '').trim()
 
     if (!anonima && (nome.length < 3 || !nome.includes(' '))) throw new Error('Informe o nome completo, com sobrenome.')
+    if (!anonima && !EMAIL_RE.test(email)) throw new Error('Informe um e-mail válido.')
     if (!AREAS_SUGESTAO.includes(categoria as (typeof AREAS_SUGESTAO)[number])) throw new Error('Escolha a área da sugestão.')
     if (problema.length < 10 || problema.length > 5000) throw new Error('Descreva o problema ou a oportunidade (de 10 a 5.000 caracteres).')
     if (sugestao.length < 10 || sugestao.length > 5000) throw new Error('Descreva a sua sugestão prática (de 10 a 5.000 caracteres).')
