@@ -24,7 +24,7 @@ import {
 } from '@/lib/reembolso'
 import {
   criarReembolso, prepararAnexo, listarMinhas, listarParaGestao,
-  aprovarReembolso, recusarReembolso, registrarPagamento, getAnexo, editarReembolso, excluirReembolso,
+  aprovarReembolso, recusarReembolso, registrarPagamento, getAnexo, editarReembolso, excluirReembolso, excluirReembolsoMaster,
   type Reembolso, type Anexo,
 } from '@/lib/fb/reembolso'
 import type { Perfil } from '@/lib/fb/funcionarios'
@@ -137,7 +137,7 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
           <Fila perfil={perfil} carregando={carregando} pendentes={pendentes} aoDecidir={recarregar} />
         )}
         {aba === 'central' && (
-          <Central perfil={perfil} carregando={carregando} registros={gestao} />
+          <Central perfil={perfil} carregando={carregando} registros={gestao} aoAtualizar={recarregar} setErro={setErro} setAviso={setAviso} />
         )}
       </div>
 
@@ -1020,8 +1020,41 @@ function ModalResultado({ tipo, titulo, mensagem, onFechar }: ResultadoAcao & { 
 // -------------------------------------------------------------
 // Central das Solicitações (aprovador) — KPIs + tabela + exportar
 // -------------------------------------------------------------
-function Central({ perfil, carregando, registros }: { perfil: Perfil; carregando: boolean; registros: Reembolso[] }) {
+function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso }: {
+  perfil: Perfil; carregando: boolean; registros: Reembolso[]
+  aoAtualizar: () => void; setErro: (s: string | null) => void; setAviso: (s: string | null) => void
+}) {
   const [aberto, setAberto] = useState<Reembolso | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
+  const ehMaster = perfil.papeis.includes('master')
+
+  async function excluir(r: Reembolso) {
+    if (!confirm(`Excluir a solicitação de ${r.solicitante_nome} (${formatBRL(r.valor)} · ${r.categoria})? Esta ação não pode ser desfeita.`)) return
+    setErro(null); setAviso(null); setExcluindo(r.id)
+    try {
+      await excluirReembolsoMaster(r.id, perfil)
+      setAviso('Solicitação excluída.')
+      aoAtualizar()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui excluir.')
+    } finally {
+      setExcluindo(null)
+    }
+  }
+
+  const acoesMaster = ehMaster
+    ? (r: Reembolso) => (
+        <button
+          type="button"
+          title="Excluir solicitação"
+          disabled={excluindo === r.id}
+          onClick={(e) => { e.stopPropagation(); excluir(r) }}
+          className="rounded-md p-1.5 text-tinta-3 transition-colors hover:bg-plano hover:text-critico disabled:opacity-40"
+        >
+          <Trash2 size={17} aria-hidden />
+        </button>
+      )
+    : undefined
   const kpis = useMemo(() => {
     let pend = 0, pagos = 0, recus = 0
     for (const r of registros) {
@@ -1054,7 +1087,7 @@ function Central({ perfil, carregando, registros }: { perfil: Perfil; carregando
         </div>
       </div>
 
-      <TabelaSolicitacoes registros={registros} colunas={COLS_CENTRAL} aoAbrir={setAberto} />
+      <TabelaSolicitacoes registros={registros} colunas={COLS_CENTRAL} aoAbrir={setAberto} acoes={acoesMaster} />
 
       {aberto && <ModalDetalhe r={aberto} onFechar={() => setAberto(null)} />}
     </div>

@@ -523,3 +523,22 @@ export async function excluirReembolso(id: string, perfil: Perfil) {
   }
   return { ok: true }
 }
+
+/**
+ * Exclusão pelo MASTER a qualquer momento (correções / limpeza de testes).
+ * Remove o comprovante e o pedido. Registra no log.
+ */
+export async function excluirReembolsoMaster(id: string, perfil: Perfil) {
+  const u = auth().currentUser
+  if (!u) throw new Error('Sua sessão expirou. Entre novamente.')
+  if (!perfil.papeis.includes('master')) throw new Error('Só o Master pode excluir solicitações já em andamento.')
+
+  const snap = await getDoc(doc(db(), 'reembolsos', id))
+  const r = snap.exists() ? mapear(snap) : null
+
+  await deleteDoc(doc(db(), 'reembolso_anexos', id)).catch(() => {})
+  await deleteDoc(doc(db(), 'reembolsos', id))
+
+  await registrarLog('reembolso_excluido_master', r ? `${r.solicitante_nome} · ${r.categoria} · ${formatBRL(r.valor)}` : id)
+  return { ok: true }
+}

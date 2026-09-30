@@ -261,9 +261,9 @@ service cloud.firestore {
                .hasOnly(['status', 'historico', 'atualizado_em', 'data_pagamento', 'pago_por_nome', 'pago_em']))
         || ehEdicaoSolicitante();
 
-      // Exclusão: só o SOLICITANTE, e só enquanto NÃO foi aprovado (aguardando
-      // aprovação ou recusado). Aprovado/pago/agendado nunca se apaga.
-      allow delete: if editavelPeloDono();
+      // Exclusão: o SOLICITANTE enquanto NÃO foi aprovado (aguardando ou
+      // recusado); e o MASTER a qualquer momento (correções / limpeza de testes).
+      allow delete: if editavelPeloDono() || ehMaster();
     }
 
     // -------- Anexos dos reembolsos (comprovantes) --------
@@ -295,7 +295,7 @@ service cloud.firestore {
       }
       allow update: if donoPodeMexer()
         && request.resource.data.solicitante_uid == request.auth.uid;
-      allow delete: if donoPodeMexer();
+      allow delete: if donoPodeMexer() || ehMaster();
     }
 
     // -------- Notificações do portal (sino) --------
