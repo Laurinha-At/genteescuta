@@ -48,9 +48,6 @@ export default function AdminContato() {
                 <Campo rotulo="Texto de abertura">
                   <textarea value={c.intro_topo} onChange={(e) => set('intro_topo', e.target.value)} rows={2} className={ENTRADA} />
                 </Campo>
-                <Campo rotulo="Aviso de sigilo">
-                  <textarea value={c.aviso_sigilo} onChange={(e) => set('aviso_sigilo', e.target.value)} rows={2} className={ENTRADA} />
-                </Campo>
                 <Campo rotulo="Texto antes dos responsáveis por assunto">
                   <textarea value={c.intro_focais} onChange={(e) => set('intro_focais', e.target.value)} rows={3} className={ENTRADA} />
                 </Campo>

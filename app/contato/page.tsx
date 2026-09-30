@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { LifeBuoy, Mail, ShieldCheck, Phone, Users } from 'lucide-react'
+import { LifeBuoy, Mail, Phone, Users } from 'lucide-react'
 import { BotaoVoltar } from '@/components/BotaoVoltar'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
@@ -50,13 +50,6 @@ export default function Contato() {
               <Mail size={17} className="flex-none text-marca" aria-hidden />
               {EMAIL_CONTATO}
             </a>
-          )}
-
-          {conteudo.aviso_sigilo && (
-            <p className="mt-5 flex items-start gap-2 rounded-lg bg-superficie-2 px-4 py-3 text-xs leading-5 text-tinta-2">
-              <ShieldCheck size={15} className="mt-0.5 flex-none text-verde-escuro" aria-hidden />
-              {conteudo.aviso_sigilo}
-            </p>
           )}
         </div>
 

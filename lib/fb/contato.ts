@@ -15,7 +15,6 @@ export interface ContatoPessoa { nome: string; cargo: string; email: string; tel
 export interface ContatoConfig {
   email_contato: string
   intro_topo: string
-  aviso_sigilo: string
   intro_focais: string
   focais: Focal[]
   contatos: ContatoPessoa[]
@@ -24,7 +23,6 @@ export interface ContatoConfig {
 export const CONTATO_PADRAO: ContatoConfig = {
   email_contato: 'gentecultura@soulan.com.br',
   intro_topo: 'Precisa de ajuda ou quer falar diretamente com a equipe de Gente & Cultura? A gente responde.',
-  aviso_sigilo: 'Para relatos que exigem sigilo, você também pode usar o próprio canal do Gente Cultura, de forma anônima.',
   intro_focais: 'Para facilitar a comunicação e garantir que suas dúvidas sejam rapidamente respondidas, listamos abaixo os contatos das pessoas focais para cada tipo de situação. Em caso de necessidade, entre em contato diretamente com o responsável pelo assunto específico:',
   focais: [
     { assunto: 'TI', responsaveis: 'Nil' },
@@ -54,7 +52,6 @@ export async function getContato(): Promise<ContatoConfig> {
   return {
     email_contato: d.email_contato ?? CONTATO_PADRAO.email_contato,
     intro_topo: d.intro_topo ?? CONTATO_PADRAO.intro_topo,
-    aviso_sigilo: d.aviso_sigilo ?? CONTATO_PADRAO.aviso_sigilo,
     intro_focais: d.intro_focais ?? CONTATO_PADRAO.intro_focais,
     focais: Array.isArray(d.focais) ? (d.focais as Focal[]) : CONTATO_PADRAO.focais,
     contatos: Array.isArray(d.contatos) ? (d.contatos as ContatoPessoa[]) : CONTATO_PADRAO.contatos,
@@ -65,7 +62,6 @@ export async function salvarContato(c: ContatoConfig): Promise<void> {
   const limpo: ContatoConfig = {
     email_contato: String(c.email_contato ?? '').trim(),
     intro_topo: String(c.intro_topo ?? '').trim(),
-    aviso_sigilo: String(c.aviso_sigilo ?? '').trim(),
     intro_focais: String(c.intro_focais ?? '').trim(),
     focais: (c.focais ?? [])
       .map((f) => ({ assunto: String(f.assunto ?? '').trim(), responsaveis: String(f.responsaveis ?? '').trim() }))
