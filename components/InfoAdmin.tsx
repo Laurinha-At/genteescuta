@@ -12,11 +12,11 @@ import {
   Plus, Pencil, Trash2, X, ExternalLink, ArrowUp, ArrowDown, Upload, Link2, Loader2,
   ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen, HeartPulse,
   Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon, Search, Table2, CalendarDays,
-  Lock, Users, Eye, EyeOff, ArrowUpToLine,
+  Lock, Users, Eye, EyeOff, ArrowUpToLine, Check,
 } from 'lucide-react'
 import {
   listarTopicos, criarTopico, atualizarTopico, excluirTopico, trocarOrdemTopicos,
-  definirAtivoTopico, reporTopico,
+  definirAtivoTopico, reporTopico, publicosDe,
   adicionarItem, atualizarItem, removerItem, moverItem, subirArquivo,
   ITEM_TIPOS, ITEM_TIPO_LABEL, ICONES_TOPICO, ICONE_TOPICO_LABEL, CORES_TOPICO,
   type InfoTopico, type InfoItem, type ItemTipo, type Visibilidade,
@@ -141,10 +141,10 @@ export function InfoAdminApp({ perfil }: { perfil: Perfil }) {
     if (ehAdmin) return topicos
     return topicos.filter((t) => {
       if (t.ativo === false) return false
-      const v = t.visivel ?? 'todos'
-      if (v === 'todos') return true
-      if (v === 'gestor') return ehGestor
-      return false // 'admin'
+      const pubs = publicosDe(t)
+      if (pubs.includes('todos')) return true
+      if (pubs.includes('gestor') && ehGestor) return true
+      return false // 'admin' (ou 'gestor' sem ser gestor)
     })
   }, [topicos, ehAdmin, ehGestor])
   const filtrados = useMemo(() => {
@@ -308,16 +308,11 @@ function CartaoPreview({
               <EyeOff size={11} aria-hidden /> Inativo
             </span>
           )}
-          {topico.visivel === 'admin' && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
-              <Lock size={11} aria-hidden /> Só administrativo
+          {!publicosDe(topico).includes('todos') && publicosDe(topico).map((p) => (
+            <span key={p} className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
+              <Lock size={11} aria-hidden /> {p === 'admin' ? 'Administrativo' : 'Gestor Aprovador'}
             </span>
-          )}
-          {topico.visivel === 'gestor' && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
-              <Lock size={11} aria-hidden /> Gestor Aprovador
-            </span>
-          )}
+          ))}
           {tipos.map((tp) => {
             const { label, Icone } = CHIP_ITEM[tp]
             return (
@@ -533,9 +528,16 @@ function EditorTopico({
 }) {
   const [icone, setIcone] = useState(topico?.icone ?? 'ClipboardList')
   const [cor, setCor] = useState<string>(topico?.cor && CORES[topico.cor] ? topico.cor : 'azul')
-  const [visivel, setVisivel] = useState<Visibilidade>(
-    topico?.visivel === 'admin' || topico?.visivel === 'gestor' ? topico.visivel : 'todos',
-  )
+  const [publicos, setPublicos] = useState<Visibilidade[]>(topico ? publicosDe(topico) : ['todos'])
+  // "Todo mundo" é exclusivo; Administrativo + Gestor podem coexistir.
+  function alternarPublico(p: Visibilidade) {
+    setPublicos((atual) => {
+      if (p === 'todos') return ['todos']
+      const sem = atual.filter((x) => x !== 'todos')
+      const novo = sem.includes(p) ? sem.filter((x) => x !== p) : [...sem, p]
+      return novo.length ? novo : ['todos']
+    })
+  }
   const tituloRef = useRef<RichHandle>(null)
   const descRef = useRef<RichHandle>(null)
   const [pendente, setPendente] = useState(false)
@@ -543,7 +545,7 @@ function EditorTopico({
   async function salvar() {
     setErro(null); setPendente(true)
     try {
-      const dados = { icone, cor, visivel, titulo: tituloRef.current?.getHtml() ?? '', descricao: descRef.current?.getHtml() ?? '' }
+      const dados = { icone, cor, publicos, titulo: tituloRef.current?.getHtml() ?? '', descricao: descRef.current?.getHtml() ?? '' }
       if (topico) { await atualizarTopico(topico.id, dados); onSalvo('Tópico atualizado.') }
       else { await criarTopico(dados); onSalvo('Tópico criado.') }
     } catch (e) {
@@ -585,29 +587,26 @@ function EditorTopico({
             ))}
           </div>
         </Campo>
-        <Campo rotulo="Quem vê este assunto" ajuda="Escolha o público que enxerga o card no site. Administradores sempre veem tudo.">
+        <Campo rotulo="Quem vê este assunto" ajuda="Pode marcar mais de um público. “Todo mundo” libera para todos. Administradores sempre veem tudo.">
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setVisivel('todos')}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'todos' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
-            >
-              <Users size={13} aria-hidden /> Todo mundo
-            </button>
-            <button
-              type="button"
-              onClick={() => setVisivel('admin')}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'admin' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
-            >
-              <Lock size={13} aria-hidden /> Apenas administrativo
-            </button>
-            <button
-              type="button"
-              onClick={() => setVisivel('gestor')}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${visivel === 'gestor' ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
-            >
-              <Lock size={13} aria-hidden /> Gestor Aprovador
-            </button>
+            {([
+              { v: 'todos', Icone: Users, label: 'Todo mundo' },
+              { v: 'admin', Icone: Lock, label: 'Administrativo' },
+              { v: 'gestor', Icone: Lock, label: 'Gestor Aprovador' },
+            ] as const).map(({ v, Icone, label }) => {
+              const ativo = publicos.includes(v)
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={ativo}
+                  onClick={() => alternarPublico(v)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${ativo ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
+                >
+                  {ativo ? <Check size={13} aria-hidden /> : <Icone size={13} aria-hidden />} {label}
+                </button>
+              )
+            })}
           </div>
         </Campo>
         <Campo rotulo="Título" obrigatorio>
