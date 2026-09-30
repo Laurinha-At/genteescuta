@@ -38,6 +38,15 @@ function mapear(d: any): RegistroBH {
   return { id: d.id, ...(d.data ? d.data() : d) } as RegistroBH
 }
 
+/**
+ * Chave de matrícula tolerante: ignora espaços, caixa e ZEROS À ESQUERDA
+ * quando é só número (ex.: "00123" casa com "123").
+ */
+function chaveMatricula(m: unknown): string {
+  const s = String(m ?? '').trim().toLowerCase()
+  return /^\d+$/.test(s) ? (s.replace(/^0+/, '') || '0') : s
+}
+
 /** Importa (ou atualiza) o mês. Só o Master consegue (Regras). */
 export async function importarBancoHoras(
   mesRef: string,
@@ -47,13 +56,13 @@ export async function importarBancoHoras(
   const porMatricula = new Map<string, { uid: string; centro: string }>()
   for (const f of funcs) {
     const m = String((f as any).matricula ?? '').trim()
-    if (m) porMatricula.set(m.toLowerCase(), { uid: f.uid, centro: String((f as any).centro_custo ?? '') })
+    if (m) porMatricula.set(chaveMatricula(m), { uid: f.uid, centro: String((f as any).centro_custo ?? '') })
   }
 
   let gravados = 0, semMatricula = 0, semFuncionario = 0
   for (const l of linhas) {
     if (!l.matricula) { semMatricula++; continue }
-    const casado = porMatricula.get(l.matricula.toLowerCase())
+    const casado = porMatricula.get(chaveMatricula(l.matricula))
     if (!casado) semFuncionario++
     const centro_custo = l.centro_custo || casado?.centro || ''
     const id = `${mesRef}__${slug(l.matricula)}`
