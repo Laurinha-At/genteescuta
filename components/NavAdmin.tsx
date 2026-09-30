@@ -12,7 +12,6 @@ import {
   ShieldQuestion,
   Settings,
   SmilePlus,
-  Contact,
   ScrollText,
   Receipt,
   Info,
@@ -47,7 +46,7 @@ const GRUPOS: Grupo[] = [
     abertoPadrao: true,
     itens: [
       { href: '/admin/canal', rotulo: 'Manifestações', Icone: Inbox, tela: 'canal' },
-      { href: '/admin/usuarios', rotulo: 'Usuários e acessos', Icone: Users, super: true, tela: 'usuarios' },
+      { href: '/admin/funcionarios', rotulo: 'Funcionários e acessos', Icone: Users, tela: 'funcionarios' },
       { href: '/admin/logs', rotulo: 'Login e Logs', Icone: ScrollText, super: true, tela: 'logs' },
     ],
   },
@@ -75,7 +74,6 @@ const GRUPOS: Grupo[] = [
     titulo: 'Pessoas',
     abertoPadrao: true,
     itens: [
-      { href: '/admin/funcionarios', rotulo: 'Funcionários', Icone: Contact, tela: 'funcionarios' },
       { href: '/banco-horas', rotulo: 'Banco de Horas', Icone: Clock, tela: 'banco_horas' },
       { href: '/reembolso', rotulo: 'Reembolsos', Icone: Receipt, tela: 'reembolsos' },
     ],

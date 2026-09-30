@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { UserPlus, Search, KeyRound, Power, Trash2, Users, SlidersHorizontal, X, ShieldCheck } from 'lucide-react'
-import { minhaConta, ehGerente, SENHA_PADRAO, type Conta } from '@/lib/fb/usuarios'
+import {
+  minhaConta, ehGerente, SENHA_PADRAO, type Conta,
+  listarUsuarios, cadastrarUsuario, reenviarSenha, definirAtivo, alterarNivel, excluirUsuario,
+  salvarPermissoes, type Nivel,
+} from '@/lib/fb/usuarios'
 import {
   listarFuncionarios,
   cadastrarFuncionario,
@@ -48,6 +52,7 @@ function montarDatas(anivTxt: string, admTxt: string) {
 export default function Funcionarios() {
   const [eu, setEu] = useState<Conta | null | undefined>(undefined)
   const [lista, setLista] = useState<any[]>([])
+  const [admins, setAdmins] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [aviso, setAviso] = useState<string | null>(null)
@@ -56,7 +61,10 @@ export default function Funcionarios() {
   const [permsDe, setPermsDe] = useState<any | null>(null)
 
   function recarregar() {
-    listarFuncionarios().then(setLista).catch(() => {}).finally(() => setCarregando(false))
+    Promise.all([listarFuncionarios(), listarUsuarios()])
+      .then(([f, a]) => { setLista(f); setAdmins(a) })
+      .catch(() => {})
+      .finally(() => setCarregando(false))
   }
   useEffect(() => {
     minhaConta()
@@ -72,11 +80,19 @@ export default function Funcionarios() {
 
   const souGerente = ehGerente(eu ?? null)
 
+  // Junta funcionários + administradores do sistema (Master/Super) numa lista só,
+  // ordenada por e-mail. `_origem` diz de qual coleção cada linha veio.
+  const todos = useMemo(() => {
+    const f = lista.map((u) => ({ ...u, _origem: 'funcionarios' as const }))
+    const a = admins.map((u) => ({ ...u, _origem: 'admins' as const }))
+    return [...f, ...a].sort((x, y) => (x.email ?? '').localeCompare(y.email ?? ''))
+  }, [lista, admins])
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase()
-    if (!q) return lista
-    return lista.filter((u) => `${u.nome ?? ''} ${u.email ?? ''}`.toLowerCase().includes(q))
-  }, [lista, busca])
+    if (!q) return todos
+    return todos.filter((u) => `${u.nome ?? ''} ${u.email ?? ''}`.toLowerCase().includes(q))
+  }, [todos, busca])
 
   async function acao(fn: () => Promise<unknown>, msg: string) {
     setErro(null)
@@ -93,7 +109,7 @@ export default function Funcionarios() {
   if (eu === undefined) {
     return (
       <>
-        <CabecalhoPagina titulo="Funcionários" />
+        <CabecalhoPagina titulo="Funcionários e acessos" />
         <p className="p-6 text-sm text-tinta-3">Carregando…</p>
       </>
     )
@@ -102,7 +118,7 @@ export default function Funcionarios() {
   if (!souGerente) {
     return (
       <>
-        <CabecalhoPagina titulo="Funcionários" />
+        <CabecalhoPagina titulo="Funcionários e acessos" />
         <div className="p-4 sm:p-6">
           <Aviso tom="alerta" titulo="Acesso restrito">
             Apenas <strong>Master</strong> ou <strong>Super Admin</strong> podem gerenciar funcionários.
@@ -115,7 +131,7 @@ export default function Funcionarios() {
   return (
     <>
       <CabecalhoPagina
-        titulo="Funcionários"
+        titulo="Funcionários e acessos"
         descricao="Cadastre, edite, ative/inative e gerencie os acessos das pessoas — tudo em um lugar só. Defina os papéis e, para quem tem acesso ao painel, ajuste a Permissão de menu (🛡️)."
       />
 
@@ -131,8 +147,19 @@ export default function Funcionarios() {
           <ImportarFuncionarios onDone={recarregar} />
         </Cartao>
 
+        <details className="rounded-md border border-borda bg-white">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-tinta">
+            Adicionar administrador do sistema (Master / Super Admin)
+            <span className="ml-1 font-normal text-tinta-3">— para contas de administração; para colaboradores use o formulário acima.</span>
+          </summary>
+          <div className="border-t border-borda p-4">
+            <FormAdminSistema onDone={recarregar} setAviso={setAviso} setErro={setErro} />
+          </div>
+        </details>
+
         <Cartao
-          titulo={`Funcionários (${lista.length})`}
+          titulo={`Pessoas e acessos (${todos.length})`}
+          apoio="Funcionários e administradores do sistema, tudo aqui. A tag “Admin do sistema” marca contas Master/Super criadas no sistema."
           acao={
             <div className="relative">
               <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-tinta-3" aria-hidden />
@@ -150,98 +177,135 @@ export default function Funcionarios() {
             <p className="p-4 text-sm text-tinta-3">Carregando…</p>
           ) : filtrados.length === 0 ? (
             <p className="p-4 text-sm text-tinta-3">
-              {lista.length === 0 ? 'Nenhum funcionário cadastrado ainda.' : 'Nenhum resultado para a busca.'}
+              {todos.length === 0 ? 'Ninguém cadastrado ainda.' : 'Nenhum resultado para a busca.'}
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[40rem] text-sm">
+              <table className="w-full min-w-[42rem] text-sm">
                 <thead>
                   <tr className="border-b border-borda text-left text-xs font-semibold text-tinta-3">
                     <th className="px-4 py-2.5 font-semibold">Nome / E-mail</th>
-                    <th className="px-4 py-2.5 font-semibold">Papéis / Centro de custo</th>
+                    <th className="px-4 py-2.5 font-semibold">Acesso</th>
                     <th className="px-4 py-2.5 font-semibold">Status</th>
                     <th className="px-4 py-2.5 text-right font-semibold">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-borda">
-                  {filtrados.map((u) => (
-                    <tr key={u.uid} className="hover:bg-superficie-2">
-                      <td className="px-4 py-3">
-                        <span className="block font-medium text-tinta">{u.nome || '—'}</span>
-                        <span className="block text-xs text-tinta-3">{u.email}</span>
-                        {(u.matricula || u.aniversario) && (
-                          <span className="mt-0.5 block text-xs text-tinta-3">
-                            {u.matricula ? `Matr. ${u.matricula}` : ''}
-                            {u.matricula && u.aniversario ? ' · ' : ''}
-                            {u.aniversario ? `🎂 ${u.aniversario}` : ''}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-1">
-                          {(Array.isArray(u.papeis) ? u.papeis : []).filter((p: string) => p !== 'colaborador').length === 0 ? (
-                            <Chip faixa="neutro">Colaborador</Chip>
+                  {filtrados.map((u) => {
+                    const ehAdminSistema = u._origem === 'admins'
+                    const mexivel = u.uid !== eu?.uid
+                    const temMenu = ehAdminSistema || (Array.isArray(u.papeis) && u.papeis.some((p: string) => PAPEIS_COM_MENU.includes(p)))
+                    return (
+                      <tr key={`${u._origem}-${u.uid}`} className="hover:bg-superficie-2">
+                        <td className="px-4 py-3">
+                          <span className="block font-medium text-tinta">{u.nome || '—'}</span>
+                          <span className="block text-xs text-tinta-3">{u.email}</span>
+                          {ehAdminSistema ? (
+                            <span className="mt-0.5 inline-block rounded bg-superficie-2 px-1.5 py-0.5 text-[10px] font-medium text-tinta-3">Admin do sistema</span>
+                          ) : (u.matricula || u.aniversario) ? (
+                            <span className="mt-0.5 block text-xs text-tinta-3">
+                              {u.matricula ? `Matr. ${u.matricula}` : ''}
+                              {u.matricula && u.aniversario ? ' · ' : ''}
+                              {u.aniversario ? `🎂 ${u.aniversario}` : ''}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3">
+                          {ehAdminSistema ? (
+                            <select
+                              value={u.nivel ?? 'master'}
+                              disabled={!mexivel}
+                              onChange={(e) => acao(() => alterarNivel(u.uid, e.target.value as Nivel, u.email), 'Nível atualizado.')}
+                              className="rounded-md border border-borda-forte bg-white px-2 py-1 text-xs text-tinta disabled:opacity-50"
+                            >
+                              <option value="master">Master</option>
+                              <option value="super">Super Admin</option>
+                            </select>
                           ) : (
-                            (u.papeis as string[])
-                              .filter((p) => p !== 'colaborador')
-                              .map((p) => <Chip key={p} faixa="marca">{PAPEL_LABEL[p as keyof typeof PAPEL_LABEL] ?? p}</Chip>)
+                            <>
+                              <div className="flex flex-wrap items-center gap-1">
+                                {(Array.isArray(u.papeis) ? u.papeis : []).filter((p: string) => p !== 'colaborador').length === 0 ? (
+                                  <Chip faixa="neutro">Colaborador</Chip>
+                                ) : (
+                                  (u.papeis as string[])
+                                    .filter((p) => p !== 'colaborador')
+                                    .map((p) => <Chip key={p} faixa="marca">{PAPEL_LABEL[p as keyof typeof PAPEL_LABEL] ?? p}</Chip>)
+                                )}
+                              </div>
+                              <span className="mt-1 block text-xs text-tinta-3">{u.centro_custo || 'Sem centro de custo'}</span>
+                            </>
                           )}
-                        </div>
-                        <span className="mt-1 block text-xs text-tinta-3">{u.centro_custo || 'Sem centro de custo'}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {u.ativo !== false ? <Chip faixa="baixo">Ativo</Chip> : <Chip faixa="neutro">Inativo</Chip>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            type="button"
-                            title="Editar papéis e centro de custo"
-                            onClick={() => setEditando(u)}
-                            className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
-                          >
-                            <SlidersHorizontal size={16} aria-hidden />
-                          </button>
-                          {Array.isArray(u.papeis) && u.papeis.some((p: string) => PAPEIS_COM_MENU.includes(p)) && (
+                        </td>
+                        <td className="px-4 py-3">
+                          {u.ativo !== false ? <Chip faixa="baixo">Ativo</Chip> : <Chip faixa="neutro">Inativo</Chip>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-1">
+                            {!ehAdminSistema && (
+                              <button
+                                type="button"
+                                title="Editar papéis e centro de custo"
+                                onClick={() => setEditando(u)}
+                                className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                              >
+                                <SlidersHorizontal size={16} aria-hidden />
+                              </button>
+                            )}
+                            {temMenu && (
+                              <button
+                                type="button"
+                                title="Permissão de menu (telas e ações que a pessoa acessa)"
+                                onClick={() => setPermsDe(u)}
+                                className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                              >
+                                <ShieldCheck size={16} aria-hidden />
+                              </button>
+                            )}
                             <button
                               type="button"
-                              title="Permissão de menu (telas e ações que a pessoa acessa)"
-                              onClick={() => setPermsDe(u)}
+                              title="Enviar link de redefinição por e-mail"
+                              onClick={() => acao(
+                                () => (ehAdminSistema ? reenviarSenha(u.email) : reenviarSenhaFuncionario(u.email)),
+                                `Link de senha enviado para ${u.email}.`,
+                              )}
                               className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
                             >
-                              <ShieldCheck size={16} aria-hidden />
+                              <KeyRound size={16} aria-hidden />
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            title="Enviar link de redefinição por e-mail"
-                            onClick={() => acao(() => reenviarSenhaFuncionario(u.email), `Link de senha enviado para ${u.email}.`)}
-                            className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
-                          >
-                            <KeyRound size={16} aria-hidden />
-                          </button>
-                          <button
-                            type="button"
-                            title={u.ativo !== false ? 'Inativar' : 'Ativar'}
-                            onClick={() => acao(() => definirAtivoFuncionario(u.uid, u.ativo === false, u.email), u.ativo === false ? 'Funcionário ativado.' : 'Funcionário inativado.')}
-                            className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-tinta"
-                          >
-                            <Power size={16} aria-hidden />
-                          </button>
-                          <button
-                            type="button"
-                            title="Excluir"
-                            onClick={() => {
-                              if (confirm(`Excluir o acesso de ${u.email}?`)) acao(() => excluirFuncionario(u.uid, u.email), 'Funcionário excluído.')
-                            }}
-                            className="rounded p-1.5 text-tinta-3 hover:bg-plano hover:text-critico"
-                          >
-                            <Trash2 size={16} aria-hidden />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <button
+                              type="button"
+                              title={u.ativo !== false ? 'Inativar' : 'Ativar'}
+                              disabled={ehAdminSistema && !mexivel}
+                              onClick={() => acao(
+                                () => (ehAdminSistema
+                                  ? definirAtivo(u.uid, u.ativo === false, u.email)
+                                  : definirAtivoFuncionario(u.uid, u.ativo === false, u.email)),
+                                u.ativo === false ? 'Ativado.' : 'Inativado.',
+                              )}
+                              className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-tinta disabled:opacity-40"
+                            >
+                              <Power size={16} aria-hidden />
+                            </button>
+                            <button
+                              type="button"
+                              title="Excluir"
+                              disabled={ehAdminSistema && !mexivel}
+                              onClick={() => {
+                                if (confirm(`Excluir o acesso de ${u.email}?`))
+                                  acao(
+                                    () => (ehAdminSistema ? excluirUsuario(u.uid, u.email) : excluirFuncionario(u.uid, u.email)),
+                                    'Excluído.',
+                                  )
+                              }}
+                              className="rounded p-1.5 text-tinta-3 hover:bg-plano hover:text-critico disabled:opacity-40"
+                            >
+                              <Trash2 size={16} aria-hidden />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -274,7 +338,7 @@ export default function Funcionarios() {
       {permsDe && (
         <PainelPermissoes
           usuario={permsDe}
-          salvar={salvarPermissoesFuncionario}
+          salvar={permsDe._origem === 'admins' ? salvarPermissoes : salvarPermissoesFuncionario}
           onFechar={() => setPermsDe(null)}
           onSalvo={(msg) => { setPermsDe(null); setAviso(msg); recarregar() }}
           setErro={setErro}
@@ -470,6 +534,56 @@ function FormFunc({
       <div>
         <Botao type="submit" disabled={pendente}>
           <UserPlus size={15} aria-hidden /> {pendente ? 'Cadastrando…' : 'Cadastrar'}
+        </Botao>
+      </div>
+    </form>
+  )
+}
+
+// Cadastro de ADMINISTRADOR DO SISTEMA (coleção /admins: Master ou Super).
+function FormAdminSistema({
+  onDone, setAviso, setErro,
+}: {
+  onDone: () => void
+  setAviso: (s: string | null) => void
+  setErro: (s: string | null) => void
+}) {
+  const [nivel, setNivel] = useState<Nivel>('master')
+  const [pendente, setPendente] = useState(false)
+
+  async function enviar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); setErro(null); setAviso(null); setPendente(true)
+    const f = new FormData(e.currentTarget)
+    const email = String(f.get('email') ?? '')
+    try {
+      await cadastrarUsuario({ email, nome: String(f.get('nome') ?? ''), nivel })
+      ;(e.target as HTMLFormElement).reset()
+      setNivel('master')
+      setAviso(`Administrador ${email.trim().toLowerCase()} cadastrado. Entra com a senha padrão "${SENHA_PADRAO}".`)
+      onDone()
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Não consegui cadastrar o administrador.')
+    }
+    setPendente(false)
+  }
+
+  return (
+    <form onSubmit={enviar} className="grid gap-4 sm:grid-cols-2">
+      <Campo rotulo="Nome" obrigatorio>
+        <input name="nome" required minLength={2} className={ENTRADA} placeholder="Ex.: Maria Silva" />
+      </Campo>
+      <Campo rotulo="E-mail institucional" obrigatorio>
+        <input name="email" type="email" required className={ENTRADA} placeholder="maria@soulan.com.br" />
+      </Campo>
+      <Campo rotulo="Nível">
+        <select value={nivel} onChange={(e) => setNivel(e.target.value as Nivel)} className={ENTRADA}>
+          <option value="master">Master: painel completo</option>
+          <option value="super">Super Admin: controle total (configurações, usuários, logs)</option>
+        </select>
+      </Campo>
+      <div className="flex items-end">
+        <Botao type="submit" disabled={pendente}>
+          <UserPlus size={15} aria-hidden /> {pendente ? 'Cadastrando…' : 'Cadastrar administrador'}
         </Botao>
       </div>
     </form>
