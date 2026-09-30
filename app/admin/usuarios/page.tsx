@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, Search, KeyRound, Power, Trash2, MailCheck } from 'lucide-react'
+import { UserPlus, Search, KeyRound, Power, Trash2, MailCheck, ShieldCheck } from 'lucide-react'
 import {
   minhaConta,
   listarUsuarios,
@@ -10,11 +10,13 @@ import {
   definirAtivo,
   alterarNivel,
   excluirUsuario,
+  salvarPermissoes,
   SENHA_PADRAO,
   type Conta,
   type Nivel,
 } from '@/lib/fb/usuarios'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
+import { PainelPermissoes } from '@/components/PainelPermissoes'
 
 export default function Usuarios() {
   const [eu, setEu] = useState<Conta | null | undefined>(undefined)
@@ -23,6 +25,7 @@ export default function Usuarios() {
   const [busca, setBusca] = useState('')
   const [aviso, setAviso] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [permsDe, setPermsDe] = useState<any | null>(null)
 
   function recarregar() {
     listarUsuarios().then(setLista).catch(() => {}).finally(() => setCarregando(false))
@@ -153,6 +156,14 @@ export default function Usuarios() {
                           <div className="flex justify-end gap-1">
                             <button
                               type="button"
+                              title="Permissões de acesso (telas e ações)"
+                              onClick={() => setPermsDe(u)}
+                              className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
+                            >
+                              <ShieldCheck size={16} aria-hidden />
+                            </button>
+                            <button
+                              type="button"
                               title="Reenviar link de senha"
                               onClick={() => acao(() => reenviarSenha(u.email), `Link de senha reenviado para ${u.email}.`)}
                               className="rounded p-1.5 text-tinta-3 hover:bg-white hover:text-marca"
@@ -202,6 +213,16 @@ export default function Usuarios() {
           </p>
         </div>
       </div>
+
+      {permsDe && (
+        <PainelPermissoes
+          usuario={permsDe}
+          salvar={salvarPermissoes}
+          onFechar={() => setPermsDe(null)}
+          onSalvo={(msg) => { setPermsDe(null); setAviso(msg); recarregar() }}
+          setErro={setErro}
+        />
+      )}
     </>
   )
 }

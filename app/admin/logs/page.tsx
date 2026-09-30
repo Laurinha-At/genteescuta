@@ -19,6 +19,7 @@ const ACAO_LABEL: Record<string, string> = {
   ativar_funcionario: 'Ativou funcionário',
   inativar_funcionario: 'Inativou funcionário',
   alterar_nivel: 'Alterou nível de acesso',
+  permissoes: 'Alterou permissões de acesso',
   excluir_usuario: 'Excluiu usuário',
   excluir_funcionario: 'Excluiu funcionário',
 }

@@ -80,6 +80,18 @@ function perfilDe(d: Record<string, unknown>, nivel?: string | null): PerfilId {
 }
 
 /**
+ * Permissões efetivas de um usuário:
+ *  - se ele JÁ foi configurado na tela de permissões (tem `permissoes` salvo),
+ *    vale EXATAMENTE o que foi marcado (tela ausente = sem acesso);
+ *  - senão, cai no padrão do perfil (compatibilidade com quem é anterior).
+ */
+function permissoesEfetivas(d: Record<string, unknown>, perfil: PerfilId): Permissoes {
+  const salvas = d.permissoes as Permissoes | undefined
+  if (salvas && typeof salvas === 'object') return resolverPermissoes(undefined, salvas)
+  return resolverPermissoes(perfil)
+}
+
+/**
  * Conta do usuário logado para o PAINEL admin.
  *  - e-mail semente → Super Admin;
  *  - quem tem doc em /admins → o nível de lá;
@@ -109,7 +121,7 @@ export async function minhaConta(): Promise<Conta | null> {
       ativo: d.ativo !== false,
       senha_provisoria: d.senha_provisoria === true,
       perfil,
-      permissoes: resolverPermissoes(perfil, d.permissoes as Permissoes | undefined),
+      permissoes: permissoesEfetivas(d, perfil),
       centro_custo: (d.centro_custo as string) ?? '',
     }
   }
@@ -128,7 +140,7 @@ export async function minhaConta(): Promise<Conta | null> {
         ativo: true,
         senha_provisoria: d.senha_provisoria === true,
         perfil,
-        permissoes: resolverPermissoes(perfil, d.permissoes as Permissoes | undefined),
+        permissoes: permissoesEfetivas(d, perfil),
         centro_custo: (d.centro_custo as string) ?? '',
       }
     }
@@ -298,4 +310,21 @@ export async function alterarNivel(uid: string, nivel: Nivel, email?: string) {
 export async function excluirUsuario(uid: string, email?: string) {
   await deleteDoc(doc(db(), 'admins', uid))
   await registrarLog('excluir_usuario', email ?? uid)
+}
+
+/**
+ * Salva as permissões (mapa { telaId: [ações] } já marcado) e a área de
+ * atuação (centro de custo) de um usuário administrador. Só o Super chega aqui
+ * (a tela é restrita), e as Regras do Firestore só deixam o Super gravar /admins.
+ */
+export async function salvarPermissoes(
+  uid: string,
+  permissoes: Permissoes,
+  centro_custo?: string,
+  email?: string,
+) {
+  const dados: Record<string, unknown> = { permissoes }
+  if (centro_custo !== undefined) dados.centro_custo = String(centro_custo ?? '').trim()
+  await updateDoc(doc(db(), 'admins', uid), dados)
+  await registrarLog('permissoes', email ?? uid)
 }
