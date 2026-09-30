@@ -28,13 +28,16 @@ function EnviadaConteudo() {
             <CheckCircle2 size={24} aria-hidden />
           </span>
 
-          <h1 className="titulo-hero mt-5 text-[1.875rem] text-tinta">Recebemos a sua manifestação.</h1>
-          <p className="mt-3 text-sm leading-6 text-tinta-2">
-            Ela já está na fila de análise da equipe de Gente &amp; Cultura. Toda manifestação é lida, e
-            as que viram ação aparecem no mural <strong>Você disse, nós fizemos</strong>.
-          </p>
+          <h1 className="titulo-hero mt-5 text-[1.875rem] text-tinta">Recebemos a sua manifestação 💚</h1>
+          <div className="mt-3 space-y-3 text-sm leading-6 text-tinta-2">
+            <p>
+              Ela já está na fila de análise da equipe de Gente &amp; Cultura. Toda manifestação é lida e
+              avaliada com atenção, considerando sua relevância e viabilidade.
+            </p>
+            <p>Quando uma sugestão ou manifestação resultar em uma iniciativa, ela poderá aparecer no mural.</p>
+          </div>
 
-          {anonima ? (
+          {anonima && (
             <div className="mt-5">
               <Aviso tom="alerta" titulo="Você enviou de forma anônima">
                 Seu nome e e-mail não foram gravados, só a sua área, para que a equipe saiba onde
@@ -42,14 +45,11 @@ function EnviadaConteudo() {
                 acompanhe o desfecho pelo mural.
               </Aviso>
             </div>
-          ) : (
-            <div className="mt-5">
-              <Aviso tom="info" titulo="Como você recebe o retorno">
-                A equipe de Gente &amp; Cultura responde diretamente no e-mail que você informou. E o que
-                vira mudança para todo mundo é publicado no mural <strong>Você disse, nós fizemos</strong>.
-              </Aviso>
-            </div>
           )}
+
+          <p className="mt-5 rounded-xl border border-[#cfe6b8] bg-[#f4faec] px-4 py-3 text-sm font-semibold leading-6 text-verde-escuro">
+            Obrigada por compartilhar sua opinião e contribuir para a construção de um ambiente cada vez melhor!
+          </p>
 
           <div className="mt-6 flex flex-wrap gap-2">
             <BotaoLink href="/mural">Ver o mural</BotaoLink>
