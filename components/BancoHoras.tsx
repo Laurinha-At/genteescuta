@@ -20,6 +20,13 @@ import {
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
 
+/** ISO → "DD/MM/AAAA" (data da última atualização do saldo). */
+function fmtDataHora(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR')
+}
+
 export function BancoHorasApp({ perfil }: { perfil: Perfil }) {
   const master = perfil.papeis.includes('master')
   const gestor = perfil.papeis.includes('gestor')
@@ -92,6 +99,12 @@ function MeuSaldo() {
             {formatSaldo(reg.saldo_min)}
           </p>
           <p className="mt-1 text-xs font-medium text-tinta-3">Competência: {mesRefLabel(reg.mes_ref)}</p>
+          {reg.atualizado_em && (
+            <p className="mt-0.5 text-[11px] text-tinta-3">Atualizado em {fmtDataHora(reg.atualizado_em)}</p>
+          )}
+          <p className="mx-auto mt-3 max-w-xs text-[11px] leading-4 text-tinta-3">
+            Esta é a posição mais recente registrada pela empresa. O saldo é atualizado mensalmente pela equipe de Gente &amp; Cultura.
+          </p>
         </>
       ) : (
         <p className="mt-4 text-sm text-tinta-2">Sem saldo registrado ainda.</p>

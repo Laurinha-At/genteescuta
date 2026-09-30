@@ -27,6 +27,7 @@ export interface RegistroBH {
   saldo_texto: string
   saldo_min: number | null
   uid: string | null
+  atualizado_em?: string
 }
 
 function slug(s: string): string {
