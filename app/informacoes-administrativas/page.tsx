@@ -43,7 +43,7 @@ export default function InformacoesAdministrativas() {
         </div>
         <p className="mt-4 max-w-2xl text-[0.9688rem] leading-7 text-tinta-2">
           Aqui você encontra acessos e informações importantes para facilitar sua rotina, consultar documentos,
-          realizar solicitações e acompanhar os principais processos administrativos da Soulan.
+          e acompanhar os principais processos administrativos da Soulan.
         </p>
 
         <div className="mt-7">
