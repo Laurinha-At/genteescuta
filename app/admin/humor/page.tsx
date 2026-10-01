@@ -144,6 +144,11 @@ export default function HumorEquipe() {
 
   const participacao = useMemo(() => [...setores].sort((a, b) => b.total - a.total), [setores])
   const climaSetor = useMemo(() => [...setores].sort((a, b) => b.indice - a.indice), [setores])
+  // Cor fixa por setor (a mesma nos dois gráficos), pela ordem de participação.
+  const corPorSetor = useMemo(
+    () => new Map(participacao.map((s, i) => [s.setor, PALETA_PIZZA[i % PALETA_PIZZA.length]])),
+    [participacao],
+  )
 
   function baixar(conteudo: string, arquivo: string, tipo: string) {
     const blob = new Blob([conteudo], { type: tipo })
@@ -367,27 +372,48 @@ export default function HumorEquipe() {
               <BarrasHumor dados={dist} total={r.total} />
             </Cartao>
 
-            {/* 3) Setores — gráficos de pizza */}
+            {/* 3) Setores — gráficos de pizza (cada setor com uma cor fixa) */}
             <div className="grid gap-4 lg:grid-cols-2">
               <Cartao titulo="Participação por setor" apoio="Percentual de registros de humor por setor (quais setores mais participam).">
                 <GraficoPizza
-                  dados={participacao.map((s, i) => ({
+                  dados={participacao.map((s) => ({
                     label: s.setor,
                     valor: s.total,
-                    cor: PALETA_PIZZA[i % PALETA_PIZZA.length],
+                    cor: corPorSetor.get(s.setor) ?? PALETA_PIZZA[0],
                   }))}
                 />
               </Cartao>
-              <Cartao titulo="Clima por setor" apoio="Fatia = participação do setor; cor = clima (verde positivo, azul neutro, vermelho negativo). O índice aparece ao lado.">
+              <Cartao titulo="Clima por setor" apoio="Fatia = participação do setor. O índice de clima aparece ao lado, com um ponto verde/azul/vermelho conforme o clima.">
                 <GraficoPizza
                   dados={climaSetor.map((s) => ({
                     label: s.setor,
                     valor: s.total,
-                    cor: corClima(s.indice),
+                    cor: corPorSetor.get(s.setor) ?? PALETA_PIZZA[0],
                     extra: s.indice > 0 ? `+${s.indice}` : String(s.indice),
+                    extraCor: corClima(s.indice),
                   }))}
                 />
               </Cartao>
+            </div>
+
+            {/* Explicação do cálculo dos gráficos */}
+            <div className="rounded-xl border border-borda bg-superficie-2 px-4 py-3.5 text-xs leading-5 text-tinta-2">
+              <p className="font-semibold text-tinta">Como os gráficos são calculados</p>
+              <ul className="mt-1.5 space-y-1">
+                <li>
+                  <strong className="font-semibold text-tinta">Participação (%)</strong> — fatia de cada setor sobre o total de
+                  registros do período: (registros do setor ÷ total de registros) × 100. <em>n</em> = quantidade de registros do setor.
+                </li>
+                <li>
+                  <strong className="font-semibold text-tinta">Índice de clima</strong> — vai de −100 a +100:
+                  (positivos − negativos) ÷ total × 100. Quanto maior, melhor o clima. Referência: ≥ +25 positivo (verde),
+                  ≤ −25 atenção (vermelho), entre eles neutro (azul).
+                </li>
+                <li>
+                  <strong className="font-semibold text-tinta">Positivo / neutro / negativo</strong> seguem a
+                  <em> classificação dos humores</em> (ajustável no Termômetro acima).
+                </li>
+              </ul>
             </div>
 
             <NotaPrivacidade />
@@ -525,7 +551,7 @@ function arcoRosca(cx: number, cy: number, r: number, ri: number, a0: number, a1
   return `M${x0},${y0} A${r},${r} 0 ${grande} 1 ${x1},${y1} L${xi1},${yi1} A${ri},${ri} 0 ${grande} 0 ${xi0},${yi0} Z`
 }
 
-function GraficoPizza({ dados }: { dados: { label: string; valor: number; cor: string; extra?: string }[] }) {
+function GraficoPizza({ dados }: { dados: { label: string; valor: number; cor: string; extra?: string; extraCor?: string }[] }) {
   const total = dados.reduce((s, d) => s + d.valor, 0)
   if (total <= 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
 
@@ -555,11 +581,16 @@ function GraficoPizza({ dados }: { dados: { label: string; valor: number; cor: s
           <li key={i} className="flex items-center gap-2 text-xs">
             <span className="h-2.5 w-2.5 flex-none rounded-sm" style={{ background: f.cor }} aria-hidden />
             <span className="min-w-0 flex-1 truncate text-tinta-2" title={f.label}>{f.label}</span>
-            <span className="flex-none tabular text-tinta-2">
-              {f.extra && <strong className="font-semibold text-tinta">{f.extra}</strong>}
-              {f.extra && ' · '}
+            <span className="flex flex-none items-center gap-1 tabular text-tinta-2">
+              {f.extra && (
+                <>
+                  {f.extraCor && <span className="h-2 w-2 flex-none rounded-full" style={{ background: f.extraCor }} aria-hidden />}
+                  <strong className="font-semibold text-tinta">{f.extra}</strong>
+                  <span className="text-tinta-3">·</span>
+                </>
+              )}
               <strong className="font-semibold text-tinta">{f.pct}%</strong>
-              <span className="ml-1 text-tinta-3">n={f.valor}</span>
+              <span className="text-tinta-3">n={f.valor}</span>
             </span>
           </li>
         ))}
