@@ -49,17 +49,24 @@ export function centroAbrangeTudo(centro?: string | null): boolean {
 
 // -------- Categorias de despesa (lista controlada) --------
 export const CATEGORIAS = [
-  'Alimentação',
-  'Transporte / Deslocamento',
-  'Combustível',
-  'Quilometragem (KM)',
-  'Hospedagem',
+  'Almoço/Coffee Cliente',
+  'Almoço/Coffee Interno',
+  'Auxílio Instrução',
+  'Brinde Cliente',
+  'Brinde Interno',
+  'Copa e Higiene',
+  'Deslocamento',
+  'Equipamentos de TI - descrever nas observações',
+  'Estacionamento',
+  'Feiras e Eventos - descrever',
+  'KM',
+  'Manutenção e Reparos',
   'Material de escritório',
-  'Equipamento',
-  'Software / Assinatura',
-  'Evento / Treinamento',
-  'Saúde',
-  'Outros',
+  'Material de limpeza e copa',
+  'Pedágio',
+  'Reembolso Correios',
+  'Sistemas - descreva qual sistema e finalidade',
+  'Sistemas - descrever nas observações',
 ] as const
 
 // -------- Status do reembolso --------
