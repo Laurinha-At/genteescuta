@@ -7,7 +7,7 @@ import { getManifestacao, triarManifestacao, mudarStatusManifestacao } from '@/l
 import { usuarioAtual } from '@/lib/fb/auth'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao } from '@/components/ui'
 import { LinhaDoTempo, StatusChip } from '@/components/StatusManifestacao'
-import { FormTratativa, FormMural } from '@/components/FormTratativa'
+import { FormMural } from '@/components/FormTratativa'
 import { TIPO_MANIFESTACAO_LABEL, TRIAGEM_LABEL, type ManifestacaoTipo, type Triagem } from '@/lib/types'
 import { fmtDataHora } from '@/lib/format'
 
@@ -88,7 +88,6 @@ function Detalhe() {
             </Aviso>
           )}
 
-          <FormTratativa m={m} aoSalvar={recarregar} />
           <FormMural m={m} aoSalvar={recarregar} />
         </div>
 
