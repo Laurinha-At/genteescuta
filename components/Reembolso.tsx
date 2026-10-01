@@ -38,6 +38,13 @@ function normalizar(s: unknown): string {
   return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
+const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+/** 'AAAA-MM' → "set/2026". */
+function rotuloMes(ym: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(ym ?? '')
+  return m ? `${MESES_ABREV[Number(m[2]) - 1] ?? m[2]}/${m[1]}` : ym
+}
+
 export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
   const ehMaster = perfil.papeis.includes('master')
   const ehFinanceiro = perfil.papeis.includes('financeiro')
@@ -46,8 +53,9 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
   // Rótulo da fila conforme o papel: Gestor = "Solicitações"; Financeiro/Master = "Fila de Solicitações".
   const filaLabel = (ehFinanceiro || ehMaster) ? 'Fila de Solicitações' : 'Solicitações'
 
-  // Master (gentecultura) só controla: não solicita.
-  const [aba, setAba] = useState<Aba>(ehMaster ? 'fila' : 'solicitar')
+  // Todos podem solicitar (inclusive Administrador e Master). Aprovadores
+  // começam na fila; os demais, na tela de solicitar.
+  const [aba, setAba] = useState<Aba>(ehAprovador ? 'fila' : 'solicitar')
   const [minhas, setMinhas] = useState<Reembolso[]>([])
   const [gestao, setGestao] = useState<Reembolso[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -73,10 +81,8 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
   )
 
   const ABAS: { id: Aba; rotulo: string; Icone: typeof Plus; badge?: number }[] = [
-    ...(!ehMaster ? [
-      { id: 'solicitar' as Aba, rotulo: 'Solicitar', Icone: Plus },
-      { id: 'minhas' as Aba, rotulo: 'Minhas solicitações', Icone: ClipboardList },
-    ] : []),
+    { id: 'solicitar' as Aba, rotulo: 'Solicitar', Icone: Plus },
+    { id: 'minhas' as Aba, rotulo: 'Minhas solicitações', Icone: ClipboardList },
     ...(ehAprovador ? [
       { id: 'fila' as Aba, rotulo: filaLabel, Icone: CheckSquare, badge: pendentes.length },
       { id: 'central' as Aba, rotulo: 'Central das Solicitações', Icone: LayoutList },
@@ -847,11 +853,17 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
   const [fStatus, setFStatus] = useState('')
   const [fCentro, setFCentro] = useState('')
   const [fCategoria, setFCategoria] = useState('')
+  const [fMes, setFMes] = useState('')
   const [ordKey, setOrdKey] = useState('data')
   const [ordDir, setOrdDir] = useState<1 | -1>(-1)
 
   const centros = useMemo(() => Array.from(new Set(registros.map((r) => r.centro_custo).filter(Boolean))).sort(), [registros])
   const categorias = useMemo(() => Array.from(new Set(registros.map((r) => r.categoria).filter(Boolean))).sort(), [registros])
+  // Meses presentes (pela data da despesa), mais recentes primeiro.
+  const meses = useMemo(
+    () => Array.from(new Set(registros.map((r) => String(r.data_despesa ?? '').slice(0, 7)).filter(Boolean))).sort((a, b) => b.localeCompare(a)),
+    [registros],
+  )
   // Só mostra o filtro de centro quando há mais de uma área no escopo (oculta
   // para colaborador e para gestor de uma área só).
   const mostrarCentro = centros.length > 1
@@ -863,6 +875,7 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
       if (fStatus && statusEfetivo(r.status, r.data_pagamento) !== fStatus) return false
       if (fCentro && r.centro_custo !== fCentro) return false
       if (fCategoria && r.categoria !== fCategoria) return false
+      if (fMes && String(r.data_despesa ?? '').slice(0, 7) !== fMes) return false
       if (q) {
         const blob = normalizar(colunas.map((c) => c.texto(r)).join(' ') + ' ' + (r.descricao ?? ''))
         if (!blob.includes(q)) return false
@@ -872,22 +885,33 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
     const col = colunas.find((c) => c.key === ordKey)
     if (col) arr.sort((a, b) => { const va = col.ord(a), vb = col.ord(b); return (va < vb ? -1 : va > vb ? 1 : 0) * ordDir })
     return arr
-  }, [registros, busca, fStatus, fCentro, fCategoria, ordKey, ordDir, colunas])
+  }, [registros, busca, fStatus, fCentro, fCategoria, fMes, ordKey, ordDir, colunas])
+
+  // Totais do que está filtrado: total geral e total AINDA PENDENTE (em R$).
+  const totalGeral = useMemo(() => filtrados.reduce((s, r) => s + (Number(r.valor) || 0), 0), [filtrados])
+  const totalPendente = useMemo(
+    () => filtrados.filter((r) => estaPendente(r.status)).reduce((s, r) => s + (Number(r.valor) || 0), 0),
+    [filtrados],
+  )
 
   function ordenar(key: string) {
     if (key === ordKey) setOrdDir((d) => (d === 1 ? -1 : 1))
     else { setOrdKey(key); setOrdDir(1) }
   }
 
-  const limpar = busca || fStatus || fCentro || fCategoria
+  const limpar = busca || fStatus || fCentro || fCategoria || fMes
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative sm:col-span-2 lg:col-span-1">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3" aria-hidden />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} className={`${ENTRADA} pl-9`} placeholder="Buscar em tudo (nome, valor, status…)" />
         </div>
+        <select value={fMes} onChange={(e) => setFMes(e.target.value)} className={ENTRADA}>
+          <option value="">Todos os meses</option>
+          {meses.map((m) => <option key={m} value={m}>{rotuloMes(m)}</option>)}
+        </select>
         <select value={fStatus} onChange={(e) => setFStatus(e.target.value)} className={ENTRADA}>
           <option value="">Todos os status</option>
           {statuses.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
@@ -904,10 +928,14 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
         </select>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-tinta-3">
-        <span>{filtrados.length} de {registros.length} solicitação(ões)</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-tinta-3">
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>{filtrados.length} de {registros.length} solicitação(ões)</span>
+          <span>· Total: <strong className="font-semibold text-tinta">{formatBRL(totalGeral)}</strong></span>
+          <span>· Pendente: <strong className="font-semibold text-[#8a6d00]">{formatBRL(totalPendente)}</strong></span>
+        </span>
         {limpar && (
-          <button type="button" onClick={() => { setBusca(''); setFStatus(''); setFCentro(''); setFCategoria('') }} className="inline-flex items-center gap-1 font-medium hover:text-critico">
+          <button type="button" onClick={() => { setBusca(''); setFStatus(''); setFCentro(''); setFCategoria(''); setFMes('') }} className="inline-flex items-center gap-1 font-medium hover:text-critico">
             <X size={12} aria-hidden /> Limpar filtros
           </button>
         )}
@@ -1056,14 +1084,14 @@ function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso
       )
     : undefined
   const kpis = useMemo(() => {
-    let pend = 0, pagos = 0, recus = 0
+    let pend = 0, pagos = 0, recus = 0, pendValor = 0
     for (const r of registros) {
       const s = statusEfetivo(r.status, r.data_pagamento)
-      if (estaPendente(r.status)) pend++
+      if (estaPendente(r.status)) { pend++; pendValor += Number(r.valor) || 0 }
       else if (s === 'pago' || s === 'agendado' || s === 'aprovado') pagos++
       else if (s === 'recusado') recus++
     }
-    return { total: registros.length, pend, pagos, recus }
+    return { total: registros.length, pend, pagos, recus, pendValor }
   }, [registros])
   const escopo = perfil.papeis.includes('gestor') && !perfil.papeis.includes('master') && !perfil.papeis.includes('financeiro')
     ? `centro ${perfil.centro_custo || '—'}` : 'todos os centros de custo'
@@ -1072,9 +1100,14 @@ function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi rotulo="Total" valor={kpis.total} />
         <Kpi rotulo="Pendentes" valor={kpis.pend} faixa="moderado" />
+        {/* Total de despesas pendentes, em valor (R$). */}
+        <div className="cartao-g px-4 py-3">
+          <p className="text-xs font-medium text-tinta-3">Pendente (R$)</p>
+          <p className="mt-1 text-[1.5rem] font-[650] leading-none tracking-tight text-[#8a6d00]">{formatBRL(kpis.pendValor)}</p>
+        </div>
         <Kpi rotulo="Pagos / agendados" valor={kpis.pagos} faixa="baixo" />
         <Kpi rotulo="Recusados" valor={kpis.recus} faixa="critico" />
       </div>
