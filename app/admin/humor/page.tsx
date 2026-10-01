@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Save, Trash2, Printer, Download, Building2 } from 'lucide-react'
+import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Save, Trash2, Printer, Download } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui'
 import {
   listarRegistrosHumor,
@@ -17,7 +17,6 @@ import {
   distribuicao,
   termometro,
   porSetor,
-  porCargo,
   mesesDisponiveis,
   rotuloMes,
   CLASSIFICACAO_PADRAO,
@@ -142,15 +141,9 @@ export default function HumorEquipe() {
   const term = useMemo(() => termometro(regsP, classif), [regsP, classif])
   const dist = useMemo(() => distribuicao(regsP), [regsP])
   const setores = useMemo(() => porSetor(regsP, classif), [regsP, classif])
-  const cargos = useMemo(() => porCargo(regsP, classif), [regsP, classif])
-  // O formato novo (Data;Setor/Área;Funcionário;Humor) não tem coluna Cargo;
-  // nesse caso todo mundo cai em "Não informado" — então escondemos o gráfico.
-  const temCargo = useMemo(
-    () => cargos.some((c) => c.cargo && c.cargo !== 'Não informado'),
-    [cargos],
-  )
 
   const participacao = useMemo(() => [...setores].sort((a, b) => b.total - a.total), [setores])
+  const climaSetor = useMemo(() => [...setores].sort((a, b) => b.indice - a.indice), [setores])
 
   function baixar(conteudo: string, arquivo: string, tipo: string) {
     const blob = new Blob([conteudo], { type: tipo })
@@ -374,26 +367,28 @@ export default function HumorEquipe() {
               <BarrasHumor dados={dist} total={r.total} />
             </Cartao>
 
-            {/* 3) Setores */}
+            {/* 3) Setores — gráficos de pizza */}
             <div className="grid gap-4 lg:grid-cols-2">
               <Cartao titulo="Participação por setor" apoio="Percentual de registros de humor por setor (quais setores mais participam).">
-                <BarrasParticipacao dados={participacao} />
+                <GraficoPizza
+                  dados={participacao.map((s, i) => ({
+                    label: s.setor,
+                    valor: s.total,
+                    cor: PALETA_PIZZA[i % PALETA_PIZZA.length],
+                  }))}
+                />
               </Cartao>
-              <Cartao titulo="Clima por setor" apoio="Índice de clima de cada setor (do melhor ao pior). n = registros do setor.">
-                <BarrasCargo
-                  dados={[...setores]
-                    .sort((a, b) => b.indice - a.indice)
-                    .map((s) => ({ cargo: s.setor, total: s.total, pos: s.pos, neu: s.neu, neg: s.neg, indice: s.indice }))}
+              <Cartao titulo="Clima por setor" apoio="Fatia = participação do setor; cor = clima (verde positivo, azul neutro, vermelho negativo). O índice aparece ao lado.">
+                <GraficoPizza
+                  dados={climaSetor.map((s) => ({
+                    label: s.setor,
+                    valor: s.total,
+                    cor: corClima(s.indice),
+                    extra: s.indice > 0 ? `+${s.indice}` : String(s.indice),
+                  }))}
                 />
               </Cartao>
             </div>
-
-            {/* 4) Humor por cargo — só quando a planilha traz a coluna Cargo */}
-            {temCargo && (
-              <Cartao titulo="Clima por cargo" apoio="Índice de clima de cada cargo (ordenado do melhor ao pior). n = registros do grupo.">
-                <BarrasCargo dados={cargos} />
-              </Cartao>
-            )}
 
             <NotaPrivacidade />
           </>
@@ -507,68 +502,68 @@ function BarrasHumor({ dados, total }: { dados: { humor: Humor; n: number }[]; t
   )
 }
 
-function BarrasCargo({
-  dados,
-}: {
-  dados: { cargo: string; indice: number; total: number; pos: number; neu: number; neg: number }[]
-}) {
-  if (dados.length === 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
-  return (
-    <ul className="space-y-1.5">
-      {dados.map((d) => {
-        const cor = d.indice >= 25 ? COR_CATEGORIA.positivo : d.indice <= -25 ? COR_CATEGORIA.negativo : COR_CATEGORIA.neutro
-        // barra divergente: 0 no centro
-        const largura = Math.min(Math.abs(d.indice) / 2, 50) // 0..50% de cada lado
-        return (
-          <li key={d.cargo} className="grid grid-cols-[minmax(7rem,12rem)_1fr_5.5rem] items-center gap-3">
-            <span className="truncate text-xs text-tinta-2" title={d.cargo}>
-              {d.cargo}
-            </span>
-            <span className="relative block h-3.5 rounded-sm bg-plano">
-              <span className="absolute inset-y-0 left-1/2 w-px bg-borda-forte" aria-hidden />
-              <span
-                className="absolute inset-y-0 rounded-sm"
-                style={
-                  d.indice >= 0
-                    ? { left: '50%', width: `${largura}%`, background: cor }
-                    : { right: '50%', width: `${largura}%`, background: cor }
-                }
-              />
-            </span>
-            <span className="text-right text-xs text-tinta-2 tabular">
-              <strong className="font-semibold text-tinta">{d.indice > 0 ? `+${d.indice}` : d.indice}</strong>
-              <span className="ml-1 text-tinta-3">n={d.total}</span>
-            </span>
-          </li>
-        )
-      })}
-    </ul>
-  )
+// ---------------------------------------------------------------
+// Gráfico de pizza (rosca) + legenda com percentual (e índice, quando houver).
+// ---------------------------------------------------------------
+const PALETA_PIZZA = [
+  '#2a7897', '#557d26', '#8a6d00', '#9c4221', '#2f9e8a', '#4a6fa5',
+  '#7b5ea7', '#b5651d', '#3f7db0', '#6b8e23', '#c2756b', '#508484',
+]
+
+function corClima(indice: number): string {
+  return indice >= 25 ? COR_CATEGORIA.positivo : indice <= -25 ? COR_CATEGORIA.negativo : COR_CATEGORIA.neutro
 }
 
-function BarrasParticipacao({ dados }: { dados: { setor: string; total: number; pct: number }[] }) {
-  if (dados.length === 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
-  const maxPct = Math.max(...dados.map((d) => d.pct), 1)
+/** Caminho SVG de uma fatia de rosca (raio externo r, interno ri). */
+function arcoRosca(cx: number, cy: number, r: number, ri: number, a0: number, a1: number): string {
+  const ponto = (raio: number, a: number) => [cx + raio * Math.cos(a), cy + raio * Math.sin(a)]
+  const grande = a1 - a0 > Math.PI ? 1 : 0
+  const [x0, y0] = ponto(r, a0)
+  const [x1, y1] = ponto(r, a1)
+  const [xi1, yi1] = ponto(ri, a1)
+  const [xi0, yi0] = ponto(ri, a0)
+  return `M${x0},${y0} A${r},${r} 0 ${grande} 1 ${x1},${y1} L${xi1},${yi1} A${ri},${ri} 0 ${grande} 0 ${xi0},${yi0} Z`
+}
+
+function GraficoPizza({ dados }: { dados: { label: string; valor: number; cor: string; extra?: string }[] }) {
+  const total = dados.reduce((s, d) => s + d.valor, 0)
+  if (total <= 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
+
+  const cx = 90, cy = 90, r = 86, ri = 52
+  let ang = -Math.PI / 2
+  const fatias = dados.map((d) => {
+    const frac = d.valor / total
+    const a0 = ang
+    const a1 = ang + frac * 2 * Math.PI
+    ang = a1
+    return { ...d, a0, a1, frac, pct: Math.round(frac * 100) }
+  })
+
   return (
-    <ul className="space-y-1.5">
-      {dados.map((d) => (
-        <li key={d.setor} className="grid grid-cols-[minmax(7rem,12rem)_1fr_5.5rem] items-center gap-3">
-          <span className="flex items-center gap-2 truncate text-xs text-tinta-2" title={d.setor}>
-            <Building2 size={13} className="flex-none text-marca" aria-hidden />
-            {d.setor}
-          </span>
-          <span className="relative block h-3.5 rounded-sm bg-plano">
-            <span
-              className="absolute inset-y-0 left-0 rounded-r-[4px]"
-              style={{ width: `${Math.max((d.pct / maxPct) * 100, 2)}%`, background: 'var(--color-marca)' }}
-            />
-          </span>
-          <span className="text-right text-xs text-tinta-2 tabular">
-            <strong className="font-semibold text-tinta">{d.pct}%</strong>
-            <span className="ml-1 text-tinta-3">n={d.total}</span>
-          </span>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+      <svg viewBox="0 0 180 180" className="h-44 w-44 flex-none" role="img" aria-label="Gráfico de pizza por setor">
+        {fatias.map((f, i) =>
+          f.frac >= 0.999 ? (
+            <circle key={i} cx={cx} cy={cy} r={(r + ri) / 2} fill="none" stroke={f.cor} strokeWidth={r - ri} />
+          ) : (
+            <path key={i} d={arcoRosca(cx, cy, r, ri, f.a0, f.a1)} fill={f.cor} stroke="#fff" strokeWidth={1.5} />
+          ),
+        )}
+      </svg>
+      <ul className="w-full min-w-0 space-y-1.5">
+        {fatias.map((f, i) => (
+          <li key={i} className="flex items-center gap-2 text-xs">
+            <span className="h-2.5 w-2.5 flex-none rounded-sm" style={{ background: f.cor }} aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-tinta-2" title={f.label}>{f.label}</span>
+            <span className="flex-none tabular text-tinta-2">
+              {f.extra && <strong className="font-semibold text-tinta">{f.extra}</strong>}
+              {f.extra && ' · '}
+              <strong className="font-semibold text-tinta">{f.pct}%</strong>
+              <span className="ml-1 text-tinta-3">n={f.valor}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
