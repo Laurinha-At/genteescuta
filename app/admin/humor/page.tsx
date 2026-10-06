@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Save, Trash2, Printer, Download } from 'lucide-react'
+import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui'
 import {
   listarRegistrosHumor,
   salvarRegistrosHumor,
   limparRegistrosHumor,
   getClassificacaoHumor,
-  salvarClassificacaoHumor,
 } from '@/lib/fb/humor'
 import {
   decodificar,
@@ -32,6 +31,12 @@ function fmtData(ts: number | null): string {
   if (ts === null) return '—'
   return new Date(ts).toLocaleDateString('pt-BR')
 }
+
+const CATEGORIA_LABEL: Record<Categoria, string> = {
+  positivo: 'Positivo',
+  neutro: 'Neutro',
+  negativo: 'Negativo',
+}
 export default function HumorEquipe() {
   const [registros, setRegistros] = useState<RegistroHumor[]>([])
   const [classif, setClassif] = useState<Record<Humor, Categoria>>({ ...CLASSIFICACAO_PADRAO })
@@ -39,8 +44,6 @@ export default function HumorEquipe() {
   const [importando, setImportando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
-  const [salvandoClass, setSalvandoClass] = useState(false)
-  const [classSalva, setClassSalva] = useState(false)
   const [limpando, setLimpando] = useState(false)
   const [periodo, setPeriodo] = useState('geral')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -89,21 +92,6 @@ export default function HumorEquipe() {
     }
     setImportando(false)
     if (inputRef.current) inputRef.current.value = ''
-  }
-
-  function mudarClasse(h: Humor, c: Categoria) {
-    setClassif((atual) => ({ ...atual, [h]: c }))
-    setClassSalva(false)
-  }
-  async function salvarClasse() {
-    setSalvandoClass(true)
-    try {
-      await salvarClassificacaoHumor(classif)
-      setClassSalva(true)
-    } catch {
-      setErro('Não consegui salvar a classificação.')
-    }
-    setSalvandoClass(false)
   }
 
   async function limparTudo() {
@@ -326,14 +314,12 @@ export default function HumorEquipe() {
               />
             </div>
 
-            {/* 5) Termômetro geral + classificação editável */}
+            {/* 5) Termômetro geral + classificação (somente leitura) */}
             <Cartao titulo="Termômetro geral do clima">
               <Termometro term={term} />
 
-              <div className="sem-impressao mt-5 border-t border-borda pt-4">
-                <p className="text-xs font-semibold text-tinta-2">
-                  Classificação dos humores (ajuste se quiser e salve)
-                </p>
+              <div className="mt-5 border-t border-borda pt-4">
+                <p className="text-xs font-semibold text-tinta-2">Classificação dos humores</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   {HUMORES.map((h) => (
                     <div key={h} className="flex items-center justify-between gap-2 rounded-lg border border-borda bg-white px-3 py-2">
@@ -341,28 +327,14 @@ export default function HumorEquipe() {
                         <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: COR_HUMOR[h] }} aria-hidden />
                         {h}
                       </span>
-                      <select
-                        value={classif[h]}
-                        onChange={(e) => mudarClasse(h, e.target.value as Categoria)}
-                        className="rounded-md border border-borda-forte bg-white px-2 py-1 text-xs text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca"
+                      <span
+                        className="rounded-md px-2 py-0.5 text-xs font-semibold"
+                        style={{ background: `${COR_CATEGORIA[classif[h]]}1a`, color: COR_CATEGORIA[classif[h]] }}
                       >
-                        <option value="positivo">Positivo</option>
-                        <option value="neutro">Neutro</option>
-                        <option value="negativo">Negativo</option>
-                      </select>
+                        {CATEGORIA_LABEL[classif[h]]}
+                      </span>
                     </div>
                   ))}
-                </div>
-                <div className="mt-3 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={salvarClasse}
-                    disabled={salvandoClass}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-xs font-semibold text-tinta hover:bg-superficie-2 disabled:opacity-60"
-                  >
-                    <Save size={13} aria-hidden /> {salvandoClass ? 'Salvando…' : 'Salvar classificação'}
-                  </button>
-                  {classSalva && <span className="text-xs font-medium text-[#0b5d0b]">Classificação salva.</span>}
                 </div>
               </div>
             </Cartao>
