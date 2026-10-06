@@ -75,13 +75,6 @@ export default function VisaoGeral() {
           <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Scorecard rotulo="Manifestações recebidas" valor={canal.total} apoio={`${canal.publicadasNoMural} publicadas no mural`} />
-              <Scorecard
-                rotulo="Taxa de implementação"
-                valor={canal.taxaImplementacao}
-                sufixo="%"
-                apoio={canal.tempoMedioImplementacao !== null ? `${canal.tempoMedioImplementacao} dias em média até concluir` : 'Nenhuma concluída ainda'}
-                destaque={canal.aguardando > 0 ? <Chip faixa="alto">{canal.aguardando} aguardando análise</Chip> : undefined}
-              />
               {enps ? (
                 <Scorecard
                   rotulo="eNPS"
