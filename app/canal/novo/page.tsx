@@ -66,7 +66,7 @@ function NovoConteudo() {
           </span>
           <div>
             <h1 className="titulo-hero text-[1.75rem] text-tinta">{TIPO_MANIFESTACAO_LABEL[tipo]}</h1>
-            <p className="text-sm text-tinta-2">{TIPO_MANIFESTACAO_DESC[tipo]}</p>
+            {tipo !== 'reconhecimento' && <p className="text-sm text-tinta-2">{TIPO_MANIFESTACAO_DESC[tipo]}</p>}
           </div>
         </div>
 

@@ -1,20 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Send, UserX, UserCheck } from 'lucide-react'
+import Link from '@/components/LinkSemPrefetch'
+import { Send, UserX, UserCheck, LogIn, User, Building2, Lock } from 'lucide-react'
 import { enviarManifestacao } from '@/lib/fb/publico'
+import { observarLogin } from '@/lib/fb/auth'
+import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 import { Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
-import { AREAS_SUGESTAO, AREA_SUGESTAO_AJUDA, IMPACTOS, type ManifestacaoTipo } from '@/lib/types'
+import { AREAS_SUGESTAO, AREA_SUGESTAO_AJUDA, IMPACTOS, TIPOS_RECONHECIMENTO, type ManifestacaoTipo } from '@/lib/types'
 
 /**
  * Contribuição = "Programa de Melhoria Contínua" (formulário estruturado).
  * Reconhecimento = fluxo próprio, mais simples. A identificação é opcional;
  * quando anônima, nome/setor NÃO são gravados.
  */
-export function FormCanal({ areas, tipo }: { areas: string[]; tipo: ManifestacaoTipo }) {
+export function FormCanal({ tipo }: { areas?: string[]; tipo: ManifestacaoTipo }) {
   if (tipo === 'contribuicao') return <FormMelhoria />
-  return <FormReconhecimento areas={areas} tipo={tipo} />
+  return <FormReconhecimento />
 }
 
 // -------------------------------------------------------------
@@ -180,81 +183,131 @@ function OpcaoRadio({ ativo, onClick, titulo, apoio, Icone }: { ativo: boolean; 
 }
 
 // -------------------------------------------------------------
-// Reconhecimento (fluxo simples, mantido)
+// Reconhecimento — identificado: captura automaticamente o perfil logado
+// (nome, e-mail e centro de custo). Não é anônimo.
 // -------------------------------------------------------------
-function FormReconhecimento({ areas, tipo }: { areas: string[]; tipo: ManifestacaoTipo }) {
+function FormReconhecimento() {
   const router = useRouter()
-  const [anonima, setAnonima] = useState(false)
+  const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined)
+  const [alvo, setAlvo] = useState('')
+  const [tipos, setTipos] = useState<string[]>([])
+  const [comentario, setComentario] = useState('')
+  const [tentou, setTentou] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [pendente, setPendente] = useState(false)
 
+  useEffect(() => observarLogin(async (u) => setPerfil(u ? await perfilAtual().catch(() => null) : null)), [])
+
+  function toggleTipo(t: string) {
+    setTipos((a) => (a.includes(t) ? a.filter((x) => x !== t) : [...a, t]))
+  }
+
+  const logado = !!perfil && perfil.ativo && (perfil.tipo === 'admin' || perfil.tipo === 'funcionario')
+  const semCentro = logado && !perfil!.centro_custo
+  const erroAlvo = !alvo.trim()
+  const erroComentario = comentario.trim().length < 10
+
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setErro(null); setPendente(true)
-    const f = new FormData(e.currentTarget)
+    e.preventDefault(); setErro(null)
+    if (erroAlvo || erroComentario) { setTentou(true); return }
+    setPendente(true)
     try {
       await enviarManifestacao({
-        tipo,
-        titulo: String(f.get('titulo') ?? ''),
-        descricao: String(f.get('descricao') ?? ''),
-        nome: String(f.get('nome') ?? ''),
-        email: String(f.get('email') ?? ''),
-        area: String(f.get('area') ?? ''),
-        anonima,
+        tipo: 'reconhecimento',
+        reconhecer: alvo,
+        tipos,
+        descricao: comentario,
+        nome: perfil!.nome,
+        email: perfil!.email,
+        centro_custo: perfil!.centro_custo,
+        anonima: false,
       })
-      router.push(anonima ? '/canal/enviada?a=1' : '/canal/enviada')
+      router.push('/canal/enviada')
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não consegui registrar agora.')
       setPendente(false)
     }
   }
 
+  if (perfil === undefined) return <p className="text-sm text-tinta-3">Carregando…</p>
+
+  if (!logado) {
+    return (
+      <div className="text-center">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-marca-clara text-marca">
+          <LogIn size={26} aria-hidden />
+        </span>
+        <h2 className="mt-4 text-[1.1rem] font-semibold text-tinta">Entre para reconhecer</h2>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-tinta-2">
+          O reconhecimento é identificado: usamos o seu nome, e-mail e setor do cadastro. Entre com o seu e-mail para continuar.
+        </p>
+        <Link href="/entrar" className="botao-gradiente mt-5 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold">
+          <LogIn size={16} aria-hidden /> Entrar
+        </Link>
+      </div>
+    )
+  }
+
   return (
-    <form onSubmit={enviar} className="space-y-6">
+    <form onSubmit={enviar} className="space-y-6" noValidate>
       {erro && <Aviso tom="erro">{erro}</Aviso>}
 
-      <Campo rotulo="Resuma em uma frase" obrigatorio>
-        <input name="titulo" required minLength={4} maxLength={160} className={ENTRADA} placeholder="Ex.: Apoio do time de Suporte na virada do mês" />
+      {/* Quem/qual time */}
+      <Campo rotulo="Quem ou qual time você gostaria de reconhecer?" obrigatorio>
+        <input
+          value={alvo}
+          onChange={(e) => setAlvo(e.target.value)}
+          className={`${ENTRADA}${tentou && erroAlvo ? ' border-critico focus:border-critico' : ''}`}
+          placeholder="Ex.: Time de Suporte, ou Joana da Silva"
+        />
+        {tentou && erroAlvo && <p className="mt-1 text-xs font-medium text-critico">Informe quem ou qual time você quer reconhecer.</p>}
       </Campo>
 
-      <Campo rotulo="Conte com as suas palavras" ajuda="Quem você quer reconhecer e por quê." obrigatorio>
-        <textarea name="descricao" required minLength={15} maxLength={5000} rows={6} className={ENTRADA} placeholder="Descreva a atitude, o apoio ou o trabalho que merece reconhecimento…" />
-      </Campo>
-
-      <fieldset className="rounded-md border border-borda bg-superficie-2 p-4">
-        <legend className="px-1 text-sm font-semibold text-tinta">Sobre você</legend>
-        <div className="space-y-4">
-          <Campo rotulo="Área ou setor" ajuda="Direciona e alimenta os indicadores por área." obrigatorio>
-            <select name="area" required className={ENTRADA} defaultValue="">
-              <option value="" disabled>Selecione…</option>
-              {areas.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </Campo>
-
-          <div className="border-t border-borda pt-4">
-            <label className="flex items-start gap-2.5">
-              <input type="checkbox" checked={anonima} onChange={(e) => setAnonima(e.target.checked)} className="mt-0.5 h-4 w-4 flex-none accent-[#2a7897]" />
-              <span>
-                <span className="block text-sm font-medium text-tinta">Prefiro não me identificar</span>
-                <span className="mt-0.5 block text-xs leading-4 text-tinta-3">Seu nome e e-mail não serão gravados, apenas a área, para que a equipe saiba onde agir.</span>
-              </span>
+      {/* Tipo de manifestação (seleção múltipla) */}
+      <div>
+        <p className="text-sm font-medium text-tinta">Tipo de manifestação:</p>
+        <p className="mt-0.5 text-xs text-tinta-3">Pode marcar mais de um.</p>
+        <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+          {TIPOS_RECONHECIMENTO.map((t) => (
+            <label key={t} className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${tipos.includes(t) ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}>
+              <input type="checkbox" checked={tipos.includes(t)} onChange={() => toggleTipo(t)} className="h-4 w-4 flex-none accent-[#2a7897]" />
+              {t}
             </label>
-
-            {!anonima && (
-              <div className="mt-4 space-y-4">
-                <Campo rotulo="Nome completo" obrigatorio>
-                  <input name="nome" required minLength={3} className={ENTRADA} placeholder="Ex.: Joana Ribeiro da Silva" autoComplete="name" />
-                </Campo>
-                <Campo rotulo="E-mail" obrigatorio>
-                  <input name="email" type="email" required className={ENTRADA} placeholder="voce@empresa.com.br" autoComplete="email" />
-                </Campo>
-              </div>
-            )}
-          </div>
+          ))}
         </div>
-      </fieldset>
+      </div>
+
+      {/* Comentário */}
+      <Campo rotulo="Comente com as suas palavras" obrigatorio>
+        <textarea
+          value={comentario}
+          onChange={(e) => setComentario(e.target.value)}
+          rows={6}
+          maxLength={5000}
+          className={`${ENTRADA}${tentou && erroComentario ? ' border-critico focus:border-critico' : ''}`}
+          placeholder="Descreva a atitude, o apoio ou o trabalho que merece reconhecimento…"
+        />
+        {tentou && erroComentario && <p className="mt-1 text-xs font-medium text-critico">Escreva um comentário (mínimo 10 caracteres).</p>}
+      </Campo>
+
+      {/* Identificação automática (perfil logado) */}
+      <div className="rounded-md border border-borda bg-superficie-2 p-4">
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-tinta-2">
+          <Lock size={12} aria-hidden /> Enviado de forma identificada (do seu cadastro)
+        </p>
+        <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+          <span className="flex items-center gap-2 text-tinta"><User size={14} className="flex-none text-tinta-3" aria-hidden /> {perfil!.nome || perfil!.email}</span>
+          <span className="flex items-center gap-2 text-tinta"><Building2 size={14} className="flex-none text-tinta-3" aria-hidden /> {perfil!.centro_custo || 'Sem centro de custo'}</span>
+        </div>
+        {semCentro && (
+          <p className="mt-2 rounded-lg border border-[#f0c2c2] bg-[#fdeaea] px-3 py-2 text-xs leading-5 text-[#8a1f1f]">
+            Seu centro de custo ainda não está definido no cadastro. Peça à equipe de Gente &amp; Cultura para configurar antes de enviar.
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Botao type="submit" disabled={pendente}>
+        <Botao type="submit" disabled={pendente || semCentro}>
           <Send size={15} aria-hidden /> {pendente ? 'Enviando…' : 'Enviar reconhecimento'}
         </Botao>
       </div>

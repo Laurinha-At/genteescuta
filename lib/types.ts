@@ -44,6 +44,15 @@ export const AREAS_SUGESTAO = [
   'Sustentabilidade, Inovação e Treinamento',
 ] as const
 export type AreaSugestao = (typeof AREAS_SUGESTAO)[number]
+
+// Tipos de manifestação do Reconhecimento (seleção múltipla).
+export const TIPOS_RECONHECIMENTO = [
+  'Elogio / Reconhecimento',
+  'Agradecimento',
+  'Sugestão de Melhoria',
+  'Ponto de Atenção',
+  'Feedback',
+] as const
 export const AREA_SUGESTAO_AJUDA: Record<string, string> = {
   'Cultura, Clima e Benefícios': 'Bem-estar, integração, ergonomia',
   'Processos Internos e Produtividade': 'Burocracia, reuniões, fluxos',

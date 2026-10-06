@@ -121,6 +121,10 @@ export async function enviarManifestacao(p: {
   sugestao?: string
   impactos?: string[]
   impacto_outro?: string
+  // -------- reconhecimento --------
+  reconhecer?: string      // quem/qual time
+  tipos?: string[]         // tipo de manifestação (seleção múltipla)
+  centro_custo?: string    // centro de custo do perfil (obrigatório)
 }) {
   const tipo = String(p.tipo ?? '')
   const nome = String(p.nome ?? '').trim()
@@ -192,27 +196,31 @@ export async function enviarManifestacao(p: {
     return { anonima }
   }
 
-  // ---------------- Reconhecimento (fluxo simples, inalterado) ----------------
-  const titulo = String(p.titulo ?? '').trim()
-  const descricao = String(p.descricao ?? '').trim()
-  const area = String(p.area ?? '').trim()
-  if (!anonima) {
-    if (nome.length < 3 || !nome.includes(' ')) throw new Error('Informe o nome completo, com sobrenome.')
-    if (!EMAIL_RE.test(email)) throw new Error('Informe um e-mail válido.')
-  }
-  if (!area) throw new Error('Selecione a sua área ou setor.')
-  if (titulo.length < 4 || titulo.length > 160) throw new Error('O título precisa ter de 4 a 160 caracteres.')
-  if (descricao.length < 15 || descricao.length > 5000) throw new Error('A descrição precisa ter de 15 a 5.000 caracteres.')
+  // ---------------- Reconhecimento (identificado: captura o perfil logado) ----------------
+  const alvo = String(p.reconhecer ?? p.titulo ?? '').trim()   // quem/qual time
+  const comentario = String(p.descricao ?? '').trim()
+  const centro = String(p.centro_custo ?? p.area ?? '').trim()
+  const tiposR = Array.isArray(p.tipos) ? p.tipos.map((x) => String(x).trim()).filter(Boolean) : []
+
+  // Não é anônimo: nome, e-mail e centro de custo do perfil são obrigatórios.
+  if (nome.length < 3) throw new Error('Não consegui identificar o seu nome. Entre novamente.')
+  if (!EMAIL_RE.test(email)) throw new Error('Não consegui identificar o seu e-mail. Entre novamente.')
+  if (!centro) throw new Error('Seu centro de custo não está definido no cadastro. Peça à equipe de Gente & Cultura para configurar.')
+  if (alvo.length < 2) throw new Error('Informe quem ou qual time você gostaria de reconhecer.')
+  if (comentario.length < 10 || comentario.length > 5000) throw new Error('Comente com as suas palavras (de 10 a 5.000 caracteres).')
 
   await addDoc(collection(db(), 'manifestacoes'), {
     tipo,
-    titulo,
-    descricao,
-    area,
-    nome: anonima ? null : nome,
-    email: anonima ? null : email,
-    anonima,
-    autor_uid: anonima ? null : (auth().currentUser?.uid ?? null),
+    titulo: alvo,
+    reconhecer: alvo,
+    tipos_reconhecimento: tiposR,
+    descricao: comentario,
+    area: centro,
+    centro_custo: centro,
+    nome,
+    email,
+    anonima: false,
+    autor_uid: auth().currentUser?.uid ?? null,
     status: 'recebida',
     triagem: 'pendente',
     resposta_privada: null,
@@ -228,7 +236,7 @@ export async function enviarManifestacao(p: {
     implementada_em: null,
     updates: [eventoInicial],
   })
-  return { anonima }
+  return { anonima: false }
 }
 
 // -------------------------------------------------------------
