@@ -138,13 +138,14 @@ export function Carrossel() {
   const total = slides?.length ?? 0
   const ir = useCallback((n: number) => { if (total > 0) setI(((n % total) + total) % total) }, [total])
 
-  // Troca automática (loop infinito, 5s). Pausa no hover/foco. Respeita
-  // "reduzir movimento": se ligado, NÃO inicia o autoplay.
+  // Troca automática (loop infinito, 5s). Pausa no hover/foco. Passa sozinho
+  // mesmo com "movimento reduzido" — nesse caso a troca é instantânea (sem o
+  // deslize animado), respeitando a preferência de acessibilidade.
   useEffect(() => {
-    if (!slides || total <= 1 || pausado || reduz) return
+    if (!slides || total <= 1 || pausado) return
     const t = setInterval(() => setI((v) => (v + 1) % total), FONTES.intervaloMs)
     return () => clearInterval(t)
-  }, [slides, total, pausado, reduz])
+  }, [slides, total, pausado])
 
   if (!slides) {
     return <div className="mb-8 h-40 animate-pulse rounded-2xl bg-superficie-2" aria-hidden />
