@@ -46,7 +46,7 @@ function Editor() {
   }, [id])
 
   if (estado === 'carregando') return <div className="p-6 text-sm text-tinta-3">Carregando…</div>
-  if (estado === 'nao' || !p) return <CabecalhoPagina titulo="Pesquisa não encontrada" voltar={{ href: '/admin/pesquisas', rotulo: 'Voltar' }} />
+  if (estado === 'nao' || !p) return <CabecalhoPagina titulo="Pesquisa não encontrada" voltar={{ href: '/admin/pesquisa-clima?aba=pesquisa', rotulo: 'Voltar' }} />
 
   function reordenar(sec: any[], perg: any[]) {
     sec.forEach((s, i) => (s.ordem = i))

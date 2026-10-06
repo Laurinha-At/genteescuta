@@ -35,7 +35,7 @@ function Painel() {
   }, [id])
 
   if (estado === 'carregando') return <div className="p-6 text-sm text-tinta-3">Carregando…</div>
-  if (estado === 'nao' || !dados) return <CabecalhoPagina titulo="Pesquisa não encontrada" voltar={{ href: '/admin/pesquisas', rotulo: 'Voltar' }} />
+  if (estado === 'nao' || !dados) return <CabecalhoPagina titulo="Pesquisa não encontrada" voltar={{ href: '/admin/pesquisa-clima?aba=pesquisa', rotulo: 'Voltar' }} />
 
   const { pesquisa, analise: a } = dados
 

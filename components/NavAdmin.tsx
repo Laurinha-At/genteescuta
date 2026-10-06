@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Inbox,
-  ClipboardList,
   HeartPulse,
   Megaphone,
   ShieldQuestion,
@@ -64,9 +63,8 @@ const GRUPOS: Grupo[] = [
     titulo: 'Bem-estar',
     abertoPadrao: true,
     itens: [
-      { href: '/admin/clima', rotulo: 'Clima', Icone: HeartPulse, tela: 'clima' },
+      { href: '/admin/pesquisa-clima', rotulo: 'Pesquisa de Clima', Icone: HeartPulse, tela: 'clima' },
       { href: '/admin/humor', rotulo: 'Humor', Icone: SmilePlus, tela: 'humor' },
-      { href: '/admin/pesquisas', rotulo: 'Pesquisas', Icone: ClipboardList, super: true, tela: 'pesquisas' },
     ],
   },
   {

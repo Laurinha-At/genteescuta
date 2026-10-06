@@ -63,7 +63,7 @@ function Detalhe() {
 
   if (estado === 'carregando') return <div className="p-6 text-sm text-tinta-3">Carregando…</div>
   if (estado === 'nao' || !p)
-    return <CabecalhoPagina titulo="Pesquisa não encontrada" voltar={{ href: '/admin/pesquisas', rotulo: 'Voltar' }} />
+    return <CabecalhoPagina titulo="Pesquisa não encontrada" voltar={{ href: '/admin/pesquisa-clima?aba=pesquisa', rotulo: 'Voltar' }} />
 
   const chip = CHIP[p.status as PesquisaStatus]
   const secoes = (p.secoes ?? []).slice().sort((a: any, b: any) => a.ordem - b.ordem)
@@ -76,14 +76,14 @@ function Detalhe() {
   async function excluir() {
     if (!confirm('Excluir esta pesquisa? Não dá para desfazer.')) return
     await excluirPesquisa(id)
-    router.push('/admin/pesquisas')
+    router.push('/admin/pesquisa-clima?aba=pesquisa')
   }
 
   return (
     <>
       <CabecalhoPagina
         titulo={p.titulo}
-        voltar={{ href: '/admin/pesquisas', rotulo: 'Voltar às pesquisas' }}
+        voltar={{ href: '/admin/pesquisa-clima?aba=pesquisa', rotulo: 'Voltar às pesquisas' }}
         descricao={
           <span className="flex flex-wrap items-center gap-2">
             <Chip faixa={chip.faixa}>{chip.rotulo}</Chip>
