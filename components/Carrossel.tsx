@@ -22,7 +22,7 @@ const FONTES = {
   treinamento: false,    // trilhas de treinamento (desligado)
   maxMural: 6,           // quantos comunicados recentes considerar
   maxTreino: 3,          // quantas trilhas novas considerar
-  intervaloMs: 6000,     // troca automática
+  intervaloMs: 5000,     // troca automática (5s)
 }
 
 type Slide = {
@@ -138,13 +138,13 @@ export function Carrossel() {
   const total = slides?.length ?? 0
   const ir = useCallback((n: number) => { if (total > 0) setI(((n % total) + total) % total) }, [total])
 
-  // Troca automática: passa sozinho. Pausa no hover; em "reduzir movimento"
-  // ainda avança, só sem a animação de deslize.
+  // Troca automática (loop infinito, 5s). Pausa no hover/foco. Respeita
+  // "reduzir movimento": se ligado, NÃO inicia o autoplay.
   useEffect(() => {
-    if (!slides || total <= 1 || pausado) return
+    if (!slides || total <= 1 || pausado || reduz) return
     const t = setInterval(() => setI((v) => (v + 1) % total), FONTES.intervaloMs)
     return () => clearInterval(t)
-  }, [slides, total, pausado])
+  }, [slides, total, pausado, reduz])
 
   if (!slides) {
     return <div className="mb-8 h-40 animate-pulse rounded-2xl bg-superficie-2" aria-hidden />
@@ -161,6 +161,8 @@ export function Carrossel() {
       aria-label="Notícias"
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
+      onFocusCapture={() => setPausado(true)}
+      onBlurCapture={() => setPausado(false)}
     >
       <div className="group/car relative overflow-hidden rounded-[1.4rem] shadow-[0_18px_44px_rgba(26,23,20,0.24)] ring-1 ring-black/5">
         {/* Trilho deslizante */}
