@@ -10,7 +10,7 @@
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
-import { PartyPopper, Cake, Clock, Megaphone, Award, GraduationCap, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
+import { PartyPopper, Cake, Clock, Megaphone, GraduationCap, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { destaquesDoDia } from '@/lib/fb/aniversarios'
 import { getPostsMural } from '@/lib/fb/publico'
 import { listarTrilhas } from '@/lib/fb/treinos'
@@ -18,9 +18,9 @@ import { listarTrilhas } from '@/lib/fb/treinos'
 // -------- Configuração (ligue/desligue as fontes aqui) --------
 const FONTES = {
   aniversariantes: true, // aniversários e tempo de casa do dia
-  mural: true,           // novas publicações do mural
-  treinamento: true,     // novas trilhas de treinamento
-  maxMural: 6,           // quantos posts recentes considerar
+  mural: true,           // SÓ comunicados "Gente Informa" (postados por nós)
+  treinamento: false,    // trilhas de treinamento (desligado)
+  maxMural: 6,           // quantos comunicados recentes considerar
   maxTreino: 3,          // quantas trilhas novas considerar
   intervaloMs: 6000,     // troca automática
 }
@@ -37,7 +37,6 @@ type Slide = {
 const GRAD_ANIV = 'linear-gradient(135deg, #ff7eb3 0%, #ff6a3d 52%, #ffb648 100%)'   // festivo: rosa → laranja → âmbar
 const GRAD_TEMPO = 'linear-gradient(135deg, #7c5cff 0%, #4e7cf0 100%)'                // roxo → azul
 const GRAD_MURAL = 'linear-gradient(135deg, #17b6c9 0%, #2f8bb4 50%, #4b9e3a 100%)'   // ciano → azul → verde
-const GRAD_REC = 'linear-gradient(135deg, #3fa34d 0%, #8cc63f 50%, #f4b64a 100%)'     // verde → dourado
 const GRAD_TREINO = 'linear-gradient(135deg, #6d5efc 0%, #2f8bb4 100%)'               // índigo → azul
 const GRAD_PADRAO = 'linear-gradient(135deg, #8cc63f 0%, #2f8bb4 100%)'
 
@@ -78,17 +77,21 @@ export function Carrossel() {
       if (FONTES.mural) {
         tarefas.push(
           getPostsMural().then((posts) => {
-            ;(posts as Record<string, unknown>[]).slice(0, FONTES.maxMural).forEach((p) => {
-              const rec = p.categoria === 'reconhecimento'
-              out.push({
-                id: `post-${p.id}`,
-                tag: rec ? 'Reconhecimento no Mural' : 'Novidade no Mural',
-                titulo: String(p.titulo || 'Confira a novidade no Mural'),
-                href: `/mural#post-${p.id}`,
-                Icone: rec ? Award : Megaphone,
-                cor: rec ? GRAD_REC : GRAD_MURAL,
+            // Só comunicados postados por nós (Gente Informa). Reconhecimentos
+            // (vindos de manifestações) NÃO entram no carrossel.
+            ;(posts as Record<string, unknown>[])
+              .filter((p) => p.categoria === 'informa')
+              .slice(0, FONTES.maxMural)
+              .forEach((p) => {
+                out.push({
+                  id: `post-${p.id}`,
+                  tag: 'Novidade no Mural',
+                  titulo: String(p.titulo || 'Confira a novidade no Mural'),
+                  href: `/mural#post-${p.id}`,
+                  Icone: Megaphone,
+                  cor: GRAD_MURAL,
+                })
               })
-            })
           }).catch(() => {}),
         )
       }
@@ -135,12 +138,13 @@ export function Carrossel() {
   const total = slides?.length ?? 0
   const ir = useCallback((n: number) => { if (total > 0) setI(((n % total) + total) % total) }, [total])
 
-  // Troca automática (respeita "reduzir movimento" e pausa no hover).
+  // Troca automática: passa sozinho. Pausa no hover; em "reduzir movimento"
+  // ainda avança, só sem a animação de deslize.
   useEffect(() => {
-    if (!slides || total <= 1 || pausado || reduz) return
+    if (!slides || total <= 1 || pausado) return
     const t = setInterval(() => setI((v) => (v + 1) % total), FONTES.intervaloMs)
     return () => clearInterval(t)
-  }, [slides, total, pausado, reduz])
+  }, [slides, total, pausado])
 
   if (!slides) {
     return <div className="mb-8 h-40 animate-pulse rounded-2xl bg-superficie-2" aria-hidden />
@@ -161,7 +165,7 @@ export function Carrossel() {
       <div className="group/car relative overflow-hidden rounded-[1.4rem] shadow-[0_18px_44px_rgba(26,23,20,0.24)] ring-1 ring-black/5">
         {/* Trilho deslizante */}
         <div
-          className="flex transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className={`flex ${reduz ? '' : 'transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]'}`}
           style={{ transform: `translateX(-${idx * 100}%)` }}
         >
           {slides.map((s) => (
