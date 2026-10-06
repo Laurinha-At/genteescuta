@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download } from 'lucide-react'
+import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download, ChevronRight } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui'
 import {
   listarRegistrosHumor,
@@ -131,12 +131,41 @@ export default function HumorEquipe() {
   const setores = useMemo(() => porSetor(regsP, classif), [regsP, classif])
 
   const participacao = useMemo(() => [...setores].sort((a, b) => b.total - a.total), [setores])
-  const climaSetor = useMemo(() => [...setores].sort((a, b) => b.indice - a.indice), [setores])
-  // Cor fixa por setor (a mesma nos dois gráficos), pela ordem de participação.
+  // Cor fixa por setor (para a pizza de participação), pela ordem de participação.
   const corPorSetor = useMemo(
     () => new Map(participacao.map((s, i) => [s.setor, PALETA_PIZZA[i % PALETA_PIZZA.length]])),
     [participacao],
   )
+
+  // Clima por setor com drill-down: contagem por humor dentro de cada setor
+  // (agregado, nunca por pessoa). Positivo/Neutro/Negativo seguem a
+  // classificação FIXA (CLASSIFICACAO_PADRAO).
+  const setorHumores = useMemo(() => {
+    const mapa = new Map<string, { setor: string; total: number; humores: Record<Humor, number> }>()
+    for (const reg of regsP) {
+      const setor = reg.setor || 'Outros'
+      let e = mapa.get(setor)
+      if (!e) {
+        e = { setor, total: 0, humores: Object.fromEntries(HUMORES.map((h) => [h, 0])) as Record<Humor, number> }
+        mapa.set(setor, e)
+      }
+      e.total++
+      e.humores[reg.humor] = (e.humores[reg.humor] ?? 0) + 1
+    }
+    return Array.from(mapa.values())
+      .map((e) => {
+        let pos = 0, neu = 0, neg = 0
+        for (const h of HUMORES) {
+          const c = CLASSIFICACAO_PADRAO[h]
+          const n = e.humores[h]
+          if (c === 'positivo') pos += n
+          else if (c === 'neutro') neu += n
+          else neg += n
+        }
+        return { ...e, pos, neu, neg }
+      })
+      .sort((a, b) => b.total - a.total)
+  }, [regsP])
 
   function baixar(conteudo: string, arquivo: string, tipo: string) {
     const blob = new Blob([conteudo], { type: tipo })
@@ -344,29 +373,21 @@ export default function HumorEquipe() {
               <BarrasHumor dados={dist} total={r.total} />
             </Cartao>
 
-            {/* 3) Setores — gráficos de pizza (cada setor com uma cor fixa) */}
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Cartao titulo="Participação por setor" apoio="Percentual de registros de humor por setor (quais setores mais participam).">
-                <GraficoPizza
-                  dados={participacao.map((s) => ({
-                    label: s.setor,
-                    valor: s.total,
-                    cor: corPorSetor.get(s.setor) ?? PALETA_PIZZA[0],
-                  }))}
-                />
-              </Cartao>
-              <Cartao titulo="Clima por setor" apoio="Fatia = participação do setor. O índice de clima aparece ao lado, com um ponto verde/azul/vermelho conforme o clima.">
-                <GraficoPizza
-                  dados={climaSetor.map((s) => ({
-                    label: s.setor,
-                    valor: s.total,
-                    cor: corPorSetor.get(s.setor) ?? PALETA_PIZZA[0],
-                    extra: s.indice > 0 ? `+${s.indice}` : String(s.indice),
-                    extraCor: corClima(s.indice),
-                  }))}
-                />
-              </Cartao>
-            </div>
+            {/* 3) Participação por setor (pizza) */}
+            <Cartao titulo="Participação por setor" apoio="Percentual de registros de humor por setor (quais setores mais participam).">
+              <GraficoPizza
+                dados={participacao.map((s) => ({
+                  label: s.setor,
+                  valor: s.total,
+                  cor: corPorSetor.get(s.setor) ?? PALETA_PIZZA[0],
+                }))}
+              />
+            </Cartao>
+
+            {/* 4) Clima por setor — barras empilhadas (%) com drill-down por humor */}
+            <Cartao titulo="Clima por setor" apoio="Positivo / Neutro / Negativo por setor, em % dos registros. Clique num setor para ver os 8 humores.">
+              <ClimaSetorBarras dados={setorHumores} />
+            </Cartao>
 
             {/* Explicação do cálculo dos gráficos */}
             <div className="rounded-xl border border-borda bg-superficie-2 px-4 py-3.5 text-xs leading-5 text-tinta-2">
@@ -377,14 +398,11 @@ export default function HumorEquipe() {
                   registros do período: (registros do setor ÷ total de registros) × 100. <em>n</em> = quantidade de registros do setor.
                 </li>
                 <li>
-                  <strong className="font-semibold text-tinta">Índice de clima</strong> — vai de −100 a +100:
-                  (positivos − negativos) ÷ total × 100. Quanto maior, melhor o clima. Referência: ≥ +25 positivo (verde),
-                  ≤ −25 atenção (vermelho), entre eles neutro (azul).
+                  <strong className="font-semibold text-tinta">Clima por setor</strong> — cada barra soma 100% dos registros do
+                  setor em três faixas: Positivo (Feliz, Animado, Satisfeito), Neutro (Tranquilo) e Negativo (Entediado, Aflito,
+                  Triste, Irritado). Clique no setor para abrir os 8 humores individuais.
                 </li>
-                <li>
-                  <strong className="font-semibold text-tinta">Positivo / neutro / negativo</strong> seguem a
-                  <em> classificação dos humores</em> (ajustável no Termômetro acima).
-                </li>
+                <li>Todos os números são <strong className="font-semibold text-tinta">agregados por setor</strong>, nunca por pessoa.</li>
               </ul>
             </div>
 
@@ -508,8 +526,90 @@ const PALETA_PIZZA = [
   '#7b5ea7', '#b5651d', '#3f7db0', '#6b8e23', '#c2756b', '#508484',
 ]
 
-function corClima(indice: number): string {
-  return indice >= 25 ? COR_CATEGORIA.positivo : indice <= -25 ? COR_CATEGORIA.negativo : COR_CATEGORIA.neutro
+// ---------------------------------------------------------------
+// Clima por setor — barra empilhada (%) com drill-down nos 8 humores.
+// Dados agregados por setor (nunca por pessoa).
+// ---------------------------------------------------------------
+type SetorHumor = { setor: string; total: number; pos: number; neu: number; neg: number; humores: Record<Humor, number> }
+
+function ClimaSetorBarras({ dados }: { dados: SetorHumor[] }) {
+  const [sel, setSel] = useState<string | null>(null)
+  if (dados.length === 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
+  const pct = (n: number, t: number) => (t > 0 ? Math.round((n / t) * 100) : 0)
+  const pessoas = (n: number) => `${n} ${n === 1 ? 'pessoa' : 'pessoas'}`
+  const grid = 'grid grid-cols-[minmax(6rem,10rem)_1fr_3rem] items-center gap-3'
+
+  return (
+    <div className="space-y-2.5">
+      <p className="text-xs text-tinta-3">Clique num setor para ver o detalhe dos 8 humores.</p>
+
+      <div className={`${grid} text-[10px] text-tinta-3`}>
+        <span />
+        <span className="flex justify-between"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></span>
+        <span />
+      </div>
+
+      <ul className="space-y-1">
+        {dados.map((d) => {
+          const p = pct(d.pos, d.total), n = pct(d.neu, d.total), g = pct(d.neg, d.total)
+          const ativo = sel === d.setor
+          return (
+            <li key={d.setor}>
+              <button
+                type="button"
+                onClick={() => setSel(ativo ? null : d.setor)}
+                aria-expanded={ativo}
+                className={`${grid} w-full rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-superficie-2 ${ativo ? 'bg-superficie-2' : ''}`}
+              >
+                <span className="flex items-center gap-1 truncate text-xs text-tinta-2" title={d.setor}>
+                  <ChevronRight size={13} className={`flex-none transition-transform ${ativo ? 'rotate-90' : ''}`} aria-hidden /> {d.setor}
+                </span>
+                <span className="flex h-4 w-full overflow-hidden rounded bg-plano">
+                  {d.pos > 0 && <span style={{ width: `${p}%`, background: COR_CATEGORIA.positivo }} title={`Positivo: ${pessoas(d.pos)} (${p}%)`} />}
+                  {d.neu > 0 && <span style={{ width: `${n}%`, background: COR_CATEGORIA.neutro }} title={`Neutro: ${pessoas(d.neu)} (${n}%)`} />}
+                  {d.neg > 0 && <span style={{ width: `${g}%`, background: COR_CATEGORIA.negativo }} title={`Negativo: ${pessoas(d.neg)} (${g}%)`} />}
+                </span>
+                <span className="text-right text-xs text-tinta-3 tabular">n={d.total}</span>
+              </button>
+              {ativo && <DetalheSetor d={d} />}
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-tinta-2">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: COR_CATEGORIA.positivo }} aria-hidden /> Positivo</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: COR_CATEGORIA.neutro }} aria-hidden /> Neutro</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: COR_CATEGORIA.negativo }} aria-hidden /> Negativo</span>
+      </div>
+    </div>
+  )
+}
+
+function DetalheSetor({ d }: { d: SetorHumor }) {
+  const pct = (x: number) => (d.total > 0 ? Math.round((x / d.total) * 100) : 0)
+  return (
+    <div className="ml-4 mt-1.5 rounded-lg border border-borda bg-superficie-2 p-3">
+      <p className="mb-2 text-xs font-semibold text-tinta-2">Detalhe de {d.setor} — {d.total} {d.total === 1 ? 'registro' : 'registros'}</p>
+      <ul className="space-y-1">
+        {HUMORES.map((h) => {
+          const x = d.humores[h] ?? 0
+          const w = pct(x)
+          return (
+            <li key={h} className="grid grid-cols-[minmax(5.5rem,7rem)_1fr_4rem] items-center gap-3" title={`${h}: ${x} ${x === 1 ? 'pessoa' : 'pessoas'} (${w}%)`}>
+              <span className="flex items-center gap-2 truncate text-xs text-tinta-2">
+                <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: COR_HUMOR[h] }} aria-hidden /> {h}
+              </span>
+              <span className="relative block h-3 rounded-sm bg-plano">
+                <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${x > 0 ? Math.max(w, 2) : 0}%`, background: COR_HUMOR[h] }} />
+              </span>
+              <span className="text-right text-xs text-tinta-3 tabular"><strong className="font-semibold text-tinta">{x}</strong> {w}%</span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 
 /** Caminho SVG de uma fatia de rosca (raio externo r, interno ri). */
