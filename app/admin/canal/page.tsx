@@ -9,18 +9,15 @@ import { CabecalhoPagina, Cartao, Chip, Scorecard, Vazio, Botao } from '@/compon
 import { BarraFiltros } from '@/components/BarraFiltros'
 import { StatusChip } from '@/components/StatusManifestacao'
 import {
-  STATUS_MANIFESTACAO_LABEL,
   TIPO_MANIFESTACAO_LABEL,
   TRIAGEM_LABEL,
   AREAS_SUGESTAO,
   IMPACTOS,
-  type ManifestacaoStatus,
   type ManifestacaoTipo,
   type Triagem,
 } from '@/lib/types'
 import { fmtRelativo } from '@/lib/format'
 
-const STATUS: ManifestacaoStatus[] = ['recebida', 'em_analise', 'analisada', 'em_implementacao', 'implementada', 'nao_aplicavel', 'arquivada']
 const TIPOS: ManifestacaoTipo[] = ['contribuicao', 'reconhecimento']
 const TRIAGENS: Triagem[] = ['pendente', 'aprovada', 'reprovada']
 
@@ -33,7 +30,6 @@ export default function CanalAdmin() {
   const [todas, setTodas] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
-  const [fStatus, setFStatus] = useState('')
   const [fTipo, setFTipo] = useState('')
   const [fCategoria, setFCategoria] = useState('')
   const [fTriagem, setFTriagem] = useState('')
@@ -78,7 +74,6 @@ export default function CanalAdmin() {
   const termo = semAcento(busca.trim())
   const filtradas = useMemo(
     () => todas.filter((m) => {
-      if (fStatus && m.status !== fStatus) return false
       if (fTipo && m.tipo !== fTipo) return false
       if (fCategoria && (m.categoria ?? m.area) !== fCategoria) return false
       if (fTriagem && (m.triagem ?? 'pendente') !== fTriagem) return false
@@ -88,7 +83,7 @@ export default function CanalAdmin() {
       }
       return true
     }),
-    [todas, fStatus, fTipo, fCategoria, fTriagem, termo],
+    [todas, fTipo, fCategoria, fTriagem, termo],
   )
 
   const novas = todas.filter((m) => m.status === 'recebida').length
@@ -123,7 +118,6 @@ export default function CanalAdmin() {
           buscaPlaceholder="Buscar por assunto, nome, setor ou texto…"
           grupos={[
             { rotulo: 'Triagem', valor: fTriagem, onChange: setFTriagem, opcoes: TRIAGENS.map((t) => ({ valor: t, rotulo: TRIAGEM_LABEL[t] })) },
-            { rotulo: 'Status', valor: fStatus, onChange: setFStatus, opcoes: STATUS.map((s) => ({ valor: s, rotulo: STATUS_MANIFESTACAO_LABEL[s] })) },
             { rotulo: 'Tipo', valor: fTipo, onChange: setFTipo, opcoes: TIPOS.map((t) => ({ valor: t, rotulo: TIPO_MANIFESTACAO_LABEL[t] })) },
             { rotulo: 'Área da sugestão', valor: fCategoria, onChange: setFCategoria, opcoes: AREAS_SUGESTAO.map((a) => ({ valor: a, rotulo: a })) },
           ]}
