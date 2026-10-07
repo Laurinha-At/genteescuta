@@ -1,25 +1,29 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, Hash, Users, Building2, CheckCircle2, Loader2 } from 'lucide-react'
+import { UploadCloud, Hash, Users, Building2, CheckCircle2, Loader2, Download, Printer, X } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Scorecard, Vazio, Aviso, Botao } from '@/components/ui'
 import { minhaConta, ehGerente, type Conta } from '@/lib/fb/usuarios'
 import { lerInconsistencias, type LeituraInconsistencias } from '@/lib/inconsistencias'
 import { salvarInconsistencias, listarInconsistencias, type DocInconsistencias } from '@/lib/fb/inconsistencias'
 
-const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 function rotuloMes(ref: string): string {
   const m = /^(\d{4})-(\d{2})$/.exec(ref ?? '')
   if (!m) return ref ?? ''
-  const nome = MESES_PT[Number(m[2]) - 1] ?? m[2]
+  const nome = MESES[Number(m[2]) - 1] ?? m[2]
   return `${nome[0].toUpperCase()}${nome.slice(1)}/${m[1]}`
+}
+function mesCurto(ref: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(ref ?? '')
+  return m ? `${MESES_ABREV[Number(m[2]) - 1] ?? m[2]}/${m[1].slice(2)}` : ref
 }
 function mesAtual(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-// Paleta oficial por setor (alto contraste); fallback para os demais.
 const PALETA = ['#0ea5e9', '#65a30d', '#b45309', '#7c3aed', '#be123c', '#0891b2', '#4f46e5', '#15803d']
 function chaveSetor(s: string): string {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' e ').replace(/\//g, ' ').replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase()
@@ -36,11 +40,15 @@ function corDoSetor(setor: string, idx: number): string {
   return COR_SETOR.get(chaveSetor(setor)) ?? PALETA[idx % PALETA.length]
 }
 
+type ItemMes = { mes: string; setor: string; funcionario: string; quantidade: number }
+
 export default function Inconsistencias() {
   const [eu, setEu] = useState<Conta | null | undefined>(undefined)
   const [docs, setDocs] = useState<DocInconsistencias[]>([])
   const [carregando, setCarregando] = useState(true)
   const [mesSel, setMesSel] = useState('')
+  const [fSetor, setFSetor] = useState('')
+  const [fFunc, setFFunc] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
 
@@ -50,27 +58,52 @@ export default function Inconsistencias() {
       setMesSel((atual) => (atual && d.some((x) => x.mes_ref === atual) ? atual : d[0]?.mes_ref ?? ''))
     }).catch(() => {}).finally(() => setCarregando(false))
   }
-  useEffect(() => {
-    minhaConta().then(setEu).catch(() => setEu(null))
-    recarregar()
-  }, [])
+  useEffect(() => { minhaConta().then(setEu).catch(() => setEu(null)); recarregar() }, [])
 
   const souGerente = ehGerente(eu ?? null)
-  const dadoMes = useMemo(() => docs.find((d) => d.mes_ref === mesSel) ?? null, [docs, mesSel])
 
-  if (eu === undefined) {
-    return <><CabecalhoPagina titulo="Inconsistências" /><p className="p-6 text-sm text-tinta-3">Carregando…</p></>
+  // Todos os itens (achatados com o mês), e as listas de setores/funcionários.
+  const todos = useMemo<ItemMes[]>(() => docs.flatMap((d) => d.itens.map((i) => ({ mes: d.mes_ref, ...i }))), [docs])
+  const setoresDisp = useMemo(() => Array.from(new Set(todos.map((i) => i.setor))).sort((a, b) => a.localeCompare(b)), [todos])
+  const funcsDisp = useMemo(() => Array.from(new Set(todos.map((i) => i.funcionario))).sort((a, b) => a.localeCompare(b)), [todos])
+
+  // Recorte pelos filtros de setor/funcionário (independe do mês).
+  const filtrados = useMemo(
+    () => todos.filter((i) => (!fSetor || i.setor === fSetor) && (!fFunc || i.funcionario === fFunc)),
+    [todos, fSetor, fFunc],
+  )
+  // Itens do mês selecionado (para cartões/barras/ranking).
+  const itensMes = useMemo(() => filtrados.filter((i) => i.mes === mesSel), [filtrados, mesSel])
+  // Série de evolução: todos os meses, respeitando setor/funcionário.
+  const serie = useMemo(() => {
+    const ordem = [...docs].map((d) => d.mes_ref).sort((a, b) => a.localeCompare(b))
+    return ordem.map((mes) => ({ mes, total: filtrados.filter((i) => i.mes === mes).reduce((s, i) => s + i.quantidade, 0) }))
+  }, [docs, filtrados])
+
+  const temFiltro = !!(fSetor || fFunc)
+
+  function baixarCsv() {
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const L = [['Mês', 'Setor', 'Funcionário', 'Quantidade'].map(esc).join(';')]
+    for (const i of itensMes) L.push([rotuloMes(i.mes), i.setor, i.funcionario, i.quantidade].map(esc).join(';'))
+    const blob = new Blob(['﻿' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `inconsistencias_${mesSel || 'geral'}.csv`; a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
   }
+
+  if (eu === undefined) return <><CabecalhoPagina titulo="Inconsistências" /><p className="p-6 text-sm text-tinta-3">Carregando…</p></>
   if (!souGerente) {
     return (
       <>
         <CabecalhoPagina titulo="Inconsistências" />
-        <div className="p-4 sm:p-6">
-          <Aviso tom="alerta" titulo="Acesso restrito">Esta área é da equipe de Gente &amp; Cultura (Master / Super Admin).</Aviso>
-        </div>
+        <div className="p-4 sm:p-6"><Aviso tom="alerta" titulo="Acesso restrito">Esta área é da equipe de Gente &amp; Cultura (Master / Super Admin).</Aviso></div>
       </>
     )
   }
+
+  const filtroTexto = [fSetor && `Setor: ${fSetor}`, fFunc && `Funcionário: ${fFunc}`].filter(Boolean).join(' · ') || 'Sem filtros'
 
   return (
     <>
@@ -80,7 +113,9 @@ export default function Inconsistencias() {
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 
-        <UploadInconsistencias onSalvo={(msg) => { setAviso(msg); setErro(null); recarregar() }} setErro={setErro} />
+        <div className="sem-impressao">
+          <UploadInconsistencias onSalvo={(msg) => { setAviso(msg); setErro(null); recarregar() }} setErro={setErro} />
+        </div>
 
         {carregando ? (
           <p className="text-sm text-tinta-3">Carregando…</p>
@@ -88,19 +123,47 @@ export default function Inconsistencias() {
           <Vazio titulo="Nenhuma inconsistência importada" descricao="Envie a primeira planilha acima para montar o painel." />
         ) : (
           <>
-            {/* Filtro de mês */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-tinta-2">Mês:</span>
-              <select value={mesSel} onChange={(e) => setMesSel(e.target.value)} className="rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca">
-                {docs.map((d) => <option key={d.mes_ref} value={d.mes_ref}>{rotuloMes(d.mes_ref)}</option>)}
-              </select>
+            {/* Barra de filtros + exportação (não sai no PDF) */}
+            <div className="sem-impressao flex flex-wrap items-end gap-3 rounded-xl border border-borda bg-white p-3">
+              <label className="text-sm">
+                <span className="mb-1 block text-xs font-medium text-tinta-3">Mês (cartões/barras/ranking)</span>
+                <select value={mesSel} onChange={(e) => setMesSel(e.target.value)} className={ENTRADA_SEL}>
+                  {docs.map((d) => <option key={d.mes_ref} value={d.mes_ref}>{rotuloMes(d.mes_ref)}</option>)}
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-xs font-medium text-tinta-3">Centro de custo / setor</span>
+                <select value={fSetor} onChange={(e) => setFSetor(e.target.value)} className={ENTRADA_SEL}>
+                  <option value="">Todos os setores</option>
+                  {setoresDisp.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-xs font-medium text-tinta-3">Funcionário</span>
+                <input list="lista-funcs" value={fFunc} onChange={(e) => setFFunc(e.target.value)} placeholder="Buscar / todos" className={`${ENTRADA_SEL} min-w-[12rem]`} />
+                <datalist id="lista-funcs">{funcsDisp.map((f) => <option key={f} value={f} />)}</datalist>
+              </label>
+              {temFiltro && (
+                <button type="button" onClick={() => { setFSetor(''); setFFunc('') }} className="inline-flex items-center gap-1 rounded-lg border border-borda-forte bg-white px-2.5 py-2 text-xs font-medium text-tinta-2 hover:border-critico hover:text-critico">
+                  <X size={13} aria-hidden /> Limpar filtros
+                </button>
+              )}
+              <div className="ml-auto flex gap-2">
+                <button type="button" onClick={baixarCsv} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-superficie-2"><Download size={15} aria-hidden /> CSV</button>
+                <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-superficie-2"><Printer size={15} aria-hidden /> PDF</button>
+              </div>
             </div>
 
-            {dadoMes && <PainelMes dado={dadoMes} />}
+            {/* Cabeçalho só do PDF */}
+            <div className="print-only mb-2">
+              <h2 className="text-lg font-bold text-tinta">Inconsistências — {rotuloMes(mesSel)}</h2>
+              <p className="text-xs text-tinta-3">{filtroTexto} · Gerado em {new Date().toLocaleString('pt-BR')}</p>
+            </div>
 
-            {/* Evolução (todos os meses com dados) */}
-            <Cartao titulo="Evolução — total de inconsistências por mês" apoio="Considera todos os meses com dados.">
-              <LinhaEvolucao dados={[...docs].sort((a, b) => a.mes_ref.localeCompare(b.mes_ref))} />
+            <PainelMes itens={itensMes} />
+
+            <Cartao titulo="Evolução — total por mês" apoio={temFiltro ? `Recorte: ${filtroTexto}` : 'Todos os meses com dados.'}>
+              <LinhaEvolucao serie={serie} />
             </Cartao>
           </>
         )}
@@ -109,57 +172,61 @@ export default function Inconsistencias() {
   )
 }
 
+const ENTRADA_SEL = 'rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca'
+
 // -------------------------------------------------------------
-// Painel do mês selecionado
+// Painel do mês selecionado (recebe já os itens filtrados do mês)
 // -------------------------------------------------------------
-function PainelMes({ dado }: { dado: DocInconsistencias }) {
+function PainelMes({ itens }: { itens: { setor: string; funcionario: string; quantidade: number }[] }) {
+  const total = itens.reduce((s, i) => s + i.quantidade, 0)
+  const funcionarios = new Set(itens.map((i) => i.funcionario.toLowerCase())).size
+  const setoresN = new Set(itens.map((i) => i.setor)).size
+  const media = funcionarios > 0 ? Math.round((total / funcionarios) * 10) / 10 : 0
+
   const porSetor = useMemo(() => {
     const m = new Map<string, number>()
-    for (const i of dado.itens) m.set(i.setor, (m.get(i.setor) ?? 0) + i.quantidade)
-    return Array.from(m, ([setor, total]) => ({ setor, total })).sort((a, b) => b.total - a.total)
-  }, [dado])
-  const porFuncionario = useMemo(() => {
+    for (const i of itens) m.set(i.setor, (m.get(i.setor) ?? 0) + i.quantidade)
+    return Array.from(m, ([setor, t]) => ({ setor, total: t })).sort((a, b) => b.total - a.total)
+  }, [itens])
+  const porFunc = useMemo(() => {
     const m = new Map<string, { funcionario: string; setor: string; total: number }>()
-    for (const i of dado.itens) {
-      const k = i.funcionario.toLowerCase()
-      const e = m.get(k)
-      if (e) e.total += i.quantidade
-      else m.set(k, { funcionario: i.funcionario, setor: i.setor, total: i.quantidade })
+    for (const i of itens) {
+      const k = i.funcionario.toLowerCase(); const e = m.get(k)
+      if (e) e.total += i.quantidade; else m.set(k, { funcionario: i.funcionario, setor: i.setor, total: i.quantidade })
     }
     return Array.from(m.values()).sort((a, b) => b.total - a.total)
-  }, [dado])
+  }, [itens])
 
-  const media = dado.funcionarios > 0 ? Math.round((dado.total / dado.funcionarios) * 10) / 10 : 0
+  if (itens.length === 0) return <Cartao titulo="Sem dados para este recorte"><p className="text-sm text-tinta-3">Nenhuma inconsistência no mês/filtros selecionados.</p></Cartao>
+
   const topSetor = porSetor[0]
   const maxSetor = Math.max(...porSetor.map((s) => s.total), 1)
-  const maxFunc = Math.max(...porFuncionario.map((f) => f.total), 1)
+  const maxFunc = Math.max(...porFunc.map((f) => f.total), 1)
 
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Scorecard rotulo="Total de inconsistências" valor={dado.total} />
-        <Scorecard rotulo="Funcionários envolvidos" valor={dado.funcionarios} />
+        <Scorecard rotulo="Total de inconsistências" valor={total} />
+        <Scorecard rotulo="Funcionários envolvidos" valor={funcionarios} />
         <Scorecard rotulo="Setor com mais" valor={topSetor ? topSetor.total : 0} apoio={topSetor?.setor ?? '—'} />
         <Scorecard rotulo="Média por funcionário" valor={media} />
       </div>
 
       <Cartao titulo="Inconsistências por setor" apoio="Do maior para o menor. Passe o mouse para ver a quantidade.">
-        {porSetor.length === 0 ? <p className="text-sm text-tinta-3">Sem dados.</p> : (
-          <ul className="space-y-1.5">
-            {porSetor.map((s, i) => (
-              <li key={s.setor} className="grid grid-cols-[minmax(7rem,13rem)_1fr_3rem] items-center gap-3" title={`${s.setor}: ${s.total}`}>
-                <span className="truncate text-xs text-tinta-2">{s.setor}</span>
-                <span className="relative block h-4 rounded-sm bg-plano">
-                  <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${Math.max((s.total / maxSetor) * 100, s.total > 0 ? 3 : 0)}%`, background: corDoSetor(s.setor, i) }} />
-                </span>
-                <strong className="text-right text-xs font-semibold text-tinta tabular">{s.total}</strong>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul className="space-y-1.5">
+          {porSetor.map((s, i) => (
+            <li key={s.setor} className="grid grid-cols-[minmax(7rem,13rem)_1fr_3rem] items-center gap-3" title={`${s.setor}: ${s.total}`}>
+              <span className="truncate text-xs text-tinta-2">{s.setor}</span>
+              <span className="relative block h-4 rounded-sm bg-plano">
+                <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${Math.max((s.total / maxSetor) * 100, s.total > 0 ? 3 : 0)}%`, background: corDoSetor(s.setor, i) }} />
+              </span>
+              <strong className="text-right text-xs font-semibold text-tinta tabular">{s.total}</strong>
+            </li>
+          ))}
+        </ul>
       </Cartao>
 
-      <Cartao titulo="Ranking de funcionários" apoio="Quem teve mais inconsistências no mês." padding={false}>
+      <Cartao titulo="Ranking de funcionários" apoio="Quem teve mais inconsistências no recorte." padding={false}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[32rem] text-sm">
             <thead>
@@ -172,7 +239,7 @@ function PainelMes({ dado }: { dado: DocInconsistencias }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-borda">
-              {porFuncionario.map((f, i) => (
+              {porFunc.map((f, i) => (
                 <tr key={f.funcionario} className="hover:bg-superficie-2" title={`${f.funcionario}: ${f.total}`}>
                   <td className="px-4 py-2.5 text-tinta-3 tabular">{i + 1}</td>
                   <td className="px-4 py-2.5 font-medium text-tinta">{f.funcionario}</td>
@@ -194,36 +261,61 @@ function PainelMes({ dado }: { dado: DocInconsistencias }) {
 }
 
 // -------------------------------------------------------------
-// Gráfico de linha — evolução por mês
+// Gráfico de linha — evolução por mês (área + média + rótulos)
 // -------------------------------------------------------------
-function LinhaEvolucao({ dados }: { dados: DocInconsistencias[] }) {
-  if (dados.length === 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
-  const w = 640, h = 180, padL = 36, padR = 12, padT = 12, padB = 28
-  const maxY = Math.max(...dados.map((d) => d.total), 1)
-  const x = (i: number) => padL + (dados.length === 1 ? (w - padL - padR) / 2 : (i * (w - padL - padR)) / (dados.length - 1))
+function LinhaEvolucao({ serie }: { serie: { mes: string; total: number }[] }) {
+  if (serie.length === 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
+
+  const media = Math.round(serie.reduce((s, p) => s + p.total, 0) / serie.length)
+  const primeiro = serie[0], ultimo = serie[serie.length - 1]
+  let frase = ''
+  if (serie.length >= 2) {
+    const delta = ultimo.total - primeiro.total
+    const pctv = primeiro.total > 0 ? Math.round((delta / primeiro.total) * 100) : (ultimo.total > 0 ? 100 : 0)
+    const dir = delta < 0 ? 'caiu' : delta > 0 ? 'subiu' : 'manteve'
+    frase = `De ${mesCurto(primeiro.mes)} a ${mesCurto(ultimo.mes)}: ${dir} de ${primeiro.total} para ${ultimo.total} (${pctv > 0 ? '+' : ''}${pctv}% no período). Média do período: ${media}.`
+  } else {
+    frase = `${mesCurto(serie[0].mes)}: ${serie[0].total}. Média do período: ${media}.`
+  }
+
+  const w = 640, h = 220, padL = 34, padR = 16, padT = 26, padB = 30
+  const maxY = Math.max(...serie.map((d) => d.total), media, 1)
+  const x = (i: number) => padL + (serie.length === 1 ? (w - padL - padR) / 2 : (i * (w - padL - padR)) / (serie.length - 1))
   const y = (v: number) => padT + (1 - v / maxY) * (h - padT - padB)
-  const pontos = dados.map((d, i) => ({ x: x(i), y: y(d.total), d }))
-  const linha = pontos.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  const pts = serie.map((d, i) => ({ x: x(i), y: y(d.total), d }))
+  const linha = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  const area = `${linha} L${pts[pts.length - 1].x.toFixed(1)},${(h - padB).toFixed(1)} L${pts[0].x.toFixed(1)},${(h - padB).toFixed(1)} Z`
+  const yMedia = y(media)
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Evolução das inconsistências por mês">
-      {[0, 0.5, 1].map((t) => {
-        const yy = padT + t * (h - padT - padB)
-        return <g key={t}>
-          <line x1={padL} y1={yy} x2={w - padR} y2={yy} stroke="#e7e2d8" strokeWidth={1} />
-          <text x={padL - 6} y={yy + 3} textAnchor="end" fontSize="10" fill="#8a847a">{Math.round(maxY * (1 - t))}</text>
-        </g>
-      })}
-      <path d={linha} fill="none" stroke="#2a7897" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-      {pontos.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r={4} fill="#2a7897" stroke="#fff" strokeWidth={1.5}>
-            <title>{`${rotuloMes(p.d.mes_ref)}: ${p.d.total} inconsistência(s)`}</title>
-          </circle>
-          <text x={p.x} y={h - 10} textAnchor="middle" fontSize="10" fill="#57514a">{rotuloMes(p.d.mes_ref).slice(0, 3)}</text>
-        </g>
-      ))}
-    </svg>
+    <div>
+      <p className="mb-3 rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta-2">{frase}</p>
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Evolução das inconsistências por mês">
+        {[0, 0.5, 1].map((t) => {
+          const yy = padT + t * (h - padT - padB)
+          return <g key={t}>
+            <line x1={padL} y1={yy} x2={w - padR} y2={yy} stroke="#ece8df" strokeWidth={1} />
+            <text x={padL - 6} y={yy + 3} textAnchor="end" fontSize="10" fill="#8a847a">{Math.round(maxY * (1 - t))}</text>
+          </g>
+        })}
+        {/* Área preenchida */}
+        <path d={area} fill="#2a7897" fillOpacity={0.1} />
+        {/* Linha de média (tracejada) */}
+        <line x1={padL} y1={yMedia} x2={w - padR} y2={yMedia} stroke="#8a6d00" strokeWidth={1.5} strokeDasharray="5 4" />
+        <text x={w - padR} y={yMedia - 4} textAnchor="end" fontSize="10" fill="#8a6d00">média {media}</text>
+        {/* Linha principal */}
+        <path d={linha} fill="none" stroke="#2a7897" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p, i) => (
+          <g key={i}>
+            <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="11" fontWeight="600" fill="#1a1714">{p.d.total}</text>
+            <circle cx={p.x} cy={p.y} r={4.5} fill="#2a7897" stroke="#fff" strokeWidth={2}>
+              <title>{`${rotuloMes(p.d.mes)}: ${p.d.total} inconsistência(s)`}</title>
+            </circle>
+            <text x={p.x} y={h - 10} textAnchor="middle" fontSize="10" fill="#57514a">{mesCurto(p.d.mes)}</text>
+          </g>
+        ))}
+      </svg>
+    </div>
   )
 }
 
@@ -282,7 +374,7 @@ function UploadInconsistencias({ onSalvo, setErro }: { onSalvo: (msg: string) =>
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-sm">
           <span className="mb-1 block font-medium text-tinta">Mês de referência</span>
-          <input type="month" value={mes} onChange={(e) => setMes(e.target.value || mesAtual())} className="rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca" />
+          <input type="month" value={mes} onChange={(e) => setMes(e.target.value || mesAtual())} className={ENTRADA_SEL} />
         </label>
         <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-4 py-2.5 text-sm font-semibold text-tinta transition-colors hover:border-marca hover:text-marca-texto">
           <UploadCloud size={15} aria-hidden /> {lendo ? 'Lendo…' : 'Escolher planilha (.xlsx)'}
@@ -299,14 +391,12 @@ function UploadInconsistencias({ onSalvo, setErro }: { onSalvo: (msg: string) =>
             <MiniStat Icone={Users} rotulo="Funcionários" valor={funcionarios} />
             <MiniStat Icone={Building2} rotulo="Setores" valor={setores} />
           </div>
-
           {leitura.desconhecidos.length > 0 && (
             <Aviso tom="alerta" titulo="Setores não reconhecidos">
               Estes setores não casaram com a lista oficial e serão salvos como estão:{' '}
               <strong>{leitura.desconhecidos.join(', ')}</strong>. Confira a grafia na planilha, se preferir corrigir antes.
             </Aviso>
           )}
-
           <Botao type="button" onClick={confirmar} disabled={salvando}>
             {salvando ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Salvando…</> : <><CheckCircle2 size={15} aria-hidden /> Salvar {rotuloMes(mes)}</>}
           </Botao>
