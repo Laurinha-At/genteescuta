@@ -19,7 +19,7 @@ const CARDS: CardHome[] = [
   { href: '/informacoes-administrativas', titulo: 'Informações Administrativas', frase: 'Aqui você encontra acessos e informações importantes para facilitar sua rotina, consultar documentos, e acompanhar os principais processos administrativos da Soulan.', Icone: ClipboardList, cor: 'linear-gradient(135deg, #4a6fa5 0%, #263a5c 100%)' },
   { href: '/contato', titulo: 'Contato e Suporte', frase: 'Fale com a equipe de Gente & Cultura.', Icone: LifeBuoy, cor: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' },
   { href: '/treinamento', titulo: 'Treinamento e Desenvolvimento', frase: 'Trilhas de aprendizagem: leia, responda e conquiste.', Icone: GraduationCap, cor: 'linear-gradient(135deg, #3f7db0 0%, #223f6a 100%)' },
-  { href: '/reembolso', titulo: 'Solicitação de Reembolso', frase: 'Peça reembolsos, anexe o comprovante e acompanhe a aprovação.', Icone: Receipt, cor: 'linear-gradient(135deg, #2a7897 0%, #557d26 100%)' },
+  { href: '/reembolso', titulo: 'Solicitação de Reembolso', frase: 'Peça reembolsos, anexe o comprovante e acompanhe a aprovação.', Icone: Receipt, cor: 'linear-gradient(135deg, #f59e0b 0%, #c2410c 100%)', destaque: true },
 ]
 
 export default function Inicio() {
@@ -61,7 +61,7 @@ export default function Inicio() {
                 style={{ background: cor }}
                 className={`group flex flex-col items-center gap-3 rounded-2xl p-5 text-center text-white transition-transform hover:-translate-y-1 sm:p-6 [text-shadow:0_1px_6px_rgba(0,0,0,0.22)] ${
                   destaque
-                    ? 'shadow-[0_10px_30px_rgba(78,155,46,0.4)] ring-2 ring-[#4e9b2e] ring-offset-2 ring-offset-white'
+                    ? 'shadow-[0_10px_30px_rgba(245,158,11,0.45)] ring-2 ring-[#f59e0b] ring-offset-2 ring-offset-white'
                     : 'shadow-[0_6px_18px_rgba(26,23,20,0.14)]'
                 }`}
               >
