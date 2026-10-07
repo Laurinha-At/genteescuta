@@ -25,6 +25,30 @@ function hojeSaoPaulo(): { dia: number; mes: number; ano: number } {
   return { dia: get('day'), mes: get('month'), ano: get('year') }
 }
 
+export interface PessoaDiretorio {
+  uid: string
+  nome: string
+  setor: string
+}
+
+/**
+ * Diretório PÚBLICO de pessoas (para seleção, ex.: reconhecimento).
+ * Lê a projeção `aniversarios` (nome + área + ativo), mostra só ATIVOS e
+ * ordena por nome. Não expõe e-mail/matrícula.
+ */
+export async function listarPessoasDiretorio(): Promise<PessoaDiretorio[]> {
+  const snap = await getDocs(collection(db(), 'aniversarios')).catch(() => null)
+  if (!snap) return []
+  return snap.docs
+    .map((d) => {
+      const x = d.data() as Record<string, unknown>
+      return { uid: d.id, nome: String(x.nome ?? '').trim(), setor: String(x.area ?? '').trim(), ativo: x.ativo }
+    })
+    .filter((p) => p.nome && p.ativo !== false)
+    .map(({ uid, nome, setor }) => ({ uid, nome, setor }))
+    .sort((a, b) => a.nome.localeCompare(b.nome))
+}
+
 export async function destaquesDoDia(): Promise<DestaqueDia[]> {
   const snap = await getDocs(collection(db(), 'aniversarios')).catch(() => null)
   if (!snap) return []

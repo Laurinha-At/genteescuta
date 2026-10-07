@@ -122,9 +122,12 @@ export async function enviarManifestacao(p: {
   impactos?: string[]
   impacto_outro?: string
   // -------- reconhecimento --------
-  reconhecer?: string      // quem/qual time
-  tipos?: string[]         // tipo de manifestação (seleção múltipla)
-  centro_custo?: string    // centro de custo do perfil (obrigatório)
+  reconhecer?: string             // rótulo legível (nome da área/pessoa)
+  reconhecer_tipo?: 'area' | 'pessoa'
+  reconhecer_id?: string          // centro de custo (área) OU uid (pessoa)
+  reconhecer_nome?: string        // nome exibido do alvo
+  tipos?: string[]                // tipo de manifestação (seleção múltipla)
+  centro_custo?: string           // centro de custo do perfil (obrigatório)
 }) {
   const tipo = String(p.tipo ?? '')
   const nome = String(p.nome ?? '').trim()
@@ -197,22 +200,29 @@ export async function enviarManifestacao(p: {
   }
 
   // ---------------- Reconhecimento (identificado: captura o perfil logado) ----------------
-  const alvo = String(p.reconhecer ?? p.titulo ?? '').trim()   // quem/qual time
   const comentario = String(p.descricao ?? '').trim()
   const centro = String(p.centro_custo ?? p.area ?? '').trim()
   const tiposR = Array.isArray(p.tipos) ? p.tipos.map((x) => String(x).trim()).filter(Boolean) : []
+  // Alvo ESTRUTURADO: tipo (área/pessoa) + id (centro de custo ou uid) + nome.
+  const alvoTipo = p.reconhecer_tipo === 'area' || p.reconhecer_tipo === 'pessoa' ? p.reconhecer_tipo : null
+  const alvoId = String(p.reconhecer_id ?? '').trim()
+  const alvoNome = String(p.reconhecer_nome ?? p.reconhecer ?? '').trim()
 
   // Não é anônimo: nome, e-mail e centro de custo do perfil são obrigatórios.
   if (nome.length < 3) throw new Error('Não consegui identificar o seu nome. Entre novamente.')
   if (!EMAIL_RE.test(email)) throw new Error('Não consegui identificar o seu e-mail. Entre novamente.')
   if (!centro) throw new Error('Seu centro de custo não está definido no cadastro. Peça à equipe de Gente & Cultura para configurar.')
-  if (alvo.length < 2) throw new Error('Informe quem ou qual time você gostaria de reconhecer.')
+  if (!alvoTipo) throw new Error('Escolha se você vai reconhecer uma área/time ou uma pessoa.')
+  if (!alvoId || alvoNome.length < 2) throw new Error(alvoTipo === 'area' ? 'Selecione a área/time.' : 'Selecione a pessoa.')
   if (comentario.length < 10 || comentario.length > 5000) throw new Error('Comente com as suas palavras (de 10 a 5.000 caracteres).')
 
   await addDoc(collection(db(), 'manifestacoes'), {
     tipo,
-    titulo: alvo,
-    reconhecer: alvo,
+    titulo: alvoNome,
+    reconhecer: alvoNome,
+    reconhecer_tipo: alvoTipo,
+    reconhecer_id: alvoId,
+    reconhecer_nome: alvoNome,
     tipos_reconhecimento: tiposR,
     descricao: comentario,
     area: centro,

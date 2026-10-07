@@ -24,8 +24,9 @@ export interface DadosPessoais {
   admissao?: string | null
 }
 
-/** Projeção PÚBLICA para o Mural (nome + área + dia/mês; nada sensível). */
-async function escreverAniversario(uid: string, nome: string, d: DadosPessoais, area?: string) {
+/** Projeção PÚBLICA (nome + área + dia/mês + ativo; nada sensível).
+ *  Serve ao Mural e ao diretório de pessoas (ex.: reconhecimento). */
+async function escreverAniversario(uid: string, nome: string, d: DadosPessoais, area?: string, ativo?: boolean) {
   const dados: Record<string, unknown> = {
     nome,
     aniv_dia: d.aniv_dia ?? null,
@@ -37,6 +38,7 @@ async function escreverAniversario(uid: string, nome: string, d: DadosPessoais, 
   }
   // Só sobrescreve a área quando ela foi informada (evita apagar no merge).
   if (area !== undefined) dados.area = area.trim() || null
+  if (ativo !== undefined) dados.ativo = ativo
   await setDoc(doc(db(), 'aniversarios', uid), dados, { merge: true })
 }
 
@@ -75,6 +77,7 @@ export async function sincronizarAniversarios(): Promise<number> {
           adm_dia: f.adm_dia ?? null, adm_mes: f.adm_mes ?? null, adm_ano: f.adm_ano ?? null,
         },
         String(f.centro_custo ?? ''),
+        (f as any).ativo !== false,
       )
       n++
     } catch { /* ignora um registro problemático e segue */ }
@@ -206,7 +209,7 @@ export async function cadastrarFuncionario(p: {
   } finally {
     await deleteApp(secApp).catch(() => {})
   }
-  if (uidCriado) await escreverAniversario(uidCriado, nome, extras, centro_custo)
+  if (uidCriado) await escreverAniversario(uidCriado, nome, extras, centro_custo, true)
   await registrarLog(reaproveitada ? 'vincular_funcionario' : 'cadastro_funcionario', email)
   return { ok: true, reaproveitada }
 }
@@ -282,7 +285,7 @@ export async function importarFuncionarios(
           mapa.set(l.email, uid)
           criados++
         }
-        await escreverAniversario(uid, l.nome, l, l.centro_custo)
+        await escreverAniversario(uid, l.nome, l, l.centro_custo, true)
       } catch {
         falhas++
       }
@@ -297,11 +300,14 @@ export async function importarFuncionarios(
 
 export async function definirAtivoFuncionario(uid: string, ativo: boolean, email?: string) {
   await updateDoc(doc(db(), 'funcionarios', uid), { ativo })
+  // Espelha no diretório público para ocultar desligados (ex.: reconhecimento).
+  await updateDoc(doc(db(), 'aniversarios', uid), { ativo }).catch(() => {})
   await registrarLog(ativo ? 'ativar_funcionario' : 'inativar_funcionario', email ?? uid)
 }
 
 export async function excluirFuncionario(uid: string, email?: string) {
   await deleteDoc(doc(db(), 'funcionarios', uid))
+  await deleteDoc(doc(db(), 'aniversarios', uid)).catch(() => {})
   await registrarLog('excluir_funcionario', email ?? uid)
 }
 
