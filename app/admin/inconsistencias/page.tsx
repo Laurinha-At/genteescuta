@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, Hash, Users, Building2, CheckCircle2, Loader2, Download, Printer, X } from 'lucide-react'
+import { UploadCloud, Hash, Users, Building2, CheckCircle2, Loader2, Download, Printer, X, FileSpreadsheet } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Scorecard, Vazio, Aviso, Botao } from '@/components/ui'
 import { minhaConta, ehGerente, type Conta } from '@/lib/fb/usuarios'
 import { lerInconsistencias, type LeituraInconsistencias } from '@/lib/inconsistencias'
@@ -82,15 +82,70 @@ export default function Inconsistencias() {
 
   const temFiltro = !!(fSetor || fFunc)
 
+  const [gerandoXlsx, setGerandoXlsx] = useState(false)
+
+  function baixarBlob(blob: Blob, nome: string) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = nome; a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  }
+
+  // CSV — só os dados, sem logo (para importar em outras ferramentas).
   function baixarCsv() {
     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
     const L = [['Mês', 'Setor', 'Funcionário', 'Quantidade'].map(esc).join(';')]
     for (const i of itensMes) L.push([rotuloMes(i.mes), i.setor, i.funcionario, i.quantidade].map(esc).join(';'))
-    const blob = new Blob(['﻿' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = `inconsistencias_${mesSel || 'geral'}.csv`; a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+    baixarBlob(new Blob(['﻿' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' }), `inconsistencias_${mesSel || 'geral'}.csv`)
+  }
+
+  // Planilha .xlsx com a identidade visual (logo + cabeçalho), via ExcelJS.
+  async function baixarXlsx() {
+    setGerandoXlsx(true)
+    try {
+      const ExcelJS = (await import('exceljs')).default
+      const wb = new ExcelJS.Workbook()
+      const ws = wb.addWorksheet('Inconsistências')
+      ws.columns = [{ width: 16 }, { width: 36 }, { width: 30 }, { width: 13 }]
+
+      // Logo no topo (primeiras linhas).
+      try {
+        const buf = await (await fetch('/logo-soulan.png')).arrayBuffer()
+        const bytes = new Uint8Array(buf)
+        let bin = ''
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + 0x8000)))
+        const imgId = wb.addImage({ base64: btoa(bin), extension: 'png' })
+        ws.addImage(imgId, { tl: { col: 0, row: 0 }, ext: { width: 200, height: 56 } })
+      } catch { /* sem logo se o fetch falhar */ }
+
+      // Título, filtros e data (abaixo do logo).
+      ws.mergeCells('A5:D5')
+      Object.assign(ws.getCell('A5'), { value: `Inconsistências — ${rotuloMes(mesSel)}`, font: { bold: true, size: 14 } })
+      ws.mergeCells('A6:D6')
+      Object.assign(ws.getCell('A6'), { value: `${filtroTexto} · Gerado em ${new Date().toLocaleString('pt-BR')}`, font: { size: 10, color: { argb: 'FF6B6B6B' } } })
+
+      // Cabeçalho das colunas.
+      const hr = ws.getRow(8)
+      hr.values = ['Mês', 'Setor', 'Funcionário', 'Quantidade']
+      hr.eachCell((c) => {
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2A7897' } }
+        c.alignment = { vertical: 'middle' }
+      })
+
+      // Dados (respeitando os filtros do recorte atual).
+      let r = 9
+      for (const i of itensMes) {
+        ws.getRow(r).values = [rotuloMes(i.mes), i.setor, i.funcionario, i.quantidade]
+        r++
+      }
+      ws.getColumn(4).alignment = { horizontal: 'center' }
+
+      const out = await wb.xlsx.writeBuffer()
+      baixarBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `inconsistencias_${mesSel || 'geral'}.xlsx`)
+    } finally {
+      setGerandoXlsx(false)
+    }
   }
 
   if (eu === undefined) return <><CabecalhoPagina titulo="Inconsistências" /><p className="p-6 text-sm text-tinta-3">Carregando…</p></>
@@ -149,14 +204,19 @@ export default function Inconsistencias() {
                 </button>
               )}
               <div className="ml-auto flex gap-2">
+                <button type="button" onClick={baixarXlsx} disabled={gerandoXlsx} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-superficie-2 disabled:opacity-60">
+                  {gerandoXlsx ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <FileSpreadsheet size={15} aria-hidden />} Planilha
+                </button>
                 <button type="button" onClick={baixarCsv} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-superficie-2"><Download size={15} aria-hidden /> CSV</button>
                 <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-superficie-2"><Printer size={15} aria-hidden /> PDF</button>
               </div>
             </div>
 
-            {/* Cabeçalho só do PDF */}
-            <div className="print-only mb-2">
-              <h2 className="text-lg font-bold text-tinta">Inconsistências — {rotuloMes(mesSel)}</h2>
+            {/* Cabeçalho só do PDF (com logo) */}
+            <div className="print-only mb-3 border-b border-borda pb-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-soulan.png" alt="Soulan" style={{ height: 44, width: 'auto' }} />
+              <h2 className="mt-2 text-lg font-bold text-tinta">Inconsistências — {rotuloMes(mesSel)}</h2>
               <p className="text-xs text-tinta-3">{filtroTexto} · Gerado em {new Date().toLocaleString('pt-BR')}</p>
             </div>
 
