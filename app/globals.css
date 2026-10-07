@@ -1,14 +1,14 @@
 @import 'tailwindcss';
 
 /* ===============================================================
-   GENTE ESCUTA — sistema de design
+   GENTE ESCUTA: sistema de design
 
    Direção: editorial e humano. Neutros levemente quentes, tipografia
    com respiro, cantos generosos e sombra em vez de borda dura.
 
    Duas metades com pesos diferentes de propósito:
-   · telas do colaborador — convidativas, texto grande, mais ar
-   · painéis da administração — densos, porque são lidos em reunião
+   · telas do colaborador: convidativas, texto grande, mais ar
+   · painéis da administração: densos, porque são lidos em reunião
      e impressos em PDF
 
    As cores de GRÁFICO não mudaram: foram validadas contra fundo
@@ -55,7 +55,7 @@
   --gradiente: linear-gradient(118deg, #557d26 0%, #2a7897 62%);
   --gradiente-suave: linear-gradient(118deg, #8cc63f 0%, #2f8bb4 100%);
 
-  /* Sombras em camadas — substituem a borda dura dos cartões */
+  /* Sombras em camadas: substituem a borda dura dos cartões */
   --sombra-1: 0 1px 2px rgba(26, 23, 20, 0.04), 0 1px 3px rgba(26, 23, 20, 0.05);
   --sombra-2: 0 1px 3px rgba(26, 23, 20, 0.04), 0 4px 12px rgba(26, 23, 20, 0.06);
   --sombra-3: 0 2px 6px rgba(26, 23, 20, 0.05), 0 10px 28px rgba(26, 23, 20, 0.09);
@@ -63,20 +63,20 @@
   --raio: 0.75rem;
   --raio-g: 1rem;
 
-  /* Rampa ordinal de risco — validada: monotônica, matiz único, ponta clara 2,27:1 */
+  /* Rampa ordinal de risco: validada: monotônica, matiz único, ponta clara 2,27:1 */
   --risco-1: #e59892;
   --risco-2: #cf6b67;
   --risco-3: #b5423f;
   --risco-4: #87292c;
 
-  /* Rampa ordinal do funil, no matiz da marca — validada, ponta clara 2,07:1 */
+  /* Rampa ordinal do funil, no matiz da marca: validada, ponta clara 2,07:1 */
   --funil-1: #7fbdd4;
   --funil-2: #4f9fbe;
   --funil-3: #2f83a4;
   --funil-4: #22637c;
   --funil-5: #154556;
 
-  /* Séries categóricas — ordem fixa, nunca ciclada.
+  /* Séries categóricas: ordem fixa, nunca ciclada.
      O slot 1 é o teal da marca saturado o bastante para não ler como cinza. */
   --serie-1: #0b81ac;
   --serie-2: #eb6834;
@@ -150,7 +150,7 @@ body {
   box-shadow: var(--sombra-2);
 }
 
-/* Cartão clicável — sobe de leve no hover */
+/* Cartão clicável: sobe de leve no hover */
 .cartao-clicavel {
   transition:
     box-shadow 0.18s ease,
@@ -171,7 +171,7 @@ body {
 }
 
 /* --------------------------------------------------------------
-   Etiquetas de faixa — cor SEMPRE com ponto + texto
+   Etiquetas de faixa: cor SEMPRE com ponto + texto
    -------------------------------------------------------------- */
 .chip {
   display: inline-flex;
@@ -219,21 +219,21 @@ body {
   transform: translateY(0);
 }
 
-/* Fio decorativo do degradê — sem texto em cima */
+/* Fio decorativo do degradê: sem texto em cima */
 .fio-marca {
   height: 3px;
   background: var(--gradiente-suave);
   border-radius: 9999px;
 }
 
-/* Faixa das trilhas de treinamento — degradê da marca (segura texto branco).
+/* Faixa das trilhas de treinamento: degradê da marca (segura texto branco).
    Usada na capa dos cards sem imagem e no cabeçalho do player. */
 .banner-trilha {
   background: var(--gradiente);
 }
 
 /* --------------------------------------------------------------
-   Home do colaborador — entrada acolhedora
+   Home do colaborador: entrada acolhedora
    Cores do logotipo Soulan: azul (#2f8bb4) + verde (#8cc63f)
    -------------------------------------------------------------- */
 .hero-acolhedor {
@@ -257,7 +257,7 @@ body {
   background: radial-gradient(58% 52% at 80% 8%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 70%);
 }
 
-/* Texto com o degradê da marca — só em títulos grandes (contraste ok em bold) */
+/* Texto com o degradê da marca: só em títulos grandes (contraste ok em bold) */
 .texto-gradiente {
   background: linear-gradient(118deg, #2f8bb4 0%, #4b9e3a 100%);
   -webkit-background-clip: text;
@@ -302,7 +302,7 @@ body {
 }
 
 /* --------------------------------------------------------------
-   Home — capa/banner com a equipe Soulan sobre o degradê da marca
+   Home: capa/banner com a equipe Soulan sobre o degradê da marca
    -------------------------------------------------------------- */
 .hero-capa {
   position: relative;
@@ -351,7 +351,7 @@ body {
 }
 
 /* --------------------------------------------------------------
-   Banner full-bleed da home — foto da equipe sobre o degradê,
+   Banner full-bleed da home: foto da equipe sobre o degradê,
    com texto sobreposto e legível (scrim para contraste).
    -------------------------------------------------------------- */
 .banner-hero {
@@ -415,7 +415,7 @@ body {
 }
 
 /* --------------------------------------------------------------
-   Mural — cartões de post (reconhecimento / Gente Informa)
+   Mural: cartões de post (reconhecimento / Gente Informa)
    -------------------------------------------------------------- */
 .post-cartao {
   position: relative;

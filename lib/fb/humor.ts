@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Humor da equipe — persistência no Firestore.
+// Humor da equipe: persistência no Firestore.
 //
 // Os registros brutos (com nome/matrícula) ficam em `humor_registros`,
 // legíveis SÓ pelo admin (ver firestore.rules). A tela lê tudo para
@@ -46,7 +46,7 @@ export async function salvarRegistrosHumor(novos: RegistroHumor[]): Promise<numb
   return gravados
 }
 
-/** Apaga TODOS os registros de humor — para recomeçar do zero. */
+/** Apaga TODOS os registros de humor: para recomeçar do zero. */
 export async function limparRegistrosHumor(): Promise<number> {
   const snap = await getDocs(collection(db(), 'humor_registros'))
   const docs = snap.docs

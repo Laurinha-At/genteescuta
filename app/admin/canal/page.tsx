@@ -175,14 +175,14 @@ export default function CanalAdmin() {
                         {m.anonima ? (
                           <span className="inline-flex items-center gap-1.5 text-tinta-3"><UserX size={13} aria-hidden /> Anônimo</span>
                         ) : (
-                          <span className="block max-w-[11rem] truncate font-medium text-tinta">{m.nome ?? '—'}</span>
+                          <span className="block max-w-[11rem] truncate font-medium text-tinta">{m.nome ?? '-'}</span>
                         )}
                       </td>
                       <td className="max-w-[22rem] px-4 py-2.5">
                         <Link href={`/admin/canal/ver?id=${m.id}`} className="block truncate font-medium text-tinta hover:text-marca">{m.titulo}</Link>
                       </td>
                       <td className="px-4 py-2.5 text-tinta-2">{TIPO_MANIFESTACAO_LABEL[m.tipo as ManifestacaoTipo] ?? m.tipo}</td>
-                      <td className="max-w-[16rem] px-4 py-2.5 text-tinta-2"><span className="block truncate">{m.categoria ?? m.area ?? '—'}</span></td>
+                      <td className="max-w-[16rem] px-4 py-2.5 text-tinta-2"><span className="block truncate">{m.categoria ?? m.area ?? '-'}</span></td>
                       <td className="px-4 py-2.5"><Chip faixa={triagemFaixa(m.triagem)}>{TRIAGEM_LABEL[(m.triagem ?? 'pendente') as Triagem]}</Chip></td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-center gap-1.5">

@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Informações Administrativas — tópicos (cards) com vários itens.
+// Informações Administrativas: tópicos (cards) com vários itens.
 //
 // Colaboradores logados VEEM. Quem é admin (Master) ganha os controles
 // de adicionar/editar/reordenar/remover tópicos e itens. A trava real de
@@ -331,7 +331,7 @@ function CartaoPreview({
 }
 
 // -------------------------------------------------------------
-// Detalhe de um assunto (modal) — lista os itens; admin gerencia aqui.
+// Detalhe de um assunto (modal): lista os itens; admin gerencia aqui.
 // -------------------------------------------------------------
 function DetalheTopico({
   topico, grad, ehAdmin, onFechar, aoMudar, setErro,
@@ -610,7 +610,7 @@ function EditorTopico({
           </div>
         </Campo>
         <Campo rotulo="Título" obrigatorio>
-          <RichTextEditor ref={tituloRef} valorInicial={topico?.titulo ?? ''} placeholder="Ex.: Registro de Ponto – iFractal" minHeight={44} />
+          <RichTextEditor ref={tituloRef} valorInicial={topico?.titulo ?? ''} placeholder="Ex.: Registro de Ponto (iFractal)" minHeight={44} />
         </Campo>
         <Campo rotulo="Descrição" ajuda="Opcional. Use os botões para negrito e listas; Enter pula linha.">
           <RichTextEditor ref={descRef} valorInicial={topico?.descricao ?? ''} placeholder="Explique rapidamente o tópico…" />

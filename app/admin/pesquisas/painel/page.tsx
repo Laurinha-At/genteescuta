@@ -82,9 +82,9 @@ function Painel() {
           {a.enps ? (
             <Scorecard rotulo="eNPS" valor={a.enps.enps > 0 ? `+${a.enps.enps}` : a.enps.enps} faixa={classENPS?.faixa} destaque={classENPS ? <Chip faixa="neutro">{classENPS.rotulo}</Chip> : undefined} apoio={`${a.enps.percentualPromotores}% promotores · ${a.enps.percentualDetratores}% detratores`} />
           ) : (
-            <Scorecard rotulo="eNPS" valor="—" apoio="Não medido nesta pesquisa" />
+            <Scorecard rotulo="eNPS" valor="-" apoio="Não medido nesta pesquisa" />
           )}
-          <Scorecard rotulo="Índice de satisfação" valor={a.satisfacao ?? '—'} sufixo={a.satisfacao !== null ? '/100' : undefined} apoio="Satisfação geral declarada, de 0 a 100" />
+          <Scorecard rotulo="Índice de satisfação" valor={a.satisfacao ?? '-'} sufixo={a.satisfacao !== null ? '/100' : undefined} apoio="Satisfação geral declarada, de 0 a 100" />
         </div>
 
         {a.alertas.length > 0 && (
@@ -121,7 +121,7 @@ function Painel() {
               {a.pontosAtencao.map((d: any) => (
                 <li key={d.dimensao} className="flex items-start gap-2.5">
                   <TriangleAlert size={15} className="mt-0.5 flex-none text-critico" aria-hidden />
-                  <div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="text-xs text-tinta-3">Pior item: {d.itens[0]?.enunciado ?? '—'}</p></div>
+                  <div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="text-xs text-tinta-3">Pior item: {d.itens[0]?.enunciado ?? '-'}</p></div>
                   <Chip faixa={d.faixa}>{d.indice}</Chip>
                 </li>
               ))}

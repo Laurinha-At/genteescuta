@@ -27,7 +27,7 @@ export function StatusChip({ status }: { status: ManifestacaoStatus }) {
   return <Chip faixa={TOM[status]}>{STATUS_MANIFESTACAO_LABEL[status]}</Chip>
 }
 
-/** Histórico visível ao colaborador — é aqui que mora o "retorno". */
+/** Histórico visível ao colaborador: é aqui que mora o "retorno". */
 export function LinhaDoTempo({
   eventos,
 }: {

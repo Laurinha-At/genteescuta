@@ -57,11 +57,11 @@ function Detalhe() {
               <div className="space-y-4 text-sm">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-tinta-3">Problema ou oportunidade</p>
-                  <p className="mt-1 whitespace-pre-line leading-6 text-tinta-2">{m.problema || '—'}</p>
+                  <p className="mt-1 whitespace-pre-line leading-6 text-tinta-2">{m.problema || '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-tinta-3">Sugestão de melhoria</p>
-                  <p className="mt-1 whitespace-pre-line leading-6 text-tinta-2">{m.sugestao || '—'}</p>
+                  <p className="mt-1 whitespace-pre-line leading-6 text-tinta-2">{m.sugestao || '-'}</p>
                 </div>
                 {Array.isArray(m.impactos) && m.impactos.length > 0 && (
                   <div>
@@ -96,11 +96,11 @@ function Detalhe() {
             <dl className="space-y-3 text-sm">
               <div className="flex items-start gap-2.5">
                 {m.anonima ? <UserX size={15} className="mt-0.5 flex-none text-tinta-3" aria-hidden /> : <User size={15} className="mt-0.5 flex-none text-tinta-3" aria-hidden />}
-                <div className="min-w-0"><dt className="text-xs text-tinta-3">Nome</dt><dd className="font-medium text-tinta">{m.anonima ? 'Não identificado' : (m.nome ?? '—')}</dd></div>
+                <div className="min-w-0"><dt className="text-xs text-tinta-3">Nome</dt><dd className="font-medium text-tinta">{m.anonima ? 'Não identificado' : (m.nome ?? '-')}</dd></div>
               </div>
               <div className="flex items-start gap-2.5">
                 <Mail size={15} className="mt-0.5 flex-none text-tinta-3" aria-hidden />
-                <div className="min-w-0"><dt className="text-xs text-tinta-3">E-mail</dt><dd className="break-all font-medium text-tinta">{m.anonima ? 'Não gravado' : (m.email ?? '—')}</dd></div>
+                <div className="min-w-0"><dt className="text-xs text-tinta-3">E-mail</dt><dd className="break-all font-medium text-tinta">{m.anonima ? 'Não gravado' : (m.email ?? '-')}</dd></div>
               </div>
               {!m.anonima && m.departamento && (
                 <div className="flex items-start gap-2.5">
@@ -171,7 +171,7 @@ function PainelTriagem({ m, aoSalvar }: { m: any; aoSalvar: () => void }) {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-tinta">Resposta particular ao autor <span className="text-critico">*</span></label>
             <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} rows={3} className={`block w-full rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca`} placeholder="Explique o motivo e o que pode ser ajustado…" />
-            <p className="text-xs text-tinta-3">Fica guardada no histórico. O envio por e-mail ainda não está ligado — contate a pessoa pelo canal disponível.</p>
+            <p className="text-xs text-tinta-3">Fica guardada no histórico. O envio por e-mail ainda não está ligado: contate a pessoa pelo canal disponível.</p>
             <div className="flex gap-2">
               <Botao type="button" onClick={() => agir('reprovada')} disabled={busy || resposta.trim().length < 5}>
                 <XCircle size={15} aria-hidden /> {busy ? 'Salvando…' : 'Confirmar reprovação'}

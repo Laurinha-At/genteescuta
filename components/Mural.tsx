@@ -10,7 +10,7 @@ import { RichHtml } from '@/components/RichText'
 
 /**
  * Corpo do post: novos posts já vêm como HTML (com links). Posts antigos são
- * texto puro — converte quebras de linha em <br> e transforma URLs em links.
+ * texto puro: converte quebras de linha em <br> e transforma URLs em links.
  */
 function corpoParaHtml(corpo: string): string {
   const s = String(corpo ?? '')

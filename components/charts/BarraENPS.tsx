@@ -6,7 +6,7 @@ import { LegendaSeries } from './Legenda'
 
 /**
  * Composição do eNPS. Promotor/neutro/detrator é um estado ordenado, não uma
- * série categórica — por isso usa a paleta de status, sempre com rótulo e
+ * série categórica: por isso usa a paleta de status, sempre com rótulo e
  * percentual escritos ao lado.
  */
 const CORES = {

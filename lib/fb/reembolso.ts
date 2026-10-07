@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Solicitação de Reembolso — operações no Firestore.
+// Solicitação de Reembolso: operações no Firestore.
 //
 // SEM Firebase Storage (o projeto é Spark, sem cartão): o comprovante
 // é comprimido no navegador e guardado como data URL num documento
@@ -439,7 +439,7 @@ export async function editarReembolso(
     alteracoes,
   }
 
-  // Substitui o comprovante (doc separado) ANTES de mudar o status — a Regra
+  // Substitui o comprovante (doc separado) ANTES de mudar o status: a Regra
   // do anexo autoriza a troca enquanto o pedido ainda está "recusado".
   if (anexo) {
     await setDoc(doc(db(), 'reembolso_anexos', id), {

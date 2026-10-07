@@ -10,7 +10,7 @@
 //    anterior.
 //  • <BotaoVoltar/> lê essa pilha: se há página anterior, chama
 //    router.back() (preserva rolagem/estado do histórico do navegador)
-//    e mostra "Voltar" — ou "Início" quando a anterior for a home.
+//    e mostra "Voltar": ou "Início" quando a anterior for a home.
 //    Sem histórico (entrou direto por link), vira um link para a home.
 // =============================================================
 import { useEffect, useState } from 'react'
@@ -48,7 +48,7 @@ export function RegistroNavegacao() {
       }
       sessionStorage.setItem(CHAVE, JSON.stringify(arr.slice(-25)))
     } catch {
-      /* sessionStorage indisponível — segue sem histórico */
+      /* sessionStorage indisponível: segue sem histórico */
     }
   }, [pathname])
 

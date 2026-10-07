@@ -91,7 +91,7 @@ export default function Inconsistencias() {
     setTimeout(() => URL.revokeObjectURL(url), 10_000)
   }
 
-  // CSV — só os dados, sem logo (para importar em outras ferramentas).
+  // CSV: só os dados, sem logo (para importar em outras ferramentas).
   function baixarCsv() {
     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
     const L = [['Mês', 'Setor', 'Funcionário', 'Quantidade'].map(esc).join(';')]
@@ -120,7 +120,7 @@ export default function Inconsistencias() {
 
       // Título, filtros e data (abaixo do logo).
       ws.mergeCells('A5:D5')
-      Object.assign(ws.getCell('A5'), { value: `Inconsistências — ${rotuloMes(mesSel)}`, font: { bold: true, size: 14 } })
+      Object.assign(ws.getCell('A5'), { value: `Inconsistências: ${rotuloMes(mesSel)}`, font: { bold: true, size: 14 } })
       ws.mergeCells('A6:D6')
       Object.assign(ws.getCell('A6'), { value: `${filtroTexto} · Gerado em ${new Date().toLocaleString('pt-BR')}`, font: { size: 10, color: { argb: 'FF6B6B6B' } } })
 
@@ -216,13 +216,13 @@ export default function Inconsistencias() {
             <div className="print-only mb-3 border-b border-borda pb-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo-soulan.png" alt="Soulan" style={{ height: 44, width: 'auto' }} />
-              <h2 className="mt-2 text-lg font-bold text-tinta">Inconsistências — {rotuloMes(mesSel)}</h2>
+              <h2 className="mt-2 text-lg font-bold text-tinta">Inconsistências: {rotuloMes(mesSel)}</h2>
               <p className="text-xs text-tinta-3">{filtroTexto} · Gerado em {new Date().toLocaleString('pt-BR')}</p>
             </div>
 
             <PainelMes itens={itensMes} />
 
-            <Cartao titulo="Evolução — total por mês" apoio={temFiltro ? `Recorte: ${filtroTexto}` : 'Todos os meses com dados.'}>
+            <Cartao titulo="Evolução: total por mês" apoio={temFiltro ? `Recorte: ${filtroTexto}` : 'Todos os meses com dados.'}>
               <LinhaEvolucao serie={serie} />
             </Cartao>
           </>
@@ -268,7 +268,7 @@ function PainelMes({ itens }: { itens: { setor: string; funcionario: string; qua
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Scorecard rotulo="Total de inconsistências" valor={total} />
         <Scorecard rotulo="Funcionários envolvidos" valor={funcionarios} />
-        <Scorecard rotulo="Setor com mais" valor={topSetor ? topSetor.total : 0} apoio={topSetor?.setor ?? '—'} />
+        <Scorecard rotulo="Setor com mais" valor={topSetor ? topSetor.total : 0} apoio={topSetor?.setor ?? '-'} />
         <Scorecard rotulo="Média por funcionário" valor={media} />
       </div>
 
@@ -321,7 +321,7 @@ function PainelMes({ itens }: { itens: { setor: string; funcionario: string; qua
 }
 
 // -------------------------------------------------------------
-// Gráfico de linha — evolução por mês (área + média + rótulos)
+// Gráfico de linha: evolução por mês (área + média + rótulos)
 // -------------------------------------------------------------
 function LinhaEvolucao({ serie }: { serie: { mes: string; total: number }[] }) {
   if (serie.length === 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
@@ -445,7 +445,7 @@ function UploadInconsistencias({ onSalvo, setErro }: { onSalvo: (msg: string) =>
 
       {leitura && leitura.itens.length > 0 && (
         <div className="space-y-3 border-t border-borda pt-4">
-          <p className="text-sm font-semibold text-tinta">Confira antes de salvar — {rotuloMes(mes)}</p>
+          <p className="text-sm font-semibold text-tinta">Confira antes de salvar: {rotuloMes(mes)}</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <MiniStat Icone={Hash} rotulo="Total de inconsistências" valor={total} />
             <MiniStat Icone={Users} rotulo="Funcionários" valor={funcionarios} />

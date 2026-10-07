@@ -56,7 +56,7 @@ export default function Treinamento() {
                   <h1 className="titulo-hero mt-4 text-[2rem] leading-tight text-white sm:text-[2.5rem]">Treinamento e Desenvolvimento</h1>
                   <p className="mt-3 max-w-xl text-[1rem] leading-7 text-white/85">
                     Estamos preparando trilhas de aprendizagem para você crescer com a gente: conteúdos, quizzes e
-                    conquistas. <strong className="font-semibold text-white">Fique de olho</strong> — vem novidade por aí! 🚀
+                    conquistas. <strong className="font-semibold text-white">Fique de olho</strong>: vem novidade por aí! 🚀
                   </p>
                 </div>
                 <span className="hidden h-28 w-28 flex-none items-center justify-center rounded-3xl bg-white/15 text-white backdrop-blur sm:flex">
@@ -65,7 +65,7 @@ export default function Treinamento() {
               </div>
             </div>
 
-            {/* Cards do que está por vir — preenchem a largura */}
+            {/* Cards do que está por vir: preenchem a largura */}
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               {[
                 { Icone: BookOpen, cor: '#2f8bb4', titulo: 'Trilhas de conteúdo', txt: 'Materiais e leituras rápidas sobre temas do dia a dia.' },

@@ -62,7 +62,7 @@ export const AREA_SUGESTAO_AJUDA: Record<string, string> = {
   'Sustentabilidade, Inovação e Treinamento': 'Reciclagem, cursos, IA',
 }
 
-/** Impacto principal esperado (Item 7 — múltipla escolha). */
+/** Impacto principal esperado (Item 7: múltipla escolha). */
 export const IMPACTOS = [
   'Economia de tempo / Agilidade no dia a dia',
   'Redução de custos financeiros para a empresa',

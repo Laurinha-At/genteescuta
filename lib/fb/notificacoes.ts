@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Notificações do portal (sino/aviso) — SEM e-mail por enquanto.
+// Notificações do portal (sino/aviso): SEM e-mail por enquanto.
 //
 // O site é estático, então as notificações são documentos no Firestore
 // que cada pessoa lê conforme o seu papel. Para não exigir índices
@@ -175,7 +175,7 @@ function formatarData(iso: string): string {
 }
 
 // -------------------------------------------------------------
-// Leitura (para o sino) — junta as notificações por uid e por papel.
+// Leitura (para o sino): junta as notificações por uid e por papel.
 // Cada consulta usa UM campo (sem índices compostos); ordena no cliente.
 // -------------------------------------------------------------
 export async function listarNotificacoes(perfil: Perfil): Promise<Notificacao[]> {
@@ -217,7 +217,7 @@ export async function listarNotificacoes(perfil: Perfil): Promise<Notificacao[]>
 }
 
 // -------------------------------------------------------------
-// "Lido" por dispositivo (localStorage) — sem gravar no banco.
+// "Lido" por dispositivo (localStorage): sem gravar no banco.
 // -------------------------------------------------------------
 const CHAVE_VISTO = 'gc_notif_visto'
 

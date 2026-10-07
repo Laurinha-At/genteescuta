@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Banco de Horas — Firestore.
+// Banco de Horas: Firestore.
 //
 // Um documento por (mês, matrícula) em `banco_horas/{mes__matricula}`:
 // id determinístico → reprocessar o mesmo mês não duplica. Cada registro
@@ -139,7 +139,7 @@ export async function listarBancoHoras(perfil: Perfil, mesRef?: string): Promise
   let lista = snap.docs.map(mapear)
   if (mesRef) lista = lista.filter((r) => r.mes_ref === mesRef)
   // Gestor sem "Todos" ainda pode ter registros de outra área com o mesmo
-  // rótulo? Não — comparamos por chave normalizada por garantia.
+  // rótulo? Não: comparamos por chave normalizada por garantia.
   if (perfil.papeis.includes('gestor') && !master && !gestorTodos) {
     lista = lista.filter((r) => mesmoCentro(r.centro_custo, perfil.centro_custo))
   }

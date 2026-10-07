@@ -79,7 +79,7 @@ export async function destaquesDoDia(): Promise<DestaqueDia[]> {
 // -------------------------------------------------------------
 export const NOMES_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
-/** Número do mês atual (1–12) no fuso de São Paulo. */
+/** Número do mês atual (1-12) no fuso de São Paulo. */
 export function mesAtualSP(): number {
   return hojeSaoPaulo().mes
 }

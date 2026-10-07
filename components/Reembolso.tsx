@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Solicitação de Reembolso — experiência por papel.
+// Solicitação de Reembolso: experiência por papel.
 //  - Solicitar: formulário guiado com trilha de progresso.
 //  - Minhas solicitações: as do próprio usuário (cartões).
 //  - Fila de Trabalho (aprovador): o que aguarda a MINHA decisão (tabela).
@@ -181,7 +181,7 @@ function ModalSucesso({ onFechar }: { onFechar: () => void }) {
 }
 
 // -------------------------------------------------------------
-// Fluxo do reembolso (4 etapas) — SÓ na tela de acompanhamento do
+// Fluxo do reembolso (4 etapas): SÓ na tela de acompanhamento do
 // pedido já enviado, destacando a etapa atual conforme o status.
 // -------------------------------------------------------------
 const ETAPAS_FLUXO = [
@@ -238,7 +238,7 @@ function FluxoReembolso({ status, dataPagamento }: { status: StatusReembolso; da
 }
 
 // -------------------------------------------------------------
-// Barra dos 5 passos do wizard — SÓ enquanto preenche a solicitação.
+// Barra dos 5 passos do wizard: SÓ enquanto preenche a solicitação.
 // -------------------------------------------------------------
 const PASSOS_WIZARD = ['Identificação', 'Despesa', 'Motivo', 'Comprovante', 'Conclusão']
 function BarraPassos({ atual, maximo, aoIr }: { atual: number; maximo: number; aoIr: (n: number) => void }) {
@@ -274,7 +274,7 @@ function BarraPassos({ atual, maximo, aoIr }: { atual: number; maximo: number; a
 
 // -------------------------------------------------------------
 // Campos auxiliares do formulário (fora do componente para não
-// remontar os inputs a cada tecla — evita o "erro ao digitar").
+// remontar os inputs a cada tecla: evita o "erro ao digitar").
 // -------------------------------------------------------------
 function CampoLeitura({ Icone, rotulo, valor }: { Icone: typeof User; rotulo: string; valor: string }) {
   return (
@@ -367,7 +367,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
       </div>
 
       <div className="cartao-g space-y-4 p-5 sm:p-6">
-        {/* Passo 1 — Identificação */}
+        {/* Passo 1: Identificação */}
         {passo === 1 && (
           <div className="space-y-3">
             <div>
@@ -375,7 +375,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
               <p className="mt-1 text-xs text-tinta-3">Preenchido automaticamente do seu cadastro, confira e siga.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <CampoLeitura Icone={User} rotulo="Solicitante" valor={perfil.nome || perfil.email || '—'} />
+              <CampoLeitura Icone={User} rotulo="Solicitante" valor={perfil.nome || perfil.email || '-'} />
               <CampoLeitura Icone={Building2} rotulo="Centro de custo" valor={centro || 'Não definido'} />
               <CampoLeitura Icone={CalendarDays} rotulo="Data da solicitação" valor={fmtDataBR(hoje)} />
             </div>
@@ -388,7 +388,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
           </div>
         )}
 
-        {/* Passo 2 — Despesa */}
+        {/* Passo 2: Despesa */}
         {passo === 2 && (
           <div className="space-y-4">
             <p className="text-sm font-semibold text-tinta">Despesa</p>
@@ -415,7 +415,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
           </div>
         )}
 
-        {/* Passo 3 — Motivo */}
+        {/* Passo 3: Motivo */}
         {passo === 3 && (
           <div className="space-y-2">
             <p className="text-sm font-semibold text-tinta">Motivo</p>
@@ -427,7 +427,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
           </div>
         )}
 
-        {/* Passo 4 — Comprovante */}
+        {/* Passo 4: Comprovante */}
         {passo === 4 && (
           <div className="space-y-2">
             <p className="text-sm font-semibold text-tinta">Comprovante</p>
@@ -444,7 +444,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
           </div>
         )}
 
-        {/* Passo 5 — Conclusão */}
+        {/* Passo 5: Conclusão */}
         {passo === 5 && (
           <div className="space-y-3">
             <div>
@@ -452,13 +452,13 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
               <p className="mt-1 text-xs text-tinta-3">Confira os dados e envie. Depois vai direto para <strong className="font-semibold text-tinta-2">{destino}</strong>.</p>
             </div>
             <dl className="grid gap-x-4 gap-y-2.5 rounded-xl border border-borda bg-superficie-2 p-4 sm:grid-cols-2">
-              <Resumo rotulo="Solicitante" valor={perfil.nome || perfil.email || '—'} />
-              <Resumo rotulo="Centro de custo" valor={centro || '—'} />
-              <Resumo rotulo="Data da compra" valor={data ? fmtDataBR(data) : '—'} />
-              <Resumo rotulo="Categoria" valor={categoria || '—'} />
-              <Resumo rotulo="Valor" valor={valorNum > 0 ? formatBRL(valorNum) : '—'} />
-              <Resumo rotulo="Comprovante" valor={arquivo ? arquivo.name : '—'} />
-              <div className="sm:col-span-2"><Resumo rotulo="Descrição" valor={descricao.trim() || '—'} /></div>
+              <Resumo rotulo="Solicitante" valor={perfil.nome || perfil.email || '-'} />
+              <Resumo rotulo="Centro de custo" valor={centro || '-'} />
+              <Resumo rotulo="Data da compra" valor={data ? fmtDataBR(data) : '-'} />
+              <Resumo rotulo="Categoria" valor={categoria || '-'} />
+              <Resumo rotulo="Valor" valor={valorNum > 0 ? formatBRL(valorNum) : '-'} />
+              <Resumo rotulo="Comprovante" valor={arquivo ? arquivo.name : '-'} />
+              <div className="sm:col-span-2"><Resumo rotulo="Descrição" valor={descricao.trim() || '-'} /></div>
             </dl>
           </div>
         )}
@@ -698,7 +698,7 @@ function Timeline({ r }: { r: Reembolso }) {
             </span>
             <span className="text-tinta-2">
               <strong className="font-semibold text-tinta">{edicao ? 'Editado e reenviado' : STATUS_LABEL[h.status_novo]}</strong>
-              {(edicao || h.papel !== 'solicitante') && <> · por {h.por_nome || '—'}</>}
+              {(edicao || h.papel !== 'solicitante') && <> · por {h.por_nome || '-'}</>}
               <span className="text-tinta-3"> · {formatData(h.em)}</span>
               {h.data_pagamento && <span className="text-tinta-3"> · pagamento em {formatData(h.data_pagamento)}</span>}
               {edicao && h.alteracoes && <span className="mt-0.5 block text-xs text-tinta-3">{h.alteracoes}</span>}
@@ -732,7 +732,7 @@ function BotaoAnexo({ id, tipo }: { id: string; tipo: 'image' | 'pdf' | null }) 
 }
 
 // -------------------------------------------------------------
-// Editar após recusa (solicitante) — ajusta o pedido e reenvia ao fluxo
+// Editar após recusa (solicitante): ajusta o pedido e reenvia ao fluxo
 // -------------------------------------------------------------
 function ModalEditar({ r, perfil, onFechar, aoSalvo }: {
   r: Reembolso; perfil: Perfil; onFechar: () => void; aoSalvo: (msg: string) => void
@@ -810,7 +810,7 @@ function ModalEditar({ r, perfil, onFechar, aoSalvo }: {
             <label className="mb-1 block text-sm font-medium text-tinta">Comprovante</label>
             <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-borda-forte bg-white px-4 py-3 text-sm text-tinta-2 transition-colors hover:border-marca">
               <Paperclip size={16} className="text-marca" aria-hidden />
-              <span className="min-w-0 flex-1 truncate">{arquivo ? arquivo.name : (r.anexo_nome ? `Atual: ${r.anexo_nome} — trocar (opcional)` : 'Anexar foto ou PDF (opcional)')}</span>
+              <span className="min-w-0 flex-1 truncate">{arquivo ? arquivo.name : (r.anexo_nome ? `Atual: ${r.anexo_nome}: trocar (opcional)` : 'Anexar foto ou PDF (opcional)')}</span>
               <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
             </label>
             <p className="mt-1 text-xs text-tinta-3">Deixe em branco para manter o comprovante atual.</p>
@@ -843,7 +843,7 @@ const COLS_BASE: Coluna[] = [
 ]
 const COLS_CENTRAL: Coluna[] = [
   ...COLS_BASE,
-  { key: 'pagamento', label: 'Pagamento', texto: (r) => (r.data_pagamento ? formatData(r.data_pagamento) : '—'), ord: (r) => r.data_pagamento ?? '' },
+  { key: 'pagamento', label: 'Pagamento', texto: (r) => (r.data_pagamento ? formatData(r.data_pagamento) : '-'), ord: (r) => r.data_pagamento ?? '' },
 ]
 
 function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
@@ -985,7 +985,7 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
 }
 
 // -------------------------------------------------------------
-// Fila de Trabalho (aprovador) — tabela + modal de decisão
+// Fila de Trabalho (aprovador): tabela + modal de decisão
 // -------------------------------------------------------------
 type ResultadoAcao = { tipo: 'sucesso' | 'reprovado'; titulo: string; mensagem: string }
 
@@ -1046,7 +1046,7 @@ function ModalResultado({ tipo, titulo, mensagem, onFechar }: ResultadoAcao & { 
 }
 
 // -------------------------------------------------------------
-// Central das Solicitações (aprovador) — KPIs + tabela + exportar
+// Central das Solicitações (aprovador): KPIs + tabela + exportar
 // -------------------------------------------------------------
 function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso }: {
   perfil: Perfil; carregando: boolean; registros: Reembolso[]
@@ -1094,7 +1094,7 @@ function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso
     return { total: registros.length, pend, pagos, recus, pendValor }
   }, [registros])
   const escopo = perfil.papeis.includes('gestor') && !perfil.papeis.includes('master') && !perfil.papeis.includes('financeiro')
-    ? `centro ${perfil.centro_custo || '—'}` : 'todos os centros de custo'
+    ? `centro ${perfil.centro_custo || '-'}` : 'todos os centros de custo'
 
   if (carregando) return <p className="text-sm text-tinta-3">Carregando…</p>
 
@@ -1251,7 +1251,7 @@ function linhasExport(itens: Reembolso[]) {
   return itens.map((r) => ({
     Data: formatData(r.data_despesa), Solicitante: r.solicitante_nome, 'Centro de custo': r.centro_custo,
     Categoria: r.categoria, Descrição: r.descricao, Valor: formatBRL(r.valor),
-    Status: STATUS_LABEL[statusEfetivo(r.status, r.data_pagamento)], Pagamento: r.data_pagamento ? formatData(r.data_pagamento) : '—',
+    Status: STATUS_LABEL[statusEfetivo(r.status, r.data_pagamento)], Pagamento: r.data_pagamento ? formatData(r.data_pagamento) : '-',
   }))
 }
 function baixarCSV(itens: Reembolso[]) {

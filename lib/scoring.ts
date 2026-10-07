@@ -11,8 +11,8 @@ import { ROTULO_DIMENSAO } from './nr1-template'
 /**
  * Como a nota de risco é calculada
  * --------------------------------
- * Cada item Likert vale de 1 a 5. Itens "invertidos" são protetivos — neles,
- * nota alta significa MENOS risco — então a escala é espelhada (6 - valor).
+ * Cada item Likert vale de 1 a 5. Itens "invertidos" são protetivos: neles,
+ * nota alta significa MENOS risco: então a escala é espelhada (6 - valor).
  * O resultado vira um índice de 0 a 100, onde 0 é a melhor situação possível
  * e 100 é a pior. As faixas seguem a lógica de priorização do PGR: quanto
  * maior o índice, mais urgente é a medida de controle.

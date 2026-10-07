@@ -122,12 +122,12 @@ export function ImportarFuncionarios({ onDone }: { onDone: () => void }) {
                 {linhas.map((l) => (
                   <tr key={l.linha} className={l.acao === 'ignorar' ? 'bg-[#fdeaea]/40' : ''}>
                     <td className="px-3 py-2 text-tinta-3">{l.linha}</td>
-                    <td className="px-3 py-2 text-tinta">{l.nome || '—'}</td>
-                    <td className="px-3 py-2 text-tinta-2">{l.email || '—'}</td>
-                    <td className="px-3 py-2 text-tinta-2">{l.centro_custo || '—'}</td>
-                    <td className="px-3 py-2 text-tinta-2">{l.matricula || '—'}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-tinta-2">{l.aniversario || '—'}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-tinta-2">{l.admissao || '—'}</td>
+                    <td className="px-3 py-2 text-tinta">{l.nome || '-'}</td>
+                    <td className="px-3 py-2 text-tinta-2">{l.email || '-'}</td>
+                    <td className="px-3 py-2 text-tinta-2">{l.centro_custo || '-'}</td>
+                    <td className="px-3 py-2 text-tinta-2">{l.matricula || '-'}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-tinta-2">{l.aniversario || '-'}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-tinta-2">{l.admissao || '-'}</td>
                     <td className="px-3 py-2">
                       {l.acao === 'ignorar' ? (
                         <span className="font-medium text-critico">{l.erros.join(' ')}</span>

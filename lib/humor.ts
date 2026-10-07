@@ -1,9 +1,9 @@
 // =============================================================
-// Humor da equipe (clima) — parsing do CSV e agregações.
+// Humor da equipe (clima): parsing do CSV e agregações.
 //
 // Funções PURAS (sem Firestore, sem React) para ficarem fáceis de
 // testar. A privacidade é responsabilidade da tela: nome/matrícula
-// são lidos e guardados, mas NUNCA exibidos — só agregados.
+// são lidos e guardados, mas NUNCA exibidos: só agregados.
 // =============================================================
 
 export type Categoria = 'positivo' | 'neutro' | 'negativo'
@@ -60,8 +60,8 @@ export interface RegistroHumor {
   id: string
   ts: number // epoch (ms) do momento do registro
   dia: string // AAAA-MM-DD
-  matricula: string // SENSÍVEL — nunca exibir
-  funcionario: string // SENSÍVEL — nunca exibir
+  matricula: string // SENSÍVEL: nunca exibir
+  funcionario: string // SENSÍVEL: nunca exibir
   cargo: string
   setor: string
   humor: Humor
@@ -236,7 +236,7 @@ function mapearColunas(campos: string[]): MapaColunas | null {
  * Formato DEFINITIVO (separador ";", arquivo em Latin-1/Windows-1252):
  *   Data ; Setor/Área ; Funcionário ; Humor
  *  - 1ª linha "Humor;;;" (título) é ignorada;
- *  - 2ª linha é o cabeçalho — colunas identificadas pelo NOME (Data, Setor/Área,
+ *  - 2ª linha é o cabeçalho: colunas identificadas pelo NOME (Data, Setor/Área,
  *    Funcionário, Humor), tolerando espaço/acento/caixa e ordem diferente;
  *  - Data no formato DD/MM/AAAA HH:MM (segundos opcionais);
  *  - linhas sem data válida no início (inclusive o JSON de erro) são ignoradas.

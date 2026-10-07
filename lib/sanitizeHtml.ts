@@ -2,7 +2,7 @@
 // Sanitização do HTML do editor de texto rico.
 //
 // Permite APENAS tags de formatação (negrito, itálico, sublinhado,
-// parágrafos, quebras e listas) e REMOVE todos os atributos — então não
+// parágrafos, quebras e listas) e REMOVE todos os atributos: então não
 // há como injetar href/onclick/style malicioso, <script>, etc. Tags fora
 // da lista são "desembrulhadas" (mantêm só o texto). Roda no navegador.
 // =============================================================
@@ -57,7 +57,7 @@ export function sanitizeRich(html: string): string {
   return raiz.innerHTML.slice(0, MAX_HTML)
 }
 
-/** Texto puro (sem tags) — para validar se um campo rico está vazio. */
+/** Texto puro (sem tags): para validar se um campo rico está vazio. */
 export function richParaTexto(html: string): string {
   if (!html) return ''
   if (typeof window === 'undefined') return html.replace(/<[^>]*>/g, ' ').trim()

@@ -1,5 +1,5 @@
 // =============================================================
-// Solicitação de Reembolso — domínio (papéis, centros de custo,
+// Solicitação de Reembolso: domínio (papéis, centros de custo,
 // categorias, status e regras de fluxo). Funções PURAS, sem Firestore
 // nem React, para ficarem fáceis de testar e reusar na interface.
 // =============================================================
@@ -73,7 +73,7 @@ export const CATEGORIAS = [
 // Fluxo: pendente_gestor → (gestor aprova) → pendente_financeiro →
 // (financeiro registra pagamento) → agendado (data futura) ou pago (na data).
 // 'pendente_master' cobre o caso do próprio gestor pedir (não aprova o próprio).
-// 'aprovado' é legado (pedidos antigos) — tratado como equivalente a 'pago'.
+// 'aprovado' é legado (pedidos antigos): tratado como equivalente a 'pago'.
 export type StatusReembolso =
   | 'pendente_gestor'
   | 'pendente_master'
@@ -120,7 +120,7 @@ export function statusInicial(papeis: string[]): StatusReembolso {
 
 /**
  * Para onde o pedido vai quando a etapa de APROVAÇÃO (gestor/master) libera.
- * A etapa do Financeiro NÃO usa isto — o Financeiro registra pagamento
+ * A etapa do Financeiro NÃO usa isto: o Financeiro registra pagamento
  * (agendado/pago) por uma função própria.
  */
 export function proximoStatus(atual: StatusReembolso): StatusReembolso {
@@ -189,7 +189,7 @@ export function podeAprovar(
   if (!estaPendente(status)) return false
   if (papeis.includes('master')) return true
   if (status === 'pendente_gestor') {
-    // Gestor da área do pedido — ou Gestor com "Todos os centros de custo".
+    // Gestor da área do pedido: ou Gestor com "Todos os centros de custo".
     return papeis.includes('gestor') && (centroAbrangeTudo(meuCentro) || mesmoCentro(meuCentro, centroDoPedido))
   }
   if (status === 'pendente_master') return false // só master, tratado acima
@@ -216,7 +216,7 @@ export function formatBRL(v: number): string {
 }
 
 export function formatData(iso?: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return String(iso)
   return d.toLocaleDateString('pt-BR')

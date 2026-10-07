@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Importação de funcionários por planilha (.xlsx/.csv) — leitura e
+// Importação de funcionários por planilha (.xlsx/.csv): leitura e
 // validação PURAS (sem Firestore). Usa SheetJS. A gravação fica em
 // lib/fb/funcionarios.ts (importarFuncionarios).
 //

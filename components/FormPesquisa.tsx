@@ -312,7 +312,7 @@ export function FormPesquisa({
 }
 
 // ---------------------------------------------------------------
-/** Escolha única com suporte a "Outros (especificar)" — opção de valor 'outro'. */
+/** Escolha única com suporte a "Outros (especificar)": opção de valor 'outro'. */
 function CampoEscolhaUnica({
   pergunta,
   valor,

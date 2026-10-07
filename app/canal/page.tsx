@@ -97,7 +97,7 @@ export default function Canal() {
 }
 
 // -------------------------------------------------------------
-// Minhas manifestações — o colaborador logado acompanha o que enviou
+// Minhas manifestações: o colaborador logado acompanha o que enviou
 // (identificado) e pode excluir. Anônimas não aparecem (não são rastreadas).
 // -------------------------------------------------------------
 function MinhasManifestacoes() {
@@ -168,7 +168,7 @@ function MinhasManifestacoes() {
                     ) : null}
                     <span className="text-xs text-tinta-3">· {fmtData(m.criado_em)}</span>
                   </div>
-                  <p className="mt-1.5 line-clamp-2 text-sm text-tinta">{m.titulo || m.problema || m.descricao || '—'}</p>
+                  <p className="mt-1.5 line-clamp-2 text-sm text-tinta">{m.titulo || m.problema || m.descricao || '-'}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <Chip faixa="neutro">{STATUS_MANIFESTACAO_LABEL[m.status as keyof typeof STATUS_MANIFESTACAO_LABEL] ?? m.status}</Chip>
                     {m.triagem && m.triagem !== 'pendente' && (

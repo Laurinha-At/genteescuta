@@ -2,7 +2,7 @@ import { Settings2 } from 'lucide-react'
 
 /**
  * Mostrada quando o app ainda não tem as variáveis do Supabase.
- * É a primeira tela que aparece em uma instalação nova — por isso ela
+ * É a primeira tela que aparece em uma instalação nova: por isso ela
  * explica o que fazer em vez de estourar um erro.
  */
 export function TelaConfiguracao() {

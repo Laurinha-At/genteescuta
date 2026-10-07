@@ -40,7 +40,7 @@ import {
 export const EMAIL_SEMENTE = 'gentecultura@soulan.com.br'
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
-/** Senha padrão do primeiro acesso — a pessoa é obrigada a trocar ao entrar. */
+/** Senha padrão do primeiro acesso: a pessoa é obrigada a trocar ao entrar. */
 export const SENHA_PADRAO = 'soulan123'
 
 export type Nivel = 'comum' | 'master' | 'super'
@@ -68,7 +68,7 @@ export interface Conta {
   perfil: PerfilId
   /** Permissões efetivas já resolvidas: { telaId: [ações] }. */
   permissoes: Permissoes
-  /** Centro de custo (área), quando houver — usado nas telas por área. */
+  /** Centro de custo (área), quando houver: usado nas telas por área. */
   centro_custo?: string
 }
 
@@ -186,7 +186,7 @@ export async function registrarLog(acao: string, detalhe?: string): Promise<void
       em: new Date().toISOString(),
     })
   } catch {
-    // log é best-effort — nunca deve quebrar o fluxo
+    // log é best-effort: nunca deve quebrar o fluxo
   }
 }
 
@@ -219,7 +219,7 @@ export async function listarUsuarios() {
  *  - se o e-mail já existe no Auth, REAPROVEITA a conta entrando com a senha
  *    padrão (caso comum de conta "órfã" de um cadastro que falhou).
  *  Se a conta existe com uma senha PRÓPRIA (diferente da padrão), não há como
- *  obter o UID pelo cliente — orienta a excluir no Console e cadastrar de novo.
+ *  obter o UID pelo cliente: orienta a excluir no Console e cadastrar de novo.
  */
 export async function obterUidParaCadastro(
   secAuth: Auth,

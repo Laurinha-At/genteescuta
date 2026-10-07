@@ -6,7 +6,7 @@
 // Cada pessoa logada (funcionário Comum ou admin) tem UM documento
 // em `treino_progresso/{uid}` com o que já concluiu. O conteúdo das
 // trilhas é estático (lib/treinamentos.ts); aqui guardamos só o
-// avanço individual — nada sensível, e cada um só lê/escreve o seu.
+// avanço individual: nada sensível, e cada um só lê/escreve o seu.
 // =============================================================
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db, auth } from '../firebase'

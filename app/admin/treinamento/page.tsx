@@ -40,7 +40,7 @@ export default function AdminTreinamento() {
     try {
       await setTreinamentoEmBreve(novo)
       setEmBreve(novo)
-      setAviso(novo ? 'Página pública em modo "Em breve" — os colaboradores não veem as trilhas.' : 'Treinamento publicado! As trilhas já aparecem no site.')
+      setAviso(novo ? 'Página pública em modo "Em breve": os colaboradores não veem as trilhas.' : 'Treinamento publicado! As trilhas já aparecem no site.')
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui alterar.')
     }
@@ -68,7 +68,7 @@ export default function AdminTreinamento() {
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 
-        {/* Interruptor "Em breve" — controla o que os colaboradores veem. */}
+        {/* Interruptor "Em breve": controla o que os colaboradores veem. */}
         <div className={`flex flex-wrap items-center gap-3 rounded-xl border p-4 ${emBreve ? 'border-[#f2dfae] bg-[#fdf7e7]' : 'border-[#cfe6b8] bg-[#f4faec]'}`}>
           <span className={`flex h-10 w-10 flex-none items-center justify-center rounded-lg ${emBreve ? 'bg-[#f6e6bd] text-[#6b4a00]' : 'bg-[#dcefc7] text-verde-escuro'}`}>
             {emBreve ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}

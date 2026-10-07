@@ -3,7 +3,7 @@
 // =============================================================
 // Trilhas de Treinamento & Desenvolvimento no Firestore.
 // Público lê; só admin (Master) grava. Enquanto a coleção estiver vazia,
-// o site usa as trilhas estáticas (lib/treinamentos.ts) como base — o
+// o site usa as trilhas estáticas (lib/treinamentos.ts) como base: o
 // admin pode "importar" essas trilhas para começar a editar.
 // =============================================================
 import { collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore'

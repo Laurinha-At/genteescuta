@@ -11,7 +11,7 @@ export interface EtapaFunil {
 
 /**
  * Funil do canal: recebidas → analisadas → implementadas.
- * Contagens cumulativas — quem foi implementada também passou pela análise.
+ * Contagens cumulativas: quem foi implementada também passou pela análise.
  */
 export function Funil({ etapas }: { etapas: EtapaFunil[] }) {
   const [ativo, setAtivo] = useState<number | null>(null)

@@ -9,7 +9,7 @@
 // tecla → sem re-render → o cursor nunca reseta.
 //
 // O placeholder é uma CAMADA com `pointer-events: none` (não intercepta o
-// clique) — evita o bug de "precisar clicar várias vezes para digitar".
+// clique): evita o bug de "precisar clicar várias vezes para digitar".
 // =============================================================
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { Bold, Italic, Underline, List, Link2 } from 'lucide-react'
@@ -36,7 +36,7 @@ export const RichTextEditor = forwardRef<RichHandle, {
   useEffect(() => {
     if (elRef.current) elRef.current.innerHTML = sanitizeRich(valorInicial || '')
     atualizarPlaceholder()
-    // Só na montagem — depois é não controlado.
+    // Só na montagem: depois é não controlado.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

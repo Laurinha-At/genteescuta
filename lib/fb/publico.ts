@@ -43,7 +43,7 @@ export async function getConfig() {
   return snap.exists() ? { ...CONFIG_PADRAO, ...snap.data() } : CONFIG_PADRAO
 }
 
-/** Áreas/setores da Soulan — usadas quando nenhuma área foi cadastrada
+/** Áreas/setores da Soulan: usadas quando nenhuma área foi cadastrada
  *  em Configurações. Também alimentam os recortes por área no painel ADM. */
 export const AREAS_PADRAO = [
   'Comercial Soulan',
@@ -307,7 +307,7 @@ export async function enviarResposta(p: {
   }
 
   // Trava de duplicata: cria um doc cujo ID é o hash. A regra só permite
-  // criar uma vez — a segunda tentativa é recusada (já respondeu).
+  // criar uma vez: a segunda tentativa é recusada (já respondeu).
   if (precisaEmail) {
     const h = await hashEmail(email, p.pesquisaId)
     try {
@@ -362,7 +362,7 @@ export async function getPostsMural() {
 }
 
 /**
- * Reação por emoji — exige estar logado (funcionário/admin). Uma reação por
+ * Reação por emoji: exige estar logado (funcionário/admin). Uma reação por
  * pessoa: clicar de novo no mesmo emoji desfaz; clicar em outro, troca.
  * O total fica no contador do post; a identidade fica na subcoleção `reacoes`.
  */
@@ -410,7 +410,7 @@ export async function getComentarios(postId: string) {
     .sort((a, b) => (a.criado_em ?? '').localeCompare(b.criado_em ?? ''))
 }
 
-/** Envia um comentário IDENTIFICADO — entra pendente de aprovação do admin. */
+/** Envia um comentário IDENTIFICADO: entra pendente de aprovação do admin. */
 export async function enviarComentario(postId: string, texto: string, autor: { nome: string; email: string }) {
   const t = String(texto ?? '').trim()
   if (t.length < 2) throw new Error('Escreva o seu comentário.')

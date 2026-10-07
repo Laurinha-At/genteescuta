@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Login do admin — Firebase Authentication (e-mail/senha).
+// Login do admin: Firebase Authentication (e-mail/senha).
 // Substitui o scrypt + tabela de sessões da versão anterior.
 // Quem é admin: o e-mail semente da Soulan ou um UID em /admins
 // (a checagem de verdade acontece nas Regras do Firestore).

@@ -11,7 +11,7 @@ export interface Categoria {
 
 /**
  * Barras por categoria (tipos de manifestação).
- * Os valores ficam sempre escritos ao lado — três das cores da paleta
+ * Os valores ficam sempre escritos ao lado: três das cores da paleta
  * categórica ficam abaixo de 3:1 no fundo claro, e o rótulo visível é a
  * contrapartida exigida para usá-las.
  */

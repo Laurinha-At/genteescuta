@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Banco de Horas — leitura da planilha mensal (SheetJS) e utilidades.
+// Banco de Horas: leitura da planilha mensal (SheetJS) e utilidades.
 //
 // Colunas: Matrícula, Funcionário, Empresa, Cargo, Centro de custo, Falta,
 // Saldo acumulado. O "Saldo acumulado" vem como HH:MM, pode ser NEGATIVO
@@ -49,9 +49,9 @@ export function parseSaldoMin(v: unknown): number | null {
   return Number.isFinite(num) ? Math.round(num * 60) : null
 }
 
-/** Minutos → "HH:MM" com sinal ("—" quando null). */
+/** Minutos → "HH:MM" com sinal ("-" quando null). */
 export function formatSaldo(min: number | null | undefined): string {
-  if (min == null) return '—'
+  if (min == null) return '-'
   const neg = min < 0
   const a = Math.abs(min)
   return `${neg ? '-' : ''}${Math.floor(a / 60)}:${String(a % 60).padStart(2, '0')}`

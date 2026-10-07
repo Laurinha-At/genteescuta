@@ -2,7 +2,7 @@
 
 // =============================================================
 // Inicialização do Firebase (SDK web, lado do cliente).
-// Estes valores são PÚBLICOS por design — não são segredo.
+// Estes valores são PÚBLICOS por design: não são segredo.
 // A segurança mora nas Regras do Firestore (firestore.rules).
 // =============================================================
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app'

@@ -11,7 +11,7 @@ export interface AreaItem {
 
 /**
  * Manifestações por área.
- * Série única — o título já nomeia o que a barra mede, então não leva legenda.
+ * Série única: o título já nomeia o que a barra mede, então não leva legenda.
  * A coluna de anônimas é o motivo de a área ser obrigatória no envio: mesmo
  * sem saber QUEM falou, a administração sabe ONDE agir.
  */

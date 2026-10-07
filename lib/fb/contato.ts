@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Conteúdo da página "Contato e Suporte" — editável pelo painel.
+// Conteúdo da página "Contato e Suporte": editável pelo painel.
 // Guardado em `config/contato`. Público lê; só admin (Master) grava.
 // Se ainda não houver o doc, usa CONTATO_PADRAO (o conteúdo atual).
 // =============================================================

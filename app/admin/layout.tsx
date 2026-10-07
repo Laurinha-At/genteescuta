@@ -87,7 +87,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
   const nivelLabel =
     conta.nivel === 'super' ? 'Super Admin'
       : conta.nivel === 'master' ? 'Master'
-        : PERFIL_POR_ID[conta.perfil]?.nome ?? '—'
+        : PERFIL_POR_ID[conta.perfil]?.nome ?? '-'
 
   return (
     <div className="min-h-screen bg-plano lg:flex">

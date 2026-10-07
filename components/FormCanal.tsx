@@ -74,7 +74,7 @@ function FormMelhoria() {
     <form onSubmit={enviar} className="space-y-6">
       {erro && <Aviso tom="erro">{erro}</Aviso>}
 
-      {/* Item 1 — Tipo de Participação */}
+      {/* Item 1: Tipo de Participação */}
       <fieldset className="rounded-md border border-borda bg-superficie-2 p-4">
         <legend className="px-1 text-sm font-semibold text-tinta">Tipo de participação</legend>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -101,11 +101,11 @@ function FormMelhoria() {
         ) : (
           <div className="mt-3 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              {/* Item 2 — Nome Completo */}
+              {/* Item 2: Nome Completo */}
               <Campo rotulo="Nome completo" obrigatorio>
                 <input value={nome} onChange={(e) => setNome(e.target.value)} required minLength={3} className={ENTRADA} placeholder="Ex.: Joana Ribeiro da Silva" autoComplete="name" />
               </Campo>
-              {/* Item 3 — Departamento / Setor */}
+              {/* Item 3: Departamento / Setor */}
               <Campo rotulo="Seu departamento / setor" obrigatorio>
                 <input value={departamento} onChange={(e) => setDepartamento(e.target.value)} required minLength={2} className={ENTRADA} placeholder="Ex.: Marketing" />
               </Campo>
@@ -118,7 +118,7 @@ function FormMelhoria() {
         )}
       </fieldset>
 
-      {/* Item 4 — Área da Sugestão */}
+      {/* Item 4: Área da Sugestão */}
       <Campo rotulo="Área da sugestão" ajuda="Escolha o tema que melhor representa a sua ideia." obrigatorio>
         <div className="grid gap-2 sm:grid-cols-2">
           {AREAS_SUGESTAO.map((a) => (
@@ -133,17 +133,17 @@ function FormMelhoria() {
         </div>
       </Campo>
 
-      {/* Item 5 — Problema / oportunidade */}
+      {/* Item 5: Problema / oportunidade */}
       <Campo rotulo="Qual é o problema ou oportunidade que você identificou hoje?" obrigatorio>
         <textarea value={problema} onChange={(e) => setProblema(e.target.value)} required minLength={10} maxLength={5000} rows={5} className={ENTRADA} placeholder="Descreva o que você observou…" />
       </Campo>
 
-      {/* Item 6 — Sugestão prática */}
+      {/* Item 6: Sugestão prática */}
       <Campo rotulo="Qual é a sua sugestão prática de melhoria?" obrigatorio>
         <textarea value={sugestao} onChange={(e) => setSugestao(e.target.value)} required minLength={10} maxLength={5000} rows={5} className={ENTRADA} placeholder="Conte o que poderia ser feito…" />
       </Campo>
 
-      {/* Item 7 — Impacto principal */}
+      {/* Item 7: Impacto principal */}
       <Campo rotulo="Qual será o principal impacto dessa mudança?" ajuda="Pode marcar mais de um." obrigatorio>
         <div className="space-y-1.5">
           {IMPACTOS.map((imp) => (
@@ -190,7 +190,7 @@ function OpcaoRadio({ ativo, onClick, titulo, apoio, Icone }: { ativo: boolean; 
 }
 
 // -------------------------------------------------------------
-// Reconhecimento — identificado: captura automaticamente o perfil logado
+// Reconhecimento: identificado: captura automaticamente o perfil logado
 // (nome, e-mail e centro de custo). Não é anônimo.
 // -------------------------------------------------------------
 function FormReconhecimento() {
@@ -273,7 +273,7 @@ function FormReconhecimento() {
     <form onSubmit={enviar} className="space-y-6" noValidate>
       {erro && <Aviso tom="erro">{erro}</Aviso>}
 
-      {/* Quem/qual time — seleção estruturada */}
+      {/* Quem/qual time: seleção estruturada */}
       <div>
         <p className="text-sm font-medium text-tinta">Quem você gostaria de reconhecer? <span className="text-critico">*</span></p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">

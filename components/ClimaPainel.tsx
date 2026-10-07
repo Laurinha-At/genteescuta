@@ -1,6 +1,6 @@
 'use client'
 
-// Conteúdo da aba "Clima" (indicadores NR-1 / eNPS). Sem cabeçalho próprio —
+// Conteúdo da aba "Clima" (indicadores NR-1 / eNPS). Sem cabeçalho próprio:
 // o cabeçalho "Pesquisa de Clima" fica na página que junta as abas.
 import { useEffect, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
@@ -50,9 +50,9 @@ export function ClimaPainel() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {enps ? (
           <Scorecard rotulo="eNPS" valor={enps.enps > 0 ? `+${enps.enps}` : enps.enps} faixa={classENPS?.faixa} destaque={clima.variacaoENPS !== null ? <Chip faixa="neutro">{clima.variacaoENPS > 0 ? '↑' : clima.variacaoENPS < 0 ? '↓' : '='} {Math.abs(clima.variacaoENPS)} vs. anterior</Chip> : undefined} apoio={classENPS?.rotulo} />
-        ) : <Scorecard rotulo="eNPS" valor="—" apoio="Não medido nesta pesquisa" />}
-        <Scorecard rotulo="Participação" valor={a.taxaParticipacao !== null ? a.taxaParticipacao : '—'} sufixo={a.taxaParticipacao !== null ? '%' : undefined} apoio={a.publicoAlvo ? `${a.totalRespostas} de ${a.publicoAlvo} convidados` : 'Informe o público-alvo'} />
-        <Scorecard rotulo="Índice de satisfação" valor={a.satisfacao ?? '—'} sufixo={a.satisfacao !== null ? '/100' : undefined} destaque={clima.variacaoSatisfacao !== null ? <Chip faixa="neutro">{clima.variacaoSatisfacao > 0 ? '↑' : clima.variacaoSatisfacao < 0 ? '↓' : '='} {Math.abs(clima.variacaoSatisfacao)} pts</Chip> : undefined} apoio="Satisfação geral declarada" />
+        ) : <Scorecard rotulo="eNPS" valor="-" apoio="Não medido nesta pesquisa" />}
+        <Scorecard rotulo="Participação" valor={a.taxaParticipacao !== null ? a.taxaParticipacao : '-'} sufixo={a.taxaParticipacao !== null ? '%' : undefined} apoio={a.publicoAlvo ? `${a.totalRespostas} de ${a.publicoAlvo} convidados` : 'Informe o público-alvo'} />
+        <Scorecard rotulo="Índice de satisfação" valor={a.satisfacao ?? '-'} sufixo={a.satisfacao !== null ? '/100' : undefined} destaque={clima.variacaoSatisfacao !== null ? <Chip faixa="neutro">{clima.variacaoSatisfacao > 0 ? '↑' : clima.variacaoSatisfacao < 0 ? '↓' : '='} {Math.abs(clima.variacaoSatisfacao)} pts</Chip> : undefined} apoio="Satisfação geral declarada" />
         <Scorecard rotulo="Índice geral de risco" valor={a.indiceGeral} sufixo="/100" faixa={a.faixaGeral} apoio="Média das dimensões psicossociais" />
       </div>
 
@@ -65,14 +65,14 @@ export function ClimaPainel() {
         <Cartao titulo="Principais pontos positivos" apoio="O que está sustentando o clima (vale proteger)">
           {clima.pontosPositivos.length === 0 ? <p className="text-sm text-tinta-3">Rode uma pesquisa NR-1 ou pulso.</p> : (
             <ul className="space-y-3">{clima.pontosPositivos.map((d: any) => (
-              <li key={d.dimensao} className="flex items-start gap-2.5"><ThumbsUp size={15} className="mt-0.5 flex-none text-[#0b5d0b]" aria-hidden /><div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="mt-0.5 text-xs leading-4 text-tinta-3">Melhor item: {d.itens[d.itens.length - 1]?.enunciado ?? '—'}</p></div><Chip faixa={d.faixa}>{d.indice}</Chip></li>
+              <li key={d.dimensao} className="flex items-start gap-2.5"><ThumbsUp size={15} className="mt-0.5 flex-none text-[#0b5d0b]" aria-hidden /><div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="mt-0.5 text-xs leading-4 text-tinta-3">Melhor item: {d.itens[d.itens.length - 1]?.enunciado ?? '-'}</p></div><Chip faixa={d.faixa}>{d.indice}</Chip></li>
             ))}</ul>
           )}
         </Cartao>
         <Cartao titulo="Principais pontos de atenção" apoio="Entram primeiro no plano de ação do PGR">
           {clima.pontosAtencao.length === 0 ? <p className="text-sm text-tinta-3">Rode uma pesquisa NR-1 ou pulso.</p> : (
             <ul className="space-y-3">{clima.pontosAtencao.map((d: any) => (
-              <li key={d.dimensao} className="flex items-start gap-2.5"><TriangleAlert size={15} className="mt-0.5 flex-none text-critico" aria-hidden /><div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="mt-0.5 text-xs leading-4 text-tinta-3">Pior item: {d.itens[0]?.enunciado ?? '—'}</p></div><Chip faixa={d.faixa}>{d.indice}</Chip></li>
+              <li key={d.dimensao} className="flex items-start gap-2.5"><TriangleAlert size={15} className="mt-0.5 flex-none text-critico" aria-hidden /><div className="min-w-0 flex-1"><p className="text-sm font-medium text-tinta">{d.rotulo}</p><p className="mt-0.5 text-xs leading-4 text-tinta-3">Pior item: {d.itens[0]?.enunciado ?? '-'}</p></div><Chip faixa={d.faixa}>{d.indice}</Chip></li>
             ))}</ul>
           )}
         </Cartao>
@@ -97,10 +97,10 @@ export function ClimaPainel() {
                 <tr key={m.pesquisa.id} className="hover:bg-superficie-2">
                   <td className="px-4 py-2.5"><Link href={`/admin/pesquisas/painel?id=${m.pesquisa.id}`} className="font-medium text-tinta hover:text-marca">{m.pesquisa.titulo}</Link><span className="block text-xs text-tinta-3">{fmtData(m.pesquisa.criado_em)}</span></td>
                   <td className="px-4 py-2.5 text-tinta-2 tabular">{m.analise.totalRespostas}</td>
-                  <td className="px-4 py-2.5 text-tinta-2 tabular">{m.analise.taxaParticipacao !== null ? fmtPercentual(m.analise.taxaParticipacao) : '—'}</td>
-                  <td className="px-4 py-2.5 font-medium text-tinta tabular">{m.analise.enps && m.analise.enps.total > 0 ? (m.analise.enps.enps > 0 ? `+${m.analise.enps.enps}` : m.analise.enps.enps) : '—'}</td>
-                  <td className="px-4 py-2.5 text-tinta-2 tabular">{m.analise.satisfacao ?? '—'}</td>
-                  <td className="px-4 py-2.5">{m.analise.dimensoes.length > 0 ? <Chip faixa={m.analise.faixaGeral}>{m.analise.indiceGeral} · {FAIXA_LABEL[m.analise.faixaGeral as keyof typeof FAIXA_LABEL]}</Chip> : <span className="text-tinta-3">—</span>}</td>
+                  <td className="px-4 py-2.5 text-tinta-2 tabular">{m.analise.taxaParticipacao !== null ? fmtPercentual(m.analise.taxaParticipacao) : '-'}</td>
+                  <td className="px-4 py-2.5 font-medium text-tinta tabular">{m.analise.enps && m.analise.enps.total > 0 ? (m.analise.enps.enps > 0 ? `+${m.analise.enps.enps}` : m.analise.enps.enps) : '-'}</td>
+                  <td className="px-4 py-2.5 text-tinta-2 tabular">{m.analise.satisfacao ?? '-'}</td>
+                  <td className="px-4 py-2.5">{m.analise.dimensoes.length > 0 ? <Chip faixa={m.analise.faixaGeral}>{m.analise.indiceGeral} · {FAIXA_LABEL[m.analise.faixaGeral as keyof typeof FAIXA_LABEL]}</Chip> : <span className="text-tinta-3">-</span>}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Banco de Horas — visão por papel.
+// Banco de Horas: visão por papel.
 //  - Master: sobe a planilha do mês, vê tudo e exporta.
 //  - Gestor: vê e exporta só o próprio centro de custo.
 //  - Colaborador: vê o próprio saldo do mês atual.
@@ -82,7 +82,7 @@ export function MeuBancoHorasResumo() {
       </span>
       <span className="flex-none rounded-xl bg-white px-4 py-2.5 text-center shadow-sm sm:px-5 sm:py-3">
         <span className={`block text-2xl font-[720] tracking-tight sm:text-[1.75rem] ${temSaldo ? (reg!.saldo_min! < 0 ? 'text-critico' : 'text-verde-escuro') : 'text-tinta-3'}`}>
-          {temSaldo ? formatSaldo(reg!.saldo_min) : '—'}
+          {temSaldo ? formatSaldo(reg!.saldo_min) : '-'}
         </span>
         <span className="mt-0.5 block text-[0.625rem] font-semibold uppercase tracking-wide text-tinta-3">horas</span>
       </span>
@@ -167,7 +167,7 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
     return { total: filtrados.length, pos, neg, sem }
   }, [filtrados])
 
-  const escopo = master ? 'todos os centros de custo' : `centro ${perfil.centro_custo || '—'}`
+  const escopo = master ? 'todos os centros de custo' : `centro ${perfil.centro_custo || '-'}`
 
   return (
     <div className="space-y-5">
@@ -243,11 +243,11 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
             <tbody className="divide-y divide-borda">
               {filtrados.map((r) => (
                 <tr key={r.id} className="hover:bg-superficie-2">
-                  <td className="px-4 py-2.5 text-tinta">{r.funcionario || '—'}</td>
-                  <td className="px-4 py-2.5 text-tinta-2">{r.matricula || '—'}</td>
-                  <td className="px-4 py-2.5 text-tinta-2">{r.centro_custo || '—'}</td>
-                  <td className="px-4 py-2.5 text-tinta-2">{r.cargo || '—'}</td>
-                  <td className="px-4 py-2.5 text-tinta-2">{r.falta || '—'}</td>
+                  <td className="px-4 py-2.5 text-tinta">{r.funcionario || '-'}</td>
+                  <td className="px-4 py-2.5 text-tinta-2">{r.matricula || '-'}</td>
+                  <td className="px-4 py-2.5 text-tinta-2">{r.centro_custo || '-'}</td>
+                  <td className="px-4 py-2.5 text-tinta-2">{r.cargo || '-'}</td>
+                  <td className="px-4 py-2.5 text-tinta-2">{r.falta || '-'}</td>
                   <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${r.saldo_min == null ? 'text-tinta-3' : r.saldo_min < 0 ? 'text-critico' : 'text-verde-escuro'}`}>
                     {formatSaldo(r.saldo_min)}
                   </td>
@@ -262,7 +262,7 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
 }
 
 // -------------------------------------------------------------
-// Revincular saldos às pessoas pela matrícula (Master) — sem reenviar planilha
+// Revincular saldos às pessoas pela matrícula (Master): sem reenviar planilha
 // -------------------------------------------------------------
 function RevincularMatricula({ onOk, setErro }: { onOk: (msg: string) => void; setErro: (s: string | null) => void }) {
   const [rodando, setRodando] = useState(false)
@@ -273,7 +273,7 @@ function RevincularMatricula({ onOk, setErro }: { onOk: (msg: string) => void; s
       onOk(
         r.atualizados > 0
           ? `Pronto! ${r.atualizados} saldo(s) revinculado(s) às pessoas. Agora aparecem no login delas.`
-          : `Nada a revincular: ${r.semVinculo > 0 ? `${r.semVinculo} registro(s) ainda sem matrícula correspondente — confira as matrículas.` : 'todos os saldos já estão vinculados.'}`,
+          : `Nada a revincular: ${r.semVinculo > 0 ? `${r.semVinculo} registro(s) ainda sem matrícula correspondente: confira as matrículas.` : 'todos os saldos já estão vinculados.'}`,
       )
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui revincular.')
@@ -284,7 +284,7 @@ function RevincularMatricula({ onOk, setErro }: { onOk: (msg: string) => void; s
     <div className="cartao-g flex flex-wrap items-center justify-between gap-3 p-4">
       <p className="max-w-xl text-xs leading-5 text-tinta-2">
         Cadastrou as matrículas <strong>depois</strong> de importar? Clique para <strong>revincular</strong> os saldos
-        já enviados às pessoas pela matrícula — sem precisar reenviar a planilha.
+        já enviados às pessoas pela matrícula: sem precisar reenviar a planilha.
       </p>
       <button
         type="button"

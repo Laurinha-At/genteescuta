@@ -3,7 +3,7 @@
 // =============================================================
 // Operações da administração no Firestore (exigem login).
 // A análise NR-1 e a supressão de grupos pequenos rodam aqui,
-// no navegador do admin — as respostas já são de-identificadas.
+// no navegador do admin: as respostas já são de-identificadas.
 // =============================================================
 import {
   collection,

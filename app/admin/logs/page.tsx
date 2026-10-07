@@ -182,9 +182,9 @@ export default function Logs() {
                 <tbody className="divide-y divide-borda">
                   {usuariosFiltrados.map((u) => (
                     <tr key={u.uid} className="hover:bg-superficie-2">
-                      <td className="px-4 py-2.5 font-medium text-tinta">{u.email || '—'}</td>
-                      <td className="px-4 py-2.5 text-tinta-2">{u.nome || '—'}</td>
-                      <td className="whitespace-nowrap px-4 py-2.5 text-tinta-2 tabular">{u.ultimo ? fmtDataHora(u.ultimo) : '—'}</td>
+                      <td className="px-4 py-2.5 font-medium text-tinta">{u.email || '-'}</td>
+                      <td className="px-4 py-2.5 text-tinta-2">{u.nome || '-'}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-tinta-2 tabular">{u.ultimo ? fmtDataHora(u.ultimo) : '-'}</td>
                       <td className="px-4 py-2.5">
                         {u.nunca ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f2dfae] bg-[#fdf7e7] px-2.5 py-0.5 text-xs font-medium text-[#6b4a00]">
@@ -238,7 +238,7 @@ export default function Logs() {
                   {filtrados.map((l) => (
                     <tr key={l.id} className="hover:bg-superficie-2">
                       <td className="whitespace-nowrap px-4 py-2.5 text-tinta-2 tabular">{fmtDataHora(l.em)}</td>
-                      <td className="px-4 py-2.5 text-tinta-2">{l.email ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-tinta-2">{l.email ?? '-'}</td>
                       <td className="px-4 py-2.5">
                         <span className="inline-flex items-center gap-1.5 text-tinta">
                           {l.acao === 'login' && <LogIn size={13} className="text-marca" aria-hidden />}

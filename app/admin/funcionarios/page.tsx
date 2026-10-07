@@ -132,7 +132,7 @@ export default function Funcionarios() {
     <>
       <CabecalhoPagina
         titulo="Funcionários e acessos"
-        descricao="Cadastre, edite, ative/inative e gerencie os acessos das pessoas — tudo em um lugar só. Defina os papéis e, para quem tem acesso ao painel, ajuste a Permissão de menu (🛡️)."
+        descricao="Cadastre, edite, ative/inative e gerencie os acessos das pessoas: tudo em um lugar só. Defina os papéis e, para quem tem acesso ao painel, ajuste a Permissão de menu (🛡️)."
       />
 
       <div className="max-w-6xl space-y-4 p-4 sm:p-6">
@@ -150,7 +150,7 @@ export default function Funcionarios() {
         <details className="rounded-md border border-borda bg-white">
           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-tinta">
             Adicionar administrador do sistema (Master / Super Admin)
-            <span className="ml-1 font-normal text-tinta-3">— para contas de administração; para colaboradores use o formulário acima.</span>
+            <span className="ml-1 font-normal text-tinta-3">para contas de administração; para colaboradores use o formulário acima.</span>
           </summary>
           <div className="border-t border-borda p-4">
             <FormAdminSistema onDone={recarregar} setAviso={setAviso} setErro={setErro} />
@@ -198,7 +198,7 @@ export default function Funcionarios() {
                     return (
                       <tr key={`${u._origem}-${u.uid}`} className="hover:bg-superficie-2">
                         <td className="px-4 py-3">
-                          <span className="block font-medium text-tinta">{u.nome || '—'}</span>
+                          <span className="block font-medium text-tinta">{u.nome || '-'}</span>
                           <span className="block text-xs text-tinta-3">{u.email}</span>
                           {ehAdminSistema ? (
                             <span className="mt-0.5 inline-block rounded bg-superficie-2 px-1.5 py-0.5 text-[10px] font-medium text-tinta-3">Admin do sistema</span>

@@ -22,7 +22,7 @@ export interface LinhaMapa {
 
 /**
  * Mapa de calor dimensão × recorte.
- * O número aparece impresso em toda célula — a cor é reforço, não o dado.
+ * O número aparece impresso em toda célula: a cor é reforço, não o dado.
  * Grupos abaixo do mínimo aparecem tarjados, para não expor ninguém.
  */
 export function MapaCalor({
@@ -101,7 +101,7 @@ export function MapaCalor({
                         key={coluna.chave}
                         className="rounded-sm bg-plano px-1.5 py-1.5 text-center text-xs text-tinta-3"
                       >
-                        —
+-
                       </td>
                     )
                   }

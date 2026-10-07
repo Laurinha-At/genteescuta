@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// App de Treinamento e Desenvolvimento — hub de trilhas + player.
+// App de Treinamento e Desenvolvimento: hub de trilhas + player.
 // Conteúdo estático (lib/treinamentos.ts); progresso por usuário no
 // Firestore. Identidade Soulan (azul/verde). O funcionário Comum vê
 // e faz; correção de quiz/caça-palavras acontece no cliente (interno).
@@ -57,7 +57,7 @@ export function TrilhasApp({
 }
 
 // -------------------------------------------------------------
-// HUB — lista de trilhas
+// HUB: lista de trilhas
 // -------------------------------------------------------------
 function pctTrilha(t: Trilha, prog: ProgressoTreino): number {
   const total = t.acts.length || 1
@@ -232,7 +232,7 @@ function CardTrilha({ trilha, prog, aoAbrir }: { trilha: Trilha; prog: Progresso
 }
 
 // -------------------------------------------------------------
-// PLAYER — trilha aberta, etapas em sequência
+// PLAYER: trilha aberta, etapas em sequência
 // -------------------------------------------------------------
 function PlayerTrilha({
   trilha, prog, logado, aoVoltar, aoConcluirEtapa,

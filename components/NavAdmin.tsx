@@ -37,7 +37,7 @@ type Grupo = { id: string; titulo: string; abertoPadrao: boolean; itens: Item[] 
 // Item solto no topo (sem grupo).
 const VISAO: Item = { href: '/admin', rotulo: 'Visão geral', Icone: LayoutDashboard, exato: true, tela: 'visao' }
 
-// Seções (apenas organização visual — cada item mantém rota/ícone/permissão).
+// Seções (apenas organização visual: cada item mantém rota/ícone/permissão).
 // "abertoPadrao" mantém as seções mais usadas abertas; as demais começam recolhidas.
 const GRUPOS: Grupo[] = [
   {
@@ -161,7 +161,7 @@ export function NavAdmin({
 
   return (
     <nav className="flex flex-col gap-0.5 px-3 py-2">
-      {/* Visão geral — solto no topo */}
+      {/* Visão geral: solto no topo */}
       <ItemLink it={VISAO} />
 
       {GRUPOS.map((g) => {

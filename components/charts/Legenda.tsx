@@ -3,7 +3,7 @@ import { COR_RISCO } from '@/lib/format'
 import { FAIXA_LABEL } from '@/lib/types'
 
 /**
- * Legenda das faixas de risco. Sempre presente onde a cor codifica faixa —
+ * Legenda das faixas de risco. Sempre presente onde a cor codifica faixa:
  * a cor nunca carrega o significado sozinha.
  */
 export function LegendaRisco({ compacta = false }: { compacta?: boolean }) {
@@ -19,7 +19,7 @@ export function LegendaRisco({ compacta = false }: { compacta?: boolean }) {
           <span>{FAIXA_LABEL[faixa]}</span>
           {!compacta && (
             <span className="text-tinta-3 tabular">
-              {min}–{max > 100 ? 100 : max}
+              {min}-{max > 100 ? 100 : max}
             </span>
           )}
         </li>

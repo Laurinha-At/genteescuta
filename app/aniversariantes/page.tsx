@@ -133,7 +133,7 @@ export default function Aniversariantes() {
 
         {/* Título do relatório (aparece na impressão/PDF) */}
         <div className="print-only mb-4">
-          <p className="text-lg font-bold">🎂 Aniversariantes de {mesTitulo} — {empresa}</p>
+          <p className="text-lg font-bold">🎂 Aniversariantes de {mesTitulo}: {empresa}</p>
           {temFiltro && <p className="text-sm">Filtro: {[busca.trim() && `“${busca.trim()}”`, areaSel].filter(Boolean).join(' · ')}</p>}
         </div>
 
@@ -212,7 +212,7 @@ export default function Aniversariantes() {
           <p className="mt-6 text-sm text-tinta-3">Carregando…</p>
         ) : (
           <div className="mt-6 space-y-6">
-            {/* Faixa "Hoje" — só sem filtro ativo, para não confundir a busca */}
+            {/* Faixa "Hoje": só sem filtro ativo, para não confundir a busca */}
             {dados.temHoje && !temFiltro && (
               <section className="overflow-hidden rounded-2xl border border-[#cfe6b8] bg-[#f4faec] sem-impressao">
                 <div className="p-5 sm:p-6">

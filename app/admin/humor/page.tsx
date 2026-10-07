@@ -28,7 +28,7 @@ import {
 } from '@/lib/humor'
 
 function fmtData(ts: number | null): string {
-  if (ts === null) return '—'
+  if (ts === null) return '-'
   return new Date(ts).toLocaleDateString('pt-BR')
 }
 
@@ -333,7 +333,7 @@ export default function HumorEquipe() {
               <Stat
                 icone={<CalendarRange size={16} aria-hidden />}
                 rotulo="Período coberto"
-                valor={`${fmtData(r.inicio)} – ${fmtData(r.fim)}`}
+                valor={`${fmtData(r.inicio)} a ${fmtData(r.fim)}`}
                 pequeno
               />
             </div>
@@ -373,7 +373,7 @@ export default function HumorEquipe() {
               <ParticipacaoSetor dados={participacao} />
             </Cartao>
 
-            {/* 4) Clima por setor — barras empilhadas (%) com drill-down por humor */}
+            {/* 4) Clima por setor: barras empilhadas (%) com drill-down por humor */}
             <Cartao titulo="Clima por setor" apoio="Positivo / Neutro / Negativo por setor, em % dos registros. Clique num setor para ver os 8 humores.">
               <ClimaSetorBarras dados={setorHumores} />
             </Cartao>
@@ -383,11 +383,11 @@ export default function HumorEquipe() {
               <p className="font-semibold text-tinta">Como os gráficos são calculados</p>
               <ul className="mt-1.5 space-y-1">
                 <li>
-                  <strong className="font-semibold text-tinta">Participação (%)</strong> — fatia de cada setor sobre o total de
+                  <strong className="font-semibold text-tinta">Participação (%)</strong>: fatia de cada setor sobre o total de
                   registros do período: (registros do setor ÷ total de registros) × 100. <em>n</em> = quantidade de registros do setor.
                 </li>
                 <li>
-                  <strong className="font-semibold text-tinta">Clima por setor</strong> — cada barra soma 100% dos registros do
+                  <strong className="font-semibold text-tinta">Clima por setor</strong>: cada barra soma 100% dos registros do
                   setor em três faixas: Positivo (Feliz, Animado, Satisfeito), Neutro (Tranquilo) e Negativo (Entediado, Aflito,
                   Triste, Irritado). Clique no setor para abrir os 8 humores individuais.
                 </li>
@@ -516,7 +516,7 @@ const PALETA_PIZZA = [
 ]
 
 // ---------------------------------------------------------------
-// Clima por setor — barra empilhada (%) com drill-down nos 8 humores.
+// Clima por setor: barra empilhada (%) com drill-down nos 8 humores.
 // Dados agregados por setor (nunca por pessoa).
 // ---------------------------------------------------------------
 type SetorHumor = { setor: string; total: number; pos: number; neu: number; neg: number; humores: Record<Humor, number> }
@@ -579,7 +579,7 @@ function DetalheSetor({ d }: { d: SetorHumor }) {
   const pct = (x: number) => (d.total > 0 ? Math.round((x / d.total) * 100) : 0)
   return (
     <div className="ml-4 mt-1.5 rounded-lg border border-borda bg-superficie-2 p-3">
-      <p className="mb-2 text-xs font-semibold text-tinta-2">Detalhe de {d.setor} — {d.total} {d.total === 1 ? 'registro' : 'registros'}</p>
+      <p className="mb-2 text-xs font-semibold text-tinta-2">Detalhe de {d.setor}: {d.total} {d.total === 1 ? 'registro' : 'registros'}</p>
       <ul className="space-y-1">
         {HUMORES.map((h) => {
           const x = d.humores[h] ?? 0
@@ -631,7 +631,7 @@ function corDoSetor(setor: string, idx: number): string {
 }
 
 // ---------------------------------------------------------------
-// Participação por setor — rosca OU barras (toggle). Cores de alto contraste.
+// Participação por setor: rosca OU barras (toggle). Cores de alto contraste.
 // Tooltips com registros e %. Dados reais por setor.
 // ---------------------------------------------------------------
 function ParticipacaoSetor({ dados }: { dados: { setor: string; total: number; pct: number }[] }) {

@@ -10,7 +10,7 @@ import type { Opcao, PerguntaTipo } from './types'
  *
  * Este questionário é um instrumento de levantamento. Ele não substitui a
  * avaliação e as medidas de controle conduzidas pelo SESMT ou por profissional
- * habilitado — ele alimenta essa avaliação com dados.
+ * habilitado: ele alimenta essa avaliação com dados.
  */
 
 export const ESCALA_FREQUENCIA: Opcao[] = [
@@ -52,7 +52,7 @@ export interface SecaoTemplate {
 }
 
 // ---------------------------------------------------------------
-// Perfil — usado para os recortes do painel, nunca para identificar
+// Perfil: usado para os recortes do painel, nunca para identificar
 // ---------------------------------------------------------------
 export const OPCOES_TEMPO_CASA: Opcao[] = [
   { valor: 'ate_6m', rotulo: 'Menos de 6 meses' },
@@ -314,7 +314,7 @@ export function montarTemplateClima(): SecaoTemplate[] {
 }
 
 // ===============================================================
-// Template específico da Soulan — "NR-1 | Sua Voz, Nosso Compromisso"
+// Template específico da Soulan: "NR-1 | Sua Voz, Nosso Compromisso"
 // Exatamente os 13 blocos do arquivo pesquisa-nr1-soulan.md.
 // Não inclui as dimensões Autonomia nem Assédio; o bloco Ambiente
 // tem só 2 itens. Toda escala Likert aqui é de concordância
@@ -460,7 +460,7 @@ export const DIMENSOES_SOULAN: SecaoTemplate[] = [
   },
 ]
 
-/** "NR-1 | Sua Voz, Nosso Compromisso" — exatamente os 13 blocos do arquivo. */
+/** "NR-1 | Sua Voz, Nosso Compromisso": exatamente os 13 blocos do arquivo. */
 export function montarTemplateSoulan(): SecaoTemplate[] {
   return [SECAO_PERFIL_SOULAN, ...DIMENSOES_SOULAN, SECAO_CLIMA, SECAO_ABERTA]
 }

@@ -84,11 +84,11 @@ export default function VisaoGeral() {
                   apoio={classENPS ? classENPS.rotulo : undefined}
                 />
               ) : (
-                <Scorecard rotulo="eNPS" valor="—" apoio="Sem medição de clima ainda" />
+                <Scorecard rotulo="eNPS" valor="-" apoio="Sem medição de clima ainda" />
               )}
               <Scorecard
                 rotulo="Participação na última pesquisa"
-                valor={participacao !== null ? participacao : '—'}
+                valor={participacao !== null ? participacao : '-'}
                 sufixo={participacao !== null ? '%' : undefined}
                 apoio={clima.atual ? `${clima.atual.analise.totalRespostas} respostas em "${clima.atual.pesquisa.titulo}"` : 'Nenhuma pesquisa respondida ainda'}
               />

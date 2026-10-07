@@ -21,23 +21,23 @@ const dataLonga = new Intl.DateTimeFormat('pt-BR', {
 })
 
 export function fmtDataHora(iso: string | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   return dataHora.format(new Date(iso))
 }
 
 export function fmtData(iso: string | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   return dataCurta.format(new Date(iso))
 }
 
 export function fmtDataLonga(iso: string | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   return dataLonga.format(new Date(iso))
 }
 
-/** "há 3 dias", "há 2 meses" — usado nas listas do canal. */
+/** "há 3 dias", "há 2 meses": usado nas listas do canal. */
 export function fmtRelativo(iso: string | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diff / 60000)
   if (min < 1) return 'agora'
@@ -64,7 +64,7 @@ export function fmtPercentual(n: number, casas = 0): string {
   return `${fmtNumero(n, casas)}%`
 }
 
-/** Dias corridos entre duas datas — usado no tempo médio de resposta. */
+/** Dias corridos entre duas datas: usado no tempo médio de resposta. */
 export function diasEntre(inicio: string, fim: string): number {
   return Math.max(0, (new Date(fim).getTime() - new Date(inicio).getTime()) / 86400000)
 }

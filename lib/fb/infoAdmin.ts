@@ -1,14 +1,14 @@
 'use client'
 
 // =============================================================
-// Informações Administrativas — TÓPICOS (cards) com vários ITENS.
+// Informações Administrativas: TÓPICOS (cards) com vários ITENS.
 //
 // Cada tópico é um documento em `info_topicos/{id}`: ícone, título e
 // descrição (texto rico sanitizado) e um array `itens`. Cada item tem um
 // tipo (link, vídeo, foto, arquivo ou texto) e pode apontar para um link
 // externo OU para um arquivo enviado ao Firebase Storage.
 //
-// Colaboradores logados LEEM; só o admin (Master) cria/edita/remove — a
+// Colaboradores logados LEEM; só o admin (Master) cria/edita/remove: a
 // trava real está nas Regras do Firestore e do Storage.
 // =============================================================
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore'

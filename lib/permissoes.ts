@@ -1,16 +1,16 @@
 // =============================================================
 // MODELO DE DADOS DE PERMISSÕES (etapa 2 do controle de acesso)
 //
-// Este arquivo é só DEFINIÇÃO e CÁLCULO — não impõe nada sozinho.
+// Este arquivo é só DEFINIÇÃO e CÁLCULO: não impõe nada sozinho.
 // A trava de verdade acontece em dois lugares (etapa 4):
 //   1) nas telas (esconder/bloquear o que o usuário não pode);
 //   2) nas Regras do Firestore (segurança real, já que o site é estático).
 //
 // Conceitos:
-//   • TELAS   — cada área do painel e as AÇÕES possíveis nela.
-//   • PERFIS  — "papéis" nomeados (Colaborador, ADM, Financeiro…), cada um
+//   • TELAS: cada área do painel e as AÇÕES possíveis nela.
+//   • PERFIS: "papéis" nomeados (Colaborador, ADM, Financeiro…), cada um
 //               com um conjunto PADRÃO de permissões (um preset).
-//   • Permissoes — o mapa efetivo { telaId: [ações] } de um usuário, vindo
+//   • Permissoes: o mapa efetivo { telaId: [ações] } de um usuário, vindo
 //               do perfil e, opcionalmente, de ajustes finos por usuário.
 // =============================================================
 
@@ -47,7 +47,7 @@ export interface Tela {
   acoes: Acao[]
   /** true = a visibilidade pode ser limitada ao centro de custo (área) do usuário. */
   porArea?: boolean
-  /** Só o dono do sistema (Super/ADM Principal) mexe — nunca aparece para outros perfis. */
+  /** Só o dono do sistema (Super/ADM Principal) mexe: nunca aparece para outros perfis. */
   sensivel?: boolean
 }
 
@@ -129,7 +129,7 @@ export const PERFIS: Perfil[] = [
   {
     id: 'gestor',
     nome: 'Gestor Aprovador',
-    desc: 'Aprova reembolsos e vê o Banco de Horas — apenas do centro de custo pelo qual responde.',
+    desc: 'Aprova reembolsos e vê o Banco de Horas: apenas do centro de custo pelo qual responde.',
     base: {
       reembolsos: ['ver', 'aprovar'],
       banco_horas: ['ver'],
@@ -161,13 +161,13 @@ export const PERFIS: Perfil[] = [
   {
     id: 'adm_principal',
     nome: 'ADM Principal',
-    desc: 'Gente e Cultura — faz tudo, inclusive gerenciar usuários e permissões.',
+    desc: 'Gente e Cultura: faz tudo, inclusive gerenciar usuários e permissões.',
     tudo: true,
   },
   {
     id: 'adm_master',
     nome: 'ADM Master',
-    desc: 'Diretoria — faz tudo, inclusive gerenciar usuários e permissões.',
+    desc: 'Diretoria: faz tudo, inclusive gerenciar usuários e permissões.',
     tudo: true,
   },
 ]

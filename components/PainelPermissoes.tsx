@@ -22,7 +22,7 @@ import {
  * dentro de cada tela, o que pode fazer (ver/adicionar/editar/aprovar/excluir).
  * A "Área de atuação" (centro de custo) limita as telas marcadas com "por área".
  *
- * Observação: aqui a marcação vale EXATAMENTE como fica — nada de perfil
+ * Observação: aqui a marcação vale EXATAMENTE como fica: nada de perfil
  * preenchendo por baixo. Os botões de "preencher como…" são só um atalho que
  * joga um padrão nas caixinhas; depois é tudo editável na mão.
  */

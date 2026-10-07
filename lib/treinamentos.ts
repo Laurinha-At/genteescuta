@@ -1,8 +1,8 @@
 // =============================================================
-// Treinamento e Desenvolvimento — conteúdo migrado do 'Sou Hub'.
+// Treinamento e Desenvolvimento: conteúdo migrado do 'Sou Hub'.
 //
 // As 4 trilhas (com etapas de leitura, quiz e caça-palavras) ficam
-// AQUI como dados estáticos — nada de servidor. O progresso de cada
+// AQUI como dados estáticos: nada de servidor. O progresso de cada
 // pessoa é guardado no Firestore (lib/fb/treino.ts), respeitando o
 // login: o funcionário Comum vê e faz; ninguém trapaceia porque a
 // correção é simples e o que importa (progresso) é por usuário.

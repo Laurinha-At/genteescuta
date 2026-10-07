@@ -139,7 +139,7 @@ export function Carrossel() {
   const ir = useCallback((n: number) => { if (total > 0) setI(((n % total) + total) % total) }, [total])
 
   // Troca automática (loop infinito, 5s). Pausa no hover/foco. Passa sozinho
-  // mesmo com "movimento reduzido" — nesse caso a troca é instantânea (sem o
+  // mesmo com "movimento reduzido": nesse caso a troca é instantânea (sem o
   // deslize animado), respeitando a preferência de acessibilidade.
   useEffect(() => {
     if (!slides || total <= 1 || pausado) return

@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Funcionários (colaboradores) — cadastro pelo admin (mesmo fluxo dos
+// Funcionários (colaboradores): cadastro pelo admin (mesmo fluxo dos
 // usuários: sem e-mail, senha padrão soulan123 + troca no 1º acesso) e
 // perfil do usuário logado (admin | funcionario | nenhum).
 // =============================================================
@@ -49,7 +49,7 @@ async function escreverAniversario(uid: string, nome: string, d: DadosPessoais, 
  */
 /**
  * Salva as permissões (mapa { telaId: [ações] }) de um FUNCIONÁRIO com acesso
- * ao painel (Master/Administrador). Só gerente (Master/Super) grava — imposto
+ * ao painel (Master/Administrador). Só gerente (Master/Super) grava: imposto
  * pelas Regras. Espelha salvarPermissoes (que grava em /admins).
  */
 export async function salvarPermissoesFuncionario(
@@ -104,7 +104,7 @@ export interface Perfil {
   nome: string
   ativo: boolean
   senha_provisoria: boolean
-  /** Papéis de acesso — uma pessoa pode ter vários (ex.: colaborador + financeiro). */
+  /** Papéis de acesso: uma pessoa pode ter vários (ex.: colaborador + financeiro). */
   papeis: string[]
   /** Centro de custo (área da Soulan) do usuário. */
   centro_custo: string
@@ -249,7 +249,7 @@ export async function atualizarPapeisFuncionario(
 }
 
 // -------------------------------------------------------------
-// Importação por planilha (só Master — garantido pelas Regras)
+// Importação por planilha (só Master: garantido pelas Regras)
 // -------------------------------------------------------------
 export async function importarFuncionarios(
   linhas: LinhaImport[],

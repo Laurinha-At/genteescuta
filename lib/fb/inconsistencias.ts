@@ -1,7 +1,7 @@
 'use client'
 
 // =============================================================
-// Inconsistências — Firestore. Um documento por mês de referência
+// Inconsistências: Firestore. Um documento por mês de referência
 // (inconsistencias/{AAAA-MM}) com a lista {setor, funcionário, quantidade}.
 // Reimportar o mesmo mês SUBSTITUI integralmente (setDoc sem merge).
 // =============================================================

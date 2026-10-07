@@ -81,7 +81,7 @@ export function PesquisasPainel() {
                       </td>
                       <td className="px-4 py-2.5"><Chip faixa={chip.faixa}>{chip.rotulo}</Chip></td>
                       <td className="px-4 py-2.5 font-medium text-tinta tabular">{n}</td>
-                      <td className="px-4 py-2.5 text-tinta-2 tabular">{taxa === null ? '—' : `${taxa}%`}</td>
+                      <td className="px-4 py-2.5 text-tinta-2 tabular">{taxa === null ? '-' : `${taxa}%`}</td>
                       <td className="px-4 py-2.5 whitespace-nowrap text-tinta-2">{p.fecha_em ? fmtData(p.fecha_em) : 'sem prazo'}</td>
                       <td className="px-4 py-2.5 text-right">
                         <Link href={`/admin/pesquisas/painel?id=${p.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-marca hover:underline"><BarChart3 size={13} aria-hidden /> Painel</Link>
