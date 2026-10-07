@@ -53,7 +53,7 @@ export default function MuralAdmin() {
         }
       />
 
-      <div className="max-w-7xl space-y-4 p-4 sm:p-6">
+      <div className="space-y-5 p-4 sm:p-6">
         {(pendRec > 0 || pendCom > 0) && (
           <Aviso tom="alerta">
             Há{' '}
@@ -67,84 +67,105 @@ export default function MuralAdmin() {
           </Aviso>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
-          {/* Coluna esquerda: formulário (fica fixo ao rolar em telas grandes) */}
-          <div className="lg:sticky lg:top-6">
-            <Cartao titulo={editando ? 'Editar aviso do Gente Informa' : 'Novo aviso do Gente Informa'} apoio="Novidades, informações e assuntos do RH. Só o admin publica; o colaborador apenas vê.">
-              <FormInforma
-                key={editando?.id ?? 'novo'}
-                inicial={editando}
-                aoSalvar={() => {
-                  setEditando(null)
-                  recarregar()
-                }}
-                aoCancelar={editando ? () => setEditando(null) : undefined}
-              />
-            </Cartao>
-          </div>
-
-          {/* Coluna direita: listas */}
-          <div className="space-y-4">
-        <Cartao titulo={`Gente Informa (${informa.length})`} apoio="Seus avisos publicados e rascunhos">
-          {carregando ? (
-            <p className="text-sm text-tinta-3">Carregando…</p>
-          ) : informa.length === 0 ? (
-            <p className="text-sm text-tinta-3">Nenhum aviso ainda. Crie o primeiro acima.</p>
-          ) : (
-            <ul className="space-y-2">
-              {informa.map((p) => (
-                <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border border-borda px-3 py-2.5">
-                  <Megaphone size={15} className="flex-none text-marca" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-tinta">{p.titulo}</span>
-                  {p.publicado ? <Chip faixa="baixo">Publicado</Chip> : <Chip faixa="neutro">Rascunho</Chip>}
-                  <span className="text-xs text-tinta-3">{fmtData(p.data)}</span>
-                  <button type="button" onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} title={p.publicado ? 'Inativar (tirar do ar)' : 'Ativar (publicar)'} className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-tinta">
-                    {p.publicado ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
-                  </button>
-                  <button type="button" onClick={() => { if (confirm('Repostar este aviso? Ele vai para o topo do mural com a data de hoje.')) repostarPost(p.id).then(recarregar) }} title="Repostar (jogar para o topo)" className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-marca">
-                    <ArrowUpToLine size={15} aria-hidden />
-                  </button>
-                  <button type="button" onClick={() => setEditando(p)} title="Editar" className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-marca">
-                    <Pencil size={15} aria-hidden />
-                  </button>
-                  <button type="button" onClick={() => { if (confirm('Remover este aviso?')) excluirPost(p.id).then(recarregar) }} title="Remover" className="rounded p-1 text-tinta-3 hover:bg-plano hover:text-critico">
-                    <Trash2 size={15} aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+        {/* Formulário no topo, largura total */}
+        <Cartao titulo={editando ? 'Editar aviso do Gente Informa' : 'Novo aviso do Gente Informa'} apoio="Novidades, informações e assuntos do RH. Só o admin publica; o colaborador apenas vê.">
+          <FormInforma
+            key={editando?.id ?? 'novo'}
+            inicial={editando}
+            aoSalvar={() => {
+              setEditando(null)
+              recarregar()
+            }}
+            aoCancelar={editando ? () => setEditando(null) : undefined}
+          />
         </Cartao>
 
-        <Cartao titulo={`Reconhecimentos no mural (${reconhecimentos.length})`} apoio="Aprovados e publicados. Você pode despublicar ou remover.">
-          {reconhecimentos.length === 0 ? (
-            <p className="text-sm text-tinta-3">Nenhum reconhecimento publicado ainda. Aprove os pendentes na moderação.</p>
-          ) : (
-            <ul className="space-y-2">
-              {reconhecimentos.map((p) => (
-                <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border border-borda px-3 py-2.5">
-                  <Award size={15} className="flex-none text-[#0b5d3a]" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-tinta">{p.titulo}</span>
-                  {p.area && <Chip faixa="marca">{p.area}</Chip>}
-                  {p.publicado ? <Chip faixa="baixo">No ar</Chip> : <Chip faixa="neutro">Fora do ar</Chip>}
-                  <button type="button" onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} title={p.publicado ? 'Inativar (tirar do ar)' : 'Ativar (publicar)'} className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-tinta">
-                    {p.publicado ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
-                  </button>
-                  <button type="button" onClick={() => { if (confirm('Repostar este reconhecimento? Ele vai para o topo do mural com a data de hoje.')) repostarPost(p.id).then(recarregar) }} title="Repostar (jogar para o topo)" className="rounded p-1 text-tinta-3 hover:bg-superficie-2 hover:text-marca">
-                    <ArrowUpToLine size={15} aria-hidden />
-                  </button>
-                  <button type="button" onClick={() => { if (confirm('Remover este reconhecimento do mural?')) excluirPost(p.id).then(recarregar) }} title="Remover" className="rounded p-1 text-tinta-3 hover:bg-plano hover:text-critico">
-                    <Trash2 size={15} aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Cartao>
-          </div>
+        {/* Duas listas lado a lado em telas largas; empilham no celular */}
+        <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+          <Cartao titulo={`Gente Informa (${informa.length})`} apoio="Seus avisos publicados e rascunhos">
+            {carregando ? (
+              <p className="text-sm text-tinta-3">Carregando…</p>
+            ) : informa.length === 0 ? (
+              <p className="text-sm text-tinta-3">Nenhum aviso ainda. Crie o primeiro acima.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {informa.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-start gap-x-3 gap-y-2.5 rounded-lg border border-borda px-3 py-3">
+                    <Megaphone size={17} className="mt-0.5 flex-none text-marca" aria-hidden />
+                    <div className="min-w-[12rem] flex-1">
+                      <p className="line-clamp-2 break-words text-sm font-semibold leading-snug text-tinta">{p.titulo}</p>
+                    </div>
+                    <div className="flex flex-none items-center gap-2">
+                      {p.publicado ? <Chip faixa="baixo">Publicado</Chip> : <Chip faixa="neutro">Rascunho</Chip>}
+                      <span className="whitespace-nowrap text-xs text-tinta-3">{fmtData(p.data)}</span>
+                    </div>
+                    <div className="flex w-full flex-wrap gap-1.5 sm:w-auto">
+                      <BtnAcao onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} Icone={p.publicado ? EyeOff : Eye}>{p.publicado ? 'Ocultar' : 'Publicar'}</BtnAcao>
+                      <BtnAcao onClick={() => { if (confirm('Repostar este aviso? Ele vai para o topo do mural com a data de hoje.')) repostarPost(p.id).then(recarregar) }} Icone={ArrowUpToLine}>Repostar</BtnAcao>
+                      <BtnAcao onClick={() => setEditando(p)} Icone={Pencil}>Editar</BtnAcao>
+                      <BtnAcao onClick={() => { if (confirm('Remover este aviso?')) excluirPost(p.id).then(recarregar) }} Icone={Trash2} perigo>Excluir</BtnAcao>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Cartao>
+
+          <Cartao titulo={`Reconhecimentos no mural (${reconhecimentos.length})`} apoio="Aprovados e publicados. Você pode despublicar ou remover.">
+            {reconhecimentos.length === 0 ? (
+              <p className="text-sm text-tinta-3">Nenhum reconhecimento publicado ainda. Aprove os pendentes na moderação.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {reconhecimentos.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-start gap-x-3 gap-y-2.5 rounded-lg border border-borda px-3 py-3">
+                    <Award size={17} className="mt-0.5 flex-none text-[#0b5d3a]" aria-hidden />
+                    <div className="min-w-[12rem] flex-1">
+                      <p className="line-clamp-2 break-words text-sm font-semibold leading-snug text-tinta">{p.titulo}</p>
+                      {p.area && <p className="mt-0.5 text-xs text-tinta-3">Setor: {p.area}</p>}
+                    </div>
+                    <div className="flex flex-none items-center gap-2">
+                      {p.publicado ? <Chip faixa="baixo">No ar</Chip> : <Chip faixa="neutro">Fora do ar</Chip>}
+                      <span className="whitespace-nowrap text-xs text-tinta-3">{fmtData(p.data)}</span>
+                    </div>
+                    <div className="flex w-full flex-wrap gap-1.5 sm:w-auto">
+                      <BtnAcao onClick={() => definirPublicadoPost(p.id, !p.publicado).then(recarregar)} Icone={p.publicado ? EyeOff : Eye}>{p.publicado ? 'Ocultar' : 'Publicar'}</BtnAcao>
+                      <BtnAcao onClick={() => { if (confirm('Repostar este reconhecimento? Ele vai para o topo do mural com a data de hoje.')) repostarPost(p.id).then(recarregar) }} Icone={ArrowUpToLine}>Repostar</BtnAcao>
+                      <BtnAcao onClick={() => { if (confirm('Remover este reconhecimento do mural?')) excluirPost(p.id).then(recarregar) }} Icone={Trash2} perigo>Excluir</BtnAcao>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Cartao>
         </div>
       </div>
     </>
+  )
+}
+
+function BtnAcao({
+  onClick,
+  Icone,
+  children,
+  perigo = false,
+}: {
+  onClick: () => void
+  Icone: typeof Pencil
+  children: React.ReactNode
+  perigo?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+        perigo
+          ? 'border-borda text-critico hover:border-critico hover:bg-plano'
+          : 'border-borda text-tinta-2 hover:bg-superficie-2 hover:text-tinta'
+      }`}
+    >
+      <Icone size={14} aria-hidden /> {children}
+    </button>
   )
 }
 
