@@ -72,6 +72,7 @@ export const TELAS: Tela[] = [
   { id: 'funcionarios', rotulo: 'Funcionários',     href: '/admin/funcionarios',       grupo: 'pessoas', acoes: ['ver', 'adicionar', 'editar', 'excluir'] },
   { id: 'banco_horas',  rotulo: 'Banco de Horas',   href: '/banco-horas',              grupo: 'pessoas', acoes: ['ver', 'adicionar'], porArea: true },
   { id: 'reembolsos',   rotulo: 'Reembolsos',       href: '/reembolso',                grupo: 'pessoas', acoes: ['ver', 'aprovar'], porArea: true },
+  { id: 'inconsistencias', rotulo: 'Inconsistências', href: '/admin/inconsistencias',  grupo: 'pessoas', acoes: ['ver', 'adicionar'], sensivel: true },
 
   // ---- Conteúdo do site ----
   { id: 'informacoes',  rotulo: 'Informações Adm.', href: '/admin/informacoes',        grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar', 'excluir'] },

@@ -20,6 +20,7 @@ import {
   GraduationCap,
   ChevronDown,
   Users,
+  TriangleAlert,
 } from 'lucide-react'
 import { podeVer, type Permissoes } from '@/lib/permissoes'
 
@@ -74,6 +75,7 @@ const GRUPOS: Grupo[] = [
     itens: [
       { href: '/banco-horas', rotulo: 'Banco de Horas', Icone: Clock, tela: 'banco_horas' },
       { href: '/reembolso', rotulo: 'Reembolsos', Icone: Receipt, tela: 'reembolsos' },
+      { href: '/admin/inconsistencias', rotulo: 'Inconsistências', Icone: TriangleAlert, tela: 'inconsistencias' },
     ],
   },
   {

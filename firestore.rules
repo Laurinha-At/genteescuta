@@ -195,6 +195,11 @@ service cloud.firestore {
       allow read, write: if admin();
     }
 
+    // -------- Inconsistências (planilha por mês) — SÓ o admin lê e escreve.
+    match /inconsistencias/{id} {
+      allow read, write: if admin();
+    }
+
     // -------- Solicitações de Reembolso --------
     // Fluxo: colaborador cria → gestor da área (ou Master, se quem pede é
     // gestor) → Financeiro. Visibilidade: o solicitante vê o seu; o gestor
