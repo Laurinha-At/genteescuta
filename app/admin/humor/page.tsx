@@ -131,11 +131,6 @@ export default function HumorEquipe() {
   const setores = useMemo(() => porSetor(regsP, classif), [regsP, classif])
 
   const participacao = useMemo(() => [...setores].sort((a, b) => b.total - a.total), [setores])
-  // Cor fixa por setor (para a pizza de participação), pela ordem de participação.
-  const corPorSetor = useMemo(
-    () => new Map(participacao.map((s, i) => [s.setor, PALETA_PIZZA[i % PALETA_PIZZA.length]])),
-    [participacao],
-  )
 
   // Clima por setor com drill-down: contagem por humor dentro de cada setor
   // (agregado, nunca por pessoa). Positivo/Neutro/Negativo seguem a
@@ -373,15 +368,9 @@ export default function HumorEquipe() {
               <BarrasHumor dados={dist} total={r.total} />
             </Cartao>
 
-            {/* 3) Participação por setor (pizza) */}
+            {/* 3) Participação por setor (rosca ou barras) */}
             <Cartao titulo="Participação por setor" apoio="Percentual de registros de humor por setor (quais setores mais participam).">
-              <GraficoPizza
-                dados={participacao.map((s) => ({
-                  label: s.setor,
-                  valor: s.total,
-                  cor: corPorSetor.get(s.setor) ?? PALETA_PIZZA[0],
-                }))}
-              />
+              <ParticipacaoSetor dados={participacao} />
             </Cartao>
 
             {/* 4) Clima por setor — barras empilhadas (%) com drill-down por humor */}
@@ -623,50 +612,124 @@ function arcoRosca(cx: number, cy: number, r: number, ri: number, a0: number, a1
   return `M${x0},${y0} A${r},${r} 0 ${grande} 1 ${x1},${y1} L${xi1},${yi1} A${ri},${ri} 0 ${grande} 0 ${xi0},${yi0} Z`
 }
 
-function GraficoPizza({ dados }: { dados: { label: string; valor: number; cor: string; extra?: string; extraCor?: string }[] }) {
-  const total = dados.reduce((s, d) => s + d.valor, 0)
-  if (total <= 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
+// Paleta de ALTO CONTRASTE por setor (chave normalizada: sem acento, caixa, "&"→"e").
+function chaveSetor(s: string): string {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' e ').replace(/[^a-z0-9]+/gi, ' ').trim().toLowerCase()
+}
+const COR_SETOR = new Map(
+  Object.entries({
+    'Administrativo/Financeiro': '#2563EB',
+    'Atração & Seleção': '#16A34A',
+    'Gente & Cultura/Cadastro e Suprimentos': '#F59E0B',
+    'Thomas': '#DC2626',
+    'Suporte e Dados': '#06B6D4',
+    'Marketing': '#9333EA',
+  }).map(([k, v]) => [chaveSetor(k), v]),
+)
+function corDoSetor(setor: string, idx: number): string {
+  return COR_SETOR.get(chaveSetor(setor)) ?? PALETA_PIZZA[idx % PALETA_PIZZA.length]
+}
 
-  const cx = 90, cy = 90, r = 86, ri = 52
-  let ang = -Math.PI / 2
-  const fatias = dados.map((d) => {
-    const frac = d.valor / total
-    const a0 = ang
-    const a1 = ang + frac * 2 * Math.PI
-    ang = a1
-    return { ...d, a0, a1, frac, pct: Math.round(frac * 100) }
-  })
+// ---------------------------------------------------------------
+// Participação por setor — rosca OU barras (toggle). Cores de alto contraste.
+// Tooltips com registros e %. Dados reais por setor.
+// ---------------------------------------------------------------
+function ParticipacaoSetor({ dados }: { dados: { setor: string; total: number; pct: number }[] }) {
+  const [modo, setModo] = useState<'rosca' | 'barras'>('rosca')
+  if (dados.length === 0) return <p className="text-sm text-tinta-3">Sem dados.</p>
+
+  const totalReg = dados.reduce((s, d) => s + d.total, 0)
+  const comCor = dados.map((d, i) => ({ ...d, cor: corDoSetor(d.setor, i) }))
+  const titulo = (d: { setor: string; total: number; pct: number }) => `${d.setor}: ${d.total} ${d.total === 1 ? 'registro' : 'registros'} (${d.pct}%)`
 
   return (
-    <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
-      <svg viewBox="0 0 180 180" className="h-44 w-44 flex-none" role="img" aria-label="Gráfico de pizza por setor">
-        {fatias.map((f, i) =>
-          f.frac >= 0.999 ? (
-            <circle key={i} cx={cx} cy={cy} r={(r + ri) / 2} fill="none" stroke={f.cor} strokeWidth={r - ri} />
-          ) : (
-            <path key={i} d={arcoRosca(cx, cy, r, ri, f.a0, f.a1)} fill={f.cor} stroke="#fff" strokeWidth={1.5} />
-          ),
-        )}
-      </svg>
-      <ul className="w-full min-w-0 space-y-1.5">
-        {fatias.map((f, i) => (
-          <li key={i} className="flex items-center gap-2 text-xs">
-            <span className="h-2.5 w-2.5 flex-none rounded-sm" style={{ background: f.cor }} aria-hidden />
-            <span className="min-w-0 flex-1 truncate text-tinta-2" title={f.label}>{f.label}</span>
-            <span className="flex flex-none items-center gap-1 tabular text-tinta-2">
-              {f.extra && (
-                <>
-                  {f.extraCor && <span className="h-2 w-2 flex-none rounded-full" style={{ background: f.extraCor }} aria-hidden />}
-                  <strong className="font-semibold text-tinta">{f.extra}</strong>
-                  <span className="text-tinta-3">·</span>
-                </>
+    <div className="space-y-4">
+      <div className="inline-flex rounded-lg border border-borda-forte bg-white p-0.5 text-xs font-semibold">
+        {(['rosca', 'barras'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setModo(m)}
+            aria-pressed={modo === m}
+            className={`rounded-md px-3 py-1.5 transition-colors ${modo === m ? 'bg-marca text-white' : 'text-tinta-2 hover:text-marca'}`}
+          >
+            {m === 'rosca' ? 'Rosca' : 'Barras'}
+          </button>
+        ))}
+      </div>
+
+      {modo === 'rosca' ? <SetorRosca dados={comCor} totalReg={totalReg} titulo={titulo} /> : <SetorBarras dados={comCor} titulo={titulo} />}
+    </div>
+  )
+}
+
+function SetorRosca({ dados, totalReg, titulo }: {
+  dados: { setor: string; total: number; pct: number; cor: string }[]
+  totalReg: number
+  titulo: (d: any) => string
+}) {
+  const cx = 90, cy = 90, r = 86, ri = 54
+  let ang = -Math.PI / 2
+  const fatias = dados.map((d) => {
+    const frac = totalReg > 0 ? d.total / totalReg : 0
+    const a0 = ang; const a1 = ang + frac * 2 * Math.PI; ang = a1
+    return { ...d, a0, a1, frac }
+  })
+  return (
+    <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
+      <div className="relative h-48 w-48 flex-none">
+        <svg viewBox="0 0 180 180" className="h-full w-full" role="img" aria-label="Rosca de participação por setor">
+          {fatias.map((f, i) => (
+            <g key={i}>
+              {f.frac >= 0.999 ? (
+                <circle cx={cx} cy={cy} r={(r + ri) / 2} fill="none" stroke={f.cor} strokeWidth={r - ri}><title>{titulo(f)}</title></circle>
+              ) : (
+                <path d={arcoRosca(cx, cy, r, ri, f.a0, f.a1)} fill={f.cor} stroke="#fff" strokeWidth={1.5}><title>{titulo(f)}</title></path>
               )}
-              <strong className="font-semibold text-tinta">{f.pct}%</strong>
-              <span className="text-tinta-3">n={f.valor}</span>
-            </span>
+            </g>
+          ))}
+        </svg>
+        {/* Centro: quantidade de setores */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-[1.6rem] font-[680] leading-none text-tinta">{dados.length}</span>
+          <span className="mt-0.5 text-[0.6875rem] font-medium text-tinta-3">{dados.length === 1 ? 'setor' : 'setores'}</span>
+        </div>
+      </div>
+      <ul className="w-full min-w-0 space-y-1.5">
+        {dados.map((d, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm" title={titulo(d)}>
+            <span className="h-3 w-3 flex-none rounded-sm" style={{ background: d.cor }} aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-tinta-2">{d.setor}</span>
+            <strong className="flex-none font-semibold text-tinta tabular">{d.pct}%</strong>
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function SetorBarras({ dados, titulo }: {
+  dados: { setor: string; total: number; pct: number; cor: string }[]
+  titulo: (d: any) => string
+}) {
+  const ordenado = [...dados].sort((a, b) => b.pct - a.pct)
+  const grid = 'grid grid-cols-[minmax(6rem,11rem)_1fr_3rem] items-center gap-3'
+  return (
+    <div className="space-y-1.5">
+      <div className={`${grid} text-[10px] text-tinta-3`}>
+        <span />
+        <span className="flex justify-between"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></span>
+        <span />
+      </div>
+      {ordenado.map((d, i) => (
+        <div key={i} className={grid} title={titulo(d)}>
+          <span className="truncate text-xs text-tinta-2">{d.setor}</span>
+          <span className="relative block h-4 rounded-sm bg-plano">
+            <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${Math.max(d.pct, d.pct > 0 ? 2 : 0)}%`, background: d.cor }} />
+          </span>
+          <strong className="text-right text-xs font-semibold text-tinta tabular">{d.pct}%</strong>
+        </div>
+      ))}
     </div>
   )
 }
