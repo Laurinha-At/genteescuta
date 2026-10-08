@@ -359,16 +359,16 @@ function LinhaEvolucao({ serie }: { serie: { mes: string; total: number }[] }) {
           </g>
         })}
         {/* Área preenchida */}
-        <path d={area} fill="#2a7897" fillOpacity={0.1} />
+        <path d={area} fill="#1a4895" fillOpacity={0.1} />
         {/* Linha de média (tracejada) */}
         <line x1={padL} y1={yMedia} x2={w - padR} y2={yMedia} stroke="#8a6d00" strokeWidth={1.5} strokeDasharray="5 4" />
         <text x={w - padR} y={yMedia - 4} textAnchor="end" fontSize="10" fill="#8a6d00">média {media}</text>
         {/* Linha principal */}
-        <path d={linha} fill="none" stroke="#2a7897" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+        <path d={linha} fill="none" stroke="#1a4895" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
         {pts.map((p, i) => (
           <g key={i}>
             <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="11" fontWeight="600" fill="#1a1714">{p.d.total}</text>
-            <circle cx={p.x} cy={p.y} r={4.5} fill="#2a7897" stroke="#fff" strokeWidth={2}>
+            <circle cx={p.x} cy={p.y} r={4.5} fill="#1a4895" stroke="#fff" strokeWidth={2}>
               <title>{`${rotuloMes(p.d.mes)}: ${p.d.total} inconsistência(s)`}</title>
             </circle>
             <text x={p.x} y={h - 10} textAnchor="middle" fontSize="10" fill="#57514a">{mesCurto(p.d.mes)}</text>

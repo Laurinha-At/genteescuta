@@ -36,9 +36,9 @@ type Slide = {
 
 const GRAD_ANIV = 'linear-gradient(135deg, #ff7eb3 0%, #ff6a3d 52%, #ffb648 100%)'   // festivo: rosa → laranja → âmbar
 const GRAD_TEMPO = 'linear-gradient(135deg, #7c5cff 0%, #4e7cf0 100%)'                // roxo → azul
-const GRAD_MURAL = 'linear-gradient(135deg, #17b6c9 0%, #2f8bb4 50%, #4b9e3a 100%)'   // ciano → azul → verde
-const GRAD_TREINO = 'linear-gradient(135deg, #6d5efc 0%, #2f8bb4 100%)'               // índigo → azul
-const GRAD_PADRAO = 'linear-gradient(135deg, #8cc63f 0%, #2f8bb4 100%)'
+const GRAD_MURAL = 'linear-gradient(135deg, #17b6c9 0%, #1a4895 50%, #5e7e1c 100%)'   // ciano → azul → verde
+const GRAD_TREINO = 'linear-gradient(135deg, #6d5efc 0%, #1a4895 100%)'               // índigo → azul
+const GRAD_PADRAO = 'linear-gradient(135deg, #aad12f 0%, #1a4895 100%)'
 
 export function Carrossel() {
   const [slides, setSlides] = useState<Slide[] | null>(null)

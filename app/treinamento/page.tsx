@@ -68,8 +68,8 @@ export default function Treinamento() {
             {/* Cards do que está por vir: preenchem a largura */}
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               {[
-                { Icone: BookOpen, cor: '#2f8bb4', titulo: 'Trilhas de conteúdo', txt: 'Materiais e leituras rápidas sobre temas do dia a dia.' },
-                { Icone: Trophy, cor: '#557d26', titulo: 'Quizzes e conquistas', txt: 'Responda, pontue e acompanhe o seu progresso.' },
+                { Icone: BookOpen, cor: '#1a4895', titulo: 'Trilhas de conteúdo', txt: 'Materiais e leituras rápidas sobre temas do dia a dia.' },
+                { Icone: Trophy, cor: '#5e7e1c', titulo: 'Quizzes e conquistas', txt: 'Responda, pontue e acompanhe o seu progresso.' },
                 { Icone: Clock, cor: '#8a6d00', titulo: 'No seu ritmo', txt: 'Faça quando e onde quiser, direto pelo portal.' },
               ].map(({ Icone, cor, titulo, txt }) => (
                 <div key={titulo} className="cartao-g p-5">

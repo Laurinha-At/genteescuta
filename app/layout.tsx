@@ -1,6 +1,15 @@
 import type { Metadata } from 'next'
+import { Montserrat } from 'next/font/google'
 import './globals.css'
 import { RegistroNavegacao } from '@/components/BotaoVoltar'
+
+// Tipografia da marca: Montserrat (títulos em Bold, texto em Regular).
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-montserrat',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Gente Cultura · Soulan',
@@ -20,7 +29,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={montserrat.variable}>
       <body className="antialiased">
         <RegistroNavegacao />
         {children}

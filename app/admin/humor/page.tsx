@@ -511,7 +511,7 @@ function BarrasHumor({ dados, total }: { dados: { humor: Humor; n: number }[]; t
 // Gráfico de pizza (rosca) + legenda com percentual (e índice, quando houver).
 // ---------------------------------------------------------------
 const PALETA_PIZZA = [
-  '#2a7897', '#557d26', '#8a6d00', '#9c4221', '#2f9e8a', '#4a6fa5',
+  '#1a4895', '#5e7e1c', '#8a6d00', '#9c4221', '#2f9e8a', '#4a6fa5',
   '#7b5ea7', '#b5651d', '#3f7db0', '#6b8e23', '#c2756b', '#508484',
 ]
 

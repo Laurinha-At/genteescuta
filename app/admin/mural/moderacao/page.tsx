@@ -120,7 +120,7 @@ function ItemReconhecimento({ m, aoAgir }: { m: any; aoAgir: () => void }) {
   return (
     <div className="rounded-md border border-borda p-3.5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f4ec] px-2.5 py-1 text-xs font-semibold text-[#0b5d3a]">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f4ec] px-2.5 py-1 text-xs font-semibold text-[#5e7e1c]">
           <Award size={13} aria-hidden /> Reconhecimento
         </span>
         {m.area && <Chip faixa="marca">{m.area}</Chip>}

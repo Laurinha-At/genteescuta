@@ -204,11 +204,11 @@ function Editor() {
                             </Campo>
                           )}
                           <div className="space-y-2 rounded-md border border-borda bg-white p-3">
-                            <label className="flex items-center gap-2.5 text-sm text-tinta-2"><input type="checkbox" checked={q.obrigatoria} onChange={(e) => editarPergunta(q.id, { obrigatoria: e.target.checked })} className="h-4 w-4 accent-[#2a7897]" /> Resposta obrigatória</label>
+                            <label className="flex items-center gap-2.5 text-sm text-tinta-2"><input type="checkbox" checked={q.obrigatoria} onChange={(e) => editarPergunta(q.id, { obrigatoria: e.target.checked })} className="h-4 w-4 accent-[#1a4895]" /> Resposta obrigatória</label>
                             {q.tipo === 'likert5' && (
                               <>
-                                <label className="flex items-start gap-2.5 text-sm text-tinta-2"><input type="checkbox" checked={q.invertida} onChange={(e) => editarPergunta(q.id, { invertida: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[#2a7897]" /> Item protetivo (nota alta = situação boa; entra invertido no cálculo)</label>
-                                <label className="flex items-start gap-2.5 text-sm text-tinta-2"><input type="checkbox" checked={q.critica} onChange={(e) => editarPergunta(q.id, { critica: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[#2a7897]" /> Gera alerta (assédio/violência: uma ocorrência já sobe ao topo)</label>
+                                <label className="flex items-start gap-2.5 text-sm text-tinta-2"><input type="checkbox" checked={q.invertida} onChange={(e) => editarPergunta(q.id, { invertida: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[#1a4895]" /> Item protetivo (nota alta = situação boa; entra invertido no cálculo)</label>
+                                <label className="flex items-start gap-2.5 text-sm text-tinta-2"><input type="checkbox" checked={q.critica} onChange={(e) => editarPergunta(q.id, { critica: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[#1a4895]" /> Gera alerta (assédio/violência: uma ocorrência já sobe ao topo)</label>
                               </>
                             )}
                           </div>

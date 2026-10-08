@@ -11,7 +11,7 @@ import { CENTROS_CUSTO } from '@/lib/reembolso'
 import { type Trilha, type Etapa } from '@/lib/treinamentos'
 import { CabecalhoPagina, Cartao, Campo, ENTRADA, Botao, Aviso } from '@/components/ui'
 
-const VAZIA: Trilha = { id: '', title: '', desc: '', icon: '📘', color: '#2f8bb4', tag: 'obrigatorio', mins: 10, areas: [], capa: null, acts: [] }
+const VAZIA: Trilha = { id: '', title: '', desc: '', icon: '📘', color: '#1a4895', tag: 'obrigatorio', mins: 10, areas: [], capa: null, acts: [] }
 
 function uid() {
   return (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID().replace(/-/g, '') : Math.random().toString(36).slice(2)).slice(0, 12)

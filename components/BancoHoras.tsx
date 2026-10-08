@@ -68,7 +68,7 @@ export function MeuBancoHorasResumo() {
     <Link
       href="/banco-horas"
       className="group flex items-center gap-4 overflow-hidden rounded-2xl p-5 shadow-[0_8px_24px_rgba(26,23,20,0.12)] transition-transform hover:-translate-y-0.5 sm:gap-5 sm:p-6"
-      style={{ background: 'linear-gradient(135deg, #2a7897 0%, #123f52 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #1a4895 0%, #123f52 100%)' }}
     >
       <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm sm:h-16 sm:w-16">
         <Clock size={30} aria-hidden />
@@ -416,7 +416,7 @@ function imprimirPDF(rs: RegistroBH[], mesRef: string, escopo: string) {
     <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;color:#1a1714;margin:32px}
     h1{font-size:18px;margin:0 0 4px}p{color:#57514a;margin:0 0 16px;font-size:12px}
     table{width:100%;border-collapse:collapse;font-size:12px}
-    th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left}th{background:#eaf3f7;color:#1f5c73}</style>
+    th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left}th{background:#eaf3f7;color:#002443}</style>
     </head><body><h1>Banco de Horas: ${mesRefLabel(mesRef)}</h1>
     <p>Escopo: ${escopo} · Gerado em ${new Date().toLocaleString('pt-BR')} · ${linhas.length} registro(s)</p>
     <table><thead><tr>${cab.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>

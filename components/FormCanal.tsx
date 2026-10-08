@@ -148,7 +148,7 @@ function FormMelhoria() {
         <div className="space-y-1.5">
           {IMPACTOS.map((imp) => (
             <label key={imp} className="flex items-start gap-2.5 rounded-lg border border-borda bg-white px-3 py-2 text-sm text-tinta-2 hover:border-marca">
-              <input type="checkbox" checked={impactos.includes(imp)} onChange={() => toggleImpacto(imp)} className="mt-0.5 h-4 w-4 flex-none accent-[#2a7897]" />
+              <input type="checkbox" checked={impactos.includes(imp)} onChange={() => toggleImpacto(imp)} className="mt-0.5 h-4 w-4 flex-none accent-[#1a4895]" />
               <span>{imp}</span>
             </label>
           ))}
@@ -319,7 +319,7 @@ function FormReconhecimento() {
         <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
           {TIPOS_RECONHECIMENTO.map((t) => (
             <label key={t} className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${tipos.includes(t) ? 'border-marca bg-marca-clara text-marca-escura' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}>
-              <input type="checkbox" checked={tipos.includes(t)} onChange={() => toggleTipo(t)} className="h-4 w-4 flex-none accent-[#2a7897]" />
+              <input type="checkbox" checked={tipos.includes(t)} onChange={() => toggleTipo(t)} className="h-4 w-4 flex-none accent-[#1a4895]" />
               {t}
             </label>
           ))}

@@ -108,7 +108,7 @@ function CartaoPost({ post, perfil }: { post: Post; perfil: Perfil | null }) {
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-              reconhecimento ? 'bg-[#e7f4ec] text-[#0b5d3a]' : 'bg-marca-clara text-marca-escura'
+              reconhecimento ? 'bg-[#e7f4ec] text-[#5e7e1c]' : 'bg-marca-clara text-marca-escura'
             }`}
           >
             {reconhecimento ? <Award size={13} aria-hidden /> : <Megaphone size={13} aria-hidden />}

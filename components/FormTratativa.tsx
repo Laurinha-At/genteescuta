@@ -80,7 +80,7 @@ export function FormTratativa({ m, aoSalvar }: { m: any; aoSalvar?: () => void }
         </Campo>
 
         <label className="flex items-start gap-2.5">
-          <input type="checkbox" name="visivel" defaultChecked className="mt-0.5 h-4 w-4 flex-none accent-[#2a7897]" />
+          <input type="checkbox" name="visivel" defaultChecked className="mt-0.5 h-4 w-4 flex-none accent-[#1a4895]" />
           <span className="text-sm leading-5 text-tinta-2">
             Mostrar esta movimentação para quem enviou
             <span className="mt-0.5 block text-xs text-tinta-3">Desmarque para registrar uma nota interna, visível só para a administração.</span>
@@ -125,7 +125,7 @@ export function FormMural({ m, aoSalvar }: { m: any; aoSalvar?: () => void }) {
         </Campo>
 
         <label className="flex items-start gap-2.5">
-          <input type="checkbox" name="publicar" defaultChecked={m.publicar_no_mural} className="mt-0.5 h-4 w-4 flex-none accent-[#2a7897]" />
+          <input type="checkbox" name="publicar" defaultChecked={m.publicar_no_mural} className="mt-0.5 h-4 w-4 flex-none accent-[#1a4895]" />
           <span className="text-sm leading-5 text-tinta-2">
             Publicar no mural público
             <span className="mt-0.5 block text-xs text-tinta-3">O título e o texto acima ficam visíveis. A descrição original e o e-mail de quem enviou nunca são publicados.</span>

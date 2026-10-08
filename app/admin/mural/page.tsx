@@ -118,7 +118,7 @@ export default function MuralAdmin() {
               <ul className="space-y-2.5">
                 {reconhecimentos.map((p) => (
                   <li key={p.id} className="flex flex-wrap items-start gap-x-3 gap-y-2.5 rounded-lg border border-borda px-3 py-3">
-                    <Award size={17} className="mt-0.5 flex-none text-[#0b5d3a]" aria-hidden />
+                    <Award size={17} className="mt-0.5 flex-none text-[#5e7e1c]" aria-hidden />
                     <div className="min-w-[12rem] flex-1">
                       <p className="line-clamp-2 break-words text-sm font-semibold leading-snug text-tinta">{p.titulo}</p>
                       {p.area && <p className="mt-0.5 text-xs text-tinta-3">Setor: {p.area}</p>}
@@ -217,7 +217,7 @@ function FormInforma({
           <input name="autor" defaultValue={inicial?.autor ?? 'Gente & Cultura'} className={ENTRADA} />
         </Campo>
         <label className="flex items-center gap-2.5 self-end pb-2.5">
-          <input type="checkbox" name="publicado" defaultChecked={inicial ? inicial.publicado : true} className="h-4 w-4 accent-[#2a7897]" />
+          <input type="checkbox" name="publicado" defaultChecked={inicial ? inicial.publicado : true} className="h-4 w-4 accent-[#1a4895]" />
           <span className="text-sm text-tinta">Publicar no mural agora</span>
         </label>
       </div>

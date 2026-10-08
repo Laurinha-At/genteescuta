@@ -40,8 +40,8 @@ function IconeTopico({ nome, size = 20 }: { nome: string; size?: number }) {
 
 // -------- Cores dos cards (gradientes dentro da paleta Soulan) --------
 const CORES: Record<string, { label: string; grad: string }> = {
-  azul:     { label: 'Azul',     grad: 'linear-gradient(135deg, #2f8bb4 0%, #1f5c73 100%)' },
-  verde:    { label: 'Verde',    grad: 'linear-gradient(135deg, #7bbf3b 0%, #557d26 100%)' },
+  azul:     { label: 'Azul',     grad: 'linear-gradient(135deg, #1a4895 0%, #002443 100%)' },
+  verde:    { label: 'Verde',    grad: 'linear-gradient(135deg, #7bbf3b 0%, #5e7e1c 100%)' },
   petroleo: { label: 'Petróleo', grad: 'linear-gradient(135deg, #2f83a4 0%, #154556 100%)' },
   ceu:      { label: 'Céu',      grad: 'linear-gradient(135deg, #7fbdd4 0%, #2f83a4 100%)' },
   ambar:    { label: 'Âmbar',    grad: 'linear-gradient(135deg, #f4b64a 0%, #d98a1f 100%)' },
