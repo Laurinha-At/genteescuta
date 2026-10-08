@@ -223,7 +223,7 @@ export default function Contato() {
         </div>
 
         {/* Duas colunas: solicitações (maior) + contatos (menor). No celular empilha com as solicitações em cima. */}
-        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="mt-6 grid items-start gap-5 lg:grid-cols-2">
           {/* Coluna esquerda: solicitações */}
           <section className="cartao-g p-5 sm:p-6">
             <h2 className="titulo-secao text-tinta">Qual solicitação você deseja realizar?</h2>
@@ -256,7 +256,7 @@ export default function Contato() {
             {FOCAIS.length > 0 && (
               <>
                 <h3 className="mt-6 text-sm font-semibold text-tinta">Por assunto</h3>
-                <ul className="mt-2 space-y-2">
+                <ul className="mt-2 grid gap-2 sm:grid-cols-2">
                   {FOCAIS.map(({ assunto, responsaveis }, i) => (
                     <li key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-lg bg-superficie-2 px-3.5 py-2.5 text-sm">
                       <span className="font-semibold text-tinta">{assunto}:</span>
@@ -271,9 +271,9 @@ export default function Contato() {
             {CONTATOS.length > 0 && (
               <>
                 <h3 className="mt-6 text-sm font-semibold text-tinta">Telefones e e-mails</h3>
-                <div className="mt-2 divide-y divide-borda overflow-hidden rounded-lg border border-borda">
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   {CONTATOS.map(({ nome, cargo, telefone, email }, i) => (
-                    <div key={i} className="px-4 py-3">
+                    <div key={i} className="rounded-lg border border-borda bg-white px-4 py-3">
                       <span className="block text-sm font-semibold text-tinta">{nome}</span>
                       {cargo && <span className="block text-xs text-tinta-3">{cargo}</span>}
                       <div className="mt-1.5 flex flex-col gap-1 text-sm">
