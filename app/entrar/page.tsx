@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from '@/components/LinkSemPrefetch'
-import { LogIn, ArrowLeft, LogOut } from 'lucide-react'
+import { ArrowLeft, LogOut } from 'lucide-react'
 import { configurado } from '@/lib/firebase'
 import { observarLogin, sair } from '@/lib/fb/auth'
 import { getConfig } from '@/lib/fb/publico'
@@ -69,11 +69,7 @@ export default function Entrar() {
             </>
           ) : (
             <>
-              <span className="selo-canal mt-6">
-                <LogIn size={14} className="text-marca" aria-hidden />
-                Acesso ao Gente Cultura
-              </span>
-              <h1 className="titulo-hero mt-4 text-[1.625rem] text-tinta">Entrar</h1>
+              <h1 className="titulo-hero mt-6 text-[1.625rem] text-tinta">Entrar</h1>
               <p className="mt-2 text-sm leading-6 text-tinta-2">
                 Use seu <strong className="font-semibold text-tinta">e-mail</strong> e a sua senha para acessar.
               </p>
