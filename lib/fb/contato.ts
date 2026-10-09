@@ -22,7 +22,7 @@ export interface ContatoConfig {
 
 export const CONTATO_PADRAO: ContatoConfig = {
   email_contato: 'gentecultura@soulan.com.br',
-  intro_topo: 'Precisa de ajuda ou quer falar diretamente com a equipe de Gente & Cultura? A gente responde.',
+  intro_topo: 'Precisa de ajuda, tem alguma dúvida ou quer conversar com o time de Gente & Cultura?\nEstamos aqui para ajudar no que for preciso.\nConte com a gente!',
   intro_focais: 'Para facilitar a comunicação e garantir que suas dúvidas sejam rapidamente respondidas, listamos abaixo os contatos das pessoas focais para cada tipo de situação. Em caso de necessidade, entre em contato diretamente com o responsável pelo assunto específico:',
   focais: [
     { assunto: 'TI', responsaveis: 'Nil' },
