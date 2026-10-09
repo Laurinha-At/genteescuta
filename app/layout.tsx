@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Montserrat } from 'next/font/google'
+import { Montserrat, Fraunces } from 'next/font/google'
 import './globals.css'
 import { RegistroNavegacao } from '@/components/BotaoVoltar'
 
@@ -8,6 +8,14 @@ const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-montserrat',
+  display: 'swap',
+})
+
+// Fonte de display (serifada, elegante) para destaques pontuais.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  variable: '--font-display',
   display: 'swap',
 })
 
@@ -29,7 +37,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={montserrat.variable}>
+    <html lang="pt-BR" className={`${montserrat.variable} ${fraunces.variable}`}>
       <body className="antialiased">
         <RegistroNavegacao />
         {children}

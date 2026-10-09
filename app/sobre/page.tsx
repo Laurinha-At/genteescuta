@@ -27,8 +27,27 @@ export default function Sobre() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
         <BotaoVoltar />
 
+        {/* -------- Nossa equipe (bloco em destaque, no topo) -------- */}
+        <section className="mt-4 grid items-stretch overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_10px_30px_rgba(26,23,20,0.12)] md:grid-cols-[minmax(0,22rem)_1fr]">
+          {/* Texto: no celular fica em cima (ordem natural); foto embaixo */}
+          <div className="flex flex-col justify-center p-8 text-white sm:p-10 [text-shadow:0_2px_10px_rgba(0,0,0,0.22)]" style={{ background: 'var(--gradiente)' }}>
+            <h2
+              className="text-4xl leading-[1.08] sm:text-5xl"
+              style={{ fontFamily: 'var(--font-display), Georgia, "Times New Roman", serif', fontWeight: 600 }}
+            >
+              Nossa equipe 💙
+            </h2>
+            <p className="mt-4 max-w-sm text-[1.0625rem] leading-[1.7] tracking-[0.01em] text-white/95">
+              Quem faz o jeito Soulan acontecer, todos os dias.
+            </p>
+          </div>
+          <div className="relative min-h-[18rem] md:min-h-[30rem]">
+            <img src="/sobre-equipe.webp" alt="Equipe da Soulan reunida" className="absolute inset-0 h-full w-full object-cover" />
+          </div>
+        </section>
+
         {/* Capa: parede de boas-vindas (com o sofá) */}
-        <div className="mt-4 overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_6px_18px_rgba(26,23,20,0.08)]">
+        <div className="mt-6 overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_6px_18px_rgba(26,23,20,0.08)]">
           <img src="/sobre-2.jpg" alt="Parede de boas-vindas da Soulan" className="h-48 w-full object-cover sm:h-64 md:h-80" />
         </div>
 
@@ -67,18 +86,6 @@ export default function Sobre() {
             )}
           </div>
         </div>
-        {/* -------- Nossa equipe -------- */}
-        <section className="mt-6 grid items-stretch overflow-hidden rounded-2xl border border-borda shadow-[0_1px_3px_rgba(26,23,20,0.04),0_10px_30px_rgba(26,23,20,0.12)] md:grid-cols-[minmax(0,20rem)_1fr]">
-          <div className="flex flex-col justify-center p-8 text-white sm:p-10 [text-shadow:0_1px_6px_rgba(0,0,0,0.18)]" style={{ background: 'var(--gradiente)' }}>
-            <h2 className="text-2xl font-bold tracking-[-0.01em] sm:text-3xl">Nossa equipe 💙</h2>
-            <p className="mt-3 text-[1.0625rem] leading-8 text-white/95">
-              Quem faz o jeito Soulan acontecer todos os dias
-            </p>
-          </div>
-          <div className="relative min-h-[18rem] md:min-h-[30rem]">
-            <img src="/sobre-equipe.webp" alt="Equipe da Soulan reunida" className="absolute inset-0 h-full w-full object-cover" />
-          </div>
-        </section>
       </main>
       <RodapePublico />
     </div>
