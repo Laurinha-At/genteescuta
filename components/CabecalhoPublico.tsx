@@ -70,7 +70,7 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
             <img src="/logo-soulan.png" alt={empresa} className="h-9 w-auto sm:h-10" />
           </Link>
 
-          {/* Menu institucional "Sobre Nós" + "Nosso Mural" em destaque. */}
+          {/* Menu institucional "Sobre Nós" + "Nosso Mural" + busca do portal. */}
           <nav className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <MenuSobre />
             <Link
@@ -80,6 +80,7 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
             >
               <Megaphone size={14} aria-hidden /> Nosso Mural
             </Link>
+            <BuscaPortal className="w-full sm:w-56 md:w-64" />
           </nav>
         </div>
 
@@ -133,15 +134,8 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
 export function RodapePublico() {
   return (
     <footer className="mt-20 border-t border-borda bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-tinta">Encontre o que precisa</p>
-            <p className="mt-0.5 text-xs text-tinta-3">Busque por qualquer seção do portal.</p>
-          </div>
-          <BuscaPortal />
-        </div>
-        <p className="mt-8 text-xs text-tinta-3">© {new Date().getFullYear()} Soulan Recursos Humanos</p>
+      <div className="mx-auto max-w-7xl px-4 py-6 text-xs text-tinta-3">
+        <p>© {new Date().getFullYear()} Soulan Recursos Humanos</p>
       </div>
     </footer>
   )
