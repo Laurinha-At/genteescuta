@@ -46,6 +46,25 @@ export async function salvarRegistrosHumor(novos: RegistroHumor[]): Promise<numb
   return gravados
 }
 
+/**
+ * Apaga só os registros de um mês (AAAA-MM), preservando os demais.
+ * O ID do documento não depende do mês, então filtramos pelo campo `dia`.
+ */
+export async function limparRegistrosHumorMes(mesRef: string): Promise<number> {
+  const snap = await getDocs(collection(db(), 'humor_registros'))
+  const alvo = snap.docs.filter((d) => String((d.data() as RegistroHumor).dia || '').startsWith(mesRef))
+  let apagados = 0
+  for (let i = 0; i < alvo.length; i += 400) {
+    const lote = writeBatch(db())
+    for (const d of alvo.slice(i, i + 400)) {
+      lote.delete(d.ref)
+      apagados++
+    }
+    await lote.commit()
+  }
+  return apagados
+}
+
 /** Apaga TODOS os registros de humor: para recomeçar do zero. */
 export async function limparRegistrosHumor(): Promise<number> {
   const snap = await getDocs(collection(db(), 'humor_registros'))

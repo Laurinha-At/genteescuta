@@ -6,7 +6,7 @@ import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui'
 import {
   listarRegistrosHumor,
   salvarRegistrosHumor,
-  limparRegistrosHumor,
+  limparRegistrosHumorMes,
   getClassificacaoHumor,
 } from '@/lib/fb/humor'
 import {
@@ -94,24 +94,29 @@ export default function HumorEquipe() {
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  async function limparTudo() {
-    if (
-      !confirm(
-        'Isto APAGA todos os registros de humor do banco, de forma permanente. ' +
-          'Depois você poderá importar uma planilha nova do zero. Tem certeza?',
-      )
-    )
+  async function limparMesAtual() {
+    const d = new Date()
+    const mesAtual = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const rotulo = rotuloMes(mesAtual).toLowerCase()
+    const noMes = registros.filter((r) => String(r.dia || '').startsWith(mesAtual)).length
+
+    if (noMes === 0) {
+      setErro(null)
+      setAviso(`Não há registros de humor de ${rotulo} para apagar. Os meses anteriores foram mantidos.`)
       return
+    }
+    const plural = noMes === 1 ? 'registro' : 'registros'
+    if (!confirm(`Isso vai apagar os ${noMes} ${plural} de humor de ${rotulo}. Os meses anteriores serão mantidos. Deseja continuar?`)) return
+
     setErro(null)
     setAviso(null)
     setLimpando(true)
     try {
-      const n = await limparRegistrosHumor()
-      setRegistros([])
-      if (inputRef.current) inputRef.current.value = ''
-      setAviso(`Pronto: ${n} registro(s) apagado(s). Agora é só importar uma planilha nova do zero.`)
+      const n = await limparRegistrosHumorMes(mesAtual)
+      setRegistros((prev) => prev.filter((r) => !String(r.dia || '').startsWith(mesAtual)))
+      setAviso(`Pronto: ${n} ${n === 1 ? 'registro apagado' : 'registros apagados'} de ${rotulo}. Os meses anteriores foram mantidos.`)
     } catch {
-      setErro('Não consegui limpar os registros.')
+      setErro('Não consegui limpar os registros do mês.')
     }
     setLimpando(false)
   }
@@ -230,11 +235,12 @@ export default function HumorEquipe() {
               {botaoImportar}
               <button
                 type="button"
-                onClick={limparTudo}
+                onClick={limparMesAtual}
                 disabled={limpando}
+                title="Apaga só os registros do mês atual; os meses anteriores são mantidos."
                 className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3.5 py-2 text-sm font-medium text-tinta transition-colors hover:border-[#e2b4b4] hover:bg-plano hover:text-critico disabled:opacity-60"
               >
-                <Trash2 size={15} aria-hidden /> {limpando ? 'Limpando…' : 'Limpar tudo'}
+                <Trash2 size={15} aria-hidden /> {limpando ? 'Limpando…' : 'Limpar mês atual'}
               </button>
             </>
           ) : undefined
