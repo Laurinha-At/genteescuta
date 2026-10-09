@@ -120,6 +120,14 @@ service cloud.firestore {
       allow write: if souSuper();
     }
 
+    // -------- "Qual solicitação você deseja realizar?" (orientações)
+    // Público lê (a filtragem por papel/visibilidade é feita na consulta do
+    // cliente). Admin/administrador de conteúdo gerencia os itens.
+    match /orientacao_solicitacoes/{id} {
+      allow read: if true;
+      allow create, update, delete: if podeConteudo();
+    }
+
     // -------- Usuários da administração (Master/Super). Só o SUPER cria,
     // altera nível e remove. Admin lê a lista. A própria pessoa só pode
     // baixar o flag de senha provisória (nada mais).

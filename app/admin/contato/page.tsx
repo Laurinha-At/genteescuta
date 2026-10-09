@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save, Loader2 } from 'lucide-react'
 import { getContato, salvarContato, type ContatoConfig, type Focal, type ContatoPessoa } from '@/lib/fb/contato'
+import { GestaoOrientacoes } from '@/components/GestaoOrientacoes'
 import { CabecalhoPagina, Cartao, Campo, ENTRADA, Botao, Aviso } from '@/components/ui'
 
 export default function AdminContato() {
@@ -85,6 +86,9 @@ export default function AdminContato() {
                 {pendente ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Salvando…</> : <><Save size={15} aria-hidden /> Salvar alterações</>}
               </Botao>
             </div>
+
+            {/* Gestão da seção "Qual solicitação você deseja realizar?" (salva por item) */}
+            <GestaoOrientacoes />
           </>
         )}
       </div>
