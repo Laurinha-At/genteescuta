@@ -362,6 +362,7 @@ function EditorPapeis({
   const iniciais: string[] = Array.isArray(usuario.papeis) ? usuario.papeis : []
   const [papeis, setPapeis] = useState<string[]>(PAPEIS_FUNC.filter((p) => iniciais.includes(p)))
   const [centro, setCentro] = useState<string>(usuario.centro_custo || '')
+  const [centrosExtra, setCentrosExtra] = useState<string[]>(Array.isArray(usuario.centros_extra) ? usuario.centros_extra : [])
   const [matricula, setMatricula] = useState<string>(usuario.matricula || '')
   const [aniv, setAniv] = useState<string>(usuario.aniversario || '')
   const [adm, setAdm] = useState<string>(usuario.admissao || '')
@@ -381,7 +382,7 @@ function EditorPapeis({
       const datas = montarDatas(aniv, adm)
       await atualizarPapeisFuncionario(usuario.uid, papeis, centro, usuario.email, {
         nome: usuario.nome, matricula, ...datas,
-      })
+      }, centrosExtra)
       onSalvo(`Dados de ${usuario.email} atualizados.`)
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui salvar.')
@@ -391,7 +392,7 @@ function EditorPapeis({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onFechar}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-base font-semibold text-tinta">Papéis e centro de custo</h3>
@@ -431,12 +432,16 @@ function EditorPapeis({
             </Campo>
           </div>
 
-          <Campo rotulo="Centro de custo (área)" ajuda="Área da Soulan à qual a pessoa pertence. Obrigatório para o Gestor Aprovador. Um gestor com “Todos os centros de custo” aprova reembolsos de qualquer área.">
+          <Campo rotulo="Centro de custo (área)" ajuda="Área da Soulan à qual a pessoa pertence. Usada nos gráficos de humor e inconsistências. Obrigatório para o Gestor Aprovador. Um gestor com “Todos os centros de custo” aprova reembolsos de qualquer área.">
             <select value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
               <option value="">Sem centro de custo</option>
               <option value={TODOS_CENTROS}>{TODOS_CENTROS}</option>
               {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
+          </Campo>
+
+          <Campo rotulo="Também pode lançar reembolso para" ajuda="Opcional. A pessoa sempre pode lançar para a própria área; marque aqui outras áreas para as quais ela também pode lançar reembolso. Não afeta os gráficos por setor.">
+            <SelecaoCentrosExtra valor={centrosExtra} onChange={setCentrosExtra} excluir={centro} />
           </Campo>
         </div>
 
@@ -460,6 +465,7 @@ function FormFunc({
 }) {
   const [pendente, setPendente] = useState(false)
   const [centro, setCentro] = useState('')
+  const [centrosExtra, setCentrosExtra] = useState<string[]>([])
   const [papeis, setPapeis] = useState<string[]>([])
 
   function alterna(p: string) {
@@ -476,11 +482,12 @@ function FormFunc({
     try {
       const extras = montarDatas(String(f.get('aniversario') ?? ''), String(f.get('admissao') ?? ''))
       const res = await cadastrarFuncionario({
-        email, nome: String(f.get('nome') ?? ''), centro_custo: centro, papeis,
+        email, nome: String(f.get('nome') ?? ''), centro_custo: centro, centros_extra: centrosExtra, papeis,
         matricula: String(f.get('matricula') ?? ''), ...extras,
       })
       ;(e.target as HTMLFormElement).reset()
       setCentro('')
+      setCentrosExtra([])
       setPapeis([])
       const e2 = email.trim().toLowerCase()
       setAviso(
@@ -504,13 +511,18 @@ function FormFunc({
         <Campo rotulo="E-mail institucional" obrigatorio>
           <input name="email" type="email" required className={ENTRADA} placeholder="joao@soulan.com.br" />
         </Campo>
-        <Campo rotulo="Centro de custo (área)">
+        <Campo rotulo="Centro de custo (área)" ajuda="Área de origem. Usada nos gráficos de humor e inconsistências.">
           <select value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
             <option value="">Sem centro de custo</option>
             <option value={TODOS_CENTROS}>{TODOS_CENTROS}</option>
             {CENTROS_CUSTO.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </Campo>
+        <div className="sm:col-span-2">
+          <Campo rotulo="Também pode lançar reembolso para" ajuda="Opcional. A pessoa sempre pode lançar para a própria área; marque aqui outras áreas para as quais ela também pode lançar reembolso. Não afeta os gráficos por setor.">
+            <SelecaoCentrosExtra valor={centrosExtra} onChange={setCentrosExtra} excluir={centro} />
+          </Campo>
+        </div>
         <Campo rotulo="Matrícula" ajuda="Usada no Banco de Horas.">
           <input name="matricula" className={ENTRADA} placeholder="Ex.: 00123" />
         </Campo>
@@ -537,6 +549,30 @@ function FormFunc({
         </Botao>
       </div>
     </form>
+  )
+}
+
+// Seleção múltipla de centros de custo extra ("Também pode lançar reembolso para").
+function SelecaoCentrosExtra({ valor, onChange, excluir }: { valor: string[]; onChange: (v: string[]) => void; excluir?: string }) {
+  const opcoes = CENTROS_CUSTO.filter((c) => c !== excluir)
+  function alterna(c: string) {
+    onChange(valor.includes(c) ? valor.filter((x) => x !== c) : [...valor, c])
+  }
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {opcoes.map((c) => {
+        const on = valor.includes(c)
+        return (
+          <label
+            key={c}
+            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${on ? 'border-marca bg-marca-clara text-marca-texto' : 'border-borda-forte bg-white text-tinta-2 hover:border-marca'}`}
+          >
+            <input type="checkbox" checked={on} onChange={() => alterna(c)} className="accent-[var(--color-marca)]" />
+            {c}
+          </label>
+        )
+      })}
+    </div>
   )
 }
 

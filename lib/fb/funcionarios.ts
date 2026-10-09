@@ -97,6 +97,13 @@ function limparPapeis(v: unknown): string[] {
   return v.filter((p): p is string => typeof p === 'string' && (PAPEIS_VALIDOS as readonly string[]).includes(p))
 }
 
+/** Normaliza a lista de centros extra (strings não vazias, sem repetir). */
+export function limparCentrosExtra(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  const out = v.map((c) => String(c ?? '').trim()).filter(Boolean)
+  return Array.from(new Set(out))
+}
+
 export interface Perfil {
   tipo: PerfilTipo
   uid: string
@@ -106,8 +113,10 @@ export interface Perfil {
   senha_provisoria: boolean
   /** Papéis de acesso: uma pessoa pode ter vários (ex.: colaborador + financeiro). */
   papeis: string[]
-  /** Centro de custo (área da Soulan) do usuário. */
+  /** Centro de custo (área da Soulan) do usuário: a área de origem. */
   centro_custo: string
+  /** Centros extra para os quais a pessoa também pode lançar reembolso. */
+  centros_extra: string[]
   /** Onde mora o documento (para trocar a senha inicial na coleção certa). */
   origem: 'admins' | 'funcionarios' | 'nenhum'
 }
@@ -139,6 +148,7 @@ export async function perfilAtual(): Promise<Perfil | null> {
       senha_provisoria: conta?.senha_provisoria ?? false,
       papeis,
       centro_custo: (d.centro_custo as string) ?? '',
+      centros_extra: limparCentrosExtra(d.centros_extra),
       origem: 'admins',
     }
   }
@@ -159,13 +169,14 @@ export async function perfilAtual(): Promise<Perfil | null> {
       senha_provisoria: d.senha_provisoria === true,
       papeis,
       centro_custo: (d.centro_custo as string) ?? '',
+      centros_extra: limparCentrosExtra(d.centros_extra),
       origem: 'funcionarios',
     }
   }
 
   return {
     tipo: 'nenhum', uid: u.uid, email: u.email ?? '', nome: '', ativo: false,
-    senha_provisoria: false, papeis: [], centro_custo: '', origem: 'nenhum',
+    senha_provisoria: false, papeis: [], centro_custo: '', centros_extra: [], origem: 'nenhum',
   }
 }
 
@@ -180,6 +191,7 @@ export async function cadastrarFuncionario(p: {
   email: string
   nome: string
   centro_custo?: string
+  centros_extra?: string[]
   papeis?: string[]
 } & DadosPessoais) {
   const email = String(p.email ?? '').trim().toLowerCase()
@@ -187,6 +199,8 @@ export async function cadastrarFuncionario(p: {
   if (!EMAIL_RE.test(email)) throw new Error('Informe um e-mail válido.')
   if (nome.length < 2) throw new Error('Informe o nome da pessoa.')
   const centro_custo = String(p.centro_custo ?? '').trim()
+  // Extras: não repetir a própria área (ela já é permitida por padrão).
+  const centros_extra = limparCentrosExtra(p.centros_extra).filter((c) => c !== centro_custo)
   // "colaborador" é sempre incluído; os demais papéis são opcionais.
   const papeis = Array.from(new Set(['colaborador', ...limparPapeis(p.papeis)]))
   const extras = camposPessoais(p)
@@ -203,7 +217,7 @@ export async function cadastrarFuncionario(p: {
     // merge: se já havia registro, não zera dados; senão, cria vinculado ao uid.
     await setDoc(
       doc(db(), 'funcionarios', uid),
-      { email, nome, centro_custo, papeis, ...extras, ativo: true, senha_provisoria: true, criado_em: agora, criado_por: auth().currentUser?.email ?? null },
+      { email, nome, centro_custo, centros_extra, papeis, ...extras, ativo: true, senha_provisoria: true, criado_em: agora, criado_por: auth().currentUser?.email ?? null },
       { merge: true },
     )
   } finally {
@@ -235,12 +249,17 @@ export async function atualizarPapeisFuncionario(
   centro_custo: string,
   email?: string,
   extras?: DadosPessoais & { nome?: string },
+  centros_extra?: string[],
 ) {
   const limpos = Array.from(new Set(['colaborador', ...limparPapeis(papeis)]))
   const campos = extras ? camposPessoais(extras) : {}
+  const centro = String(centro_custo ?? '').trim()
   await updateDoc(doc(db(), 'funcionarios', uid), {
     papeis: limpos,
-    centro_custo: String(centro_custo ?? '').trim(),
+    centro_custo: centro,
+    ...(centros_extra !== undefined
+      ? { centros_extra: limparCentrosExtra(centros_extra).filter((c) => c !== centro) }
+      : {}),
     ...campos,
     ...(extras?.nome ? { nome: String(extras.nome).trim() } : {}),
   })

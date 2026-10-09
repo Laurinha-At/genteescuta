@@ -18,7 +18,7 @@ import {
   ArrowLeft, ArrowRight, Pencil, Trash2,
 } from 'lucide-react'
 import {
-  CATEGORIAS, STATUS_LABEL, STATUS_FAIXA, PAPEL_LABEL,
+  CATEGORIAS, STATUS_LABEL, STATUS_FAIXA, PAPEL_LABEL, CENTROS_CUSTO, TODOS_CENTROS,
   formatBRL, formatData, podeAprovar, statusEfetivo, ehEtapaFinanceiro, estaPendente, editavelPeloSolicitante,
   type StatusReembolso,
 } from '@/lib/reembolso'
@@ -301,8 +301,17 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
   perfil: Perfil; aoEnviar: () => void; setAviso: (s: string | null) => void; setErro: (s: string | null) => void
 }) {
   const hoje = new Date().toISOString().slice(0, 10)
-  const centro = perfil.centro_custo || ''
-  const semCentro = !centro
+  // Centros para os quais a pessoa pode lançar: a própria área + os extras.
+  // Gestor com "Todos os centros de custo" pode lançar para qualquer área.
+  const opcoesCentro = (() => {
+    if ((perfil.centro_custo || '') === TODOS_CENTROS) return [...CENTROS_CUSTO]
+    const base = perfil.centro_custo ? [perfil.centro_custo] : []
+    const extras = Array.isArray(perfil.centros_extra) ? perfil.centros_extra : []
+    return Array.from(new Set([...base, ...extras])).filter(Boolean)
+  })()
+  const [centro, setCentro] = useState(opcoesCentro[0] ?? '')
+  const semCentro = opcoesCentro.length === 0
+  const escolheCentro = opcoesCentro.length > 1
 
   const [passo, setPasso] = useState(1)          // 1..5
   const [maximo, setMaximo] = useState(1)         // passo mais avançado já alcançado
@@ -322,7 +331,7 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
     descricao: descricao.trim().length < 3 ? 'Descreva o motivo (mínimo 3 letras).' : '',
     arquivo: !arquivo ? 'Anexe o comprovante (imagem ou PDF).' : '',
   }
-  const destino = perfil.papeis.includes('gestor') ? 'Master' : perfil.papeis.includes('master') ? 'Financeiro' : 'gestor da sua área'
+  const destino = perfil.papeis.includes('gestor') ? 'Master' : perfil.papeis.includes('master') ? 'Financeiro' : `gestor do centro ${centro}`
   const borda = (e: string) => `${ENTRADA}${tentou && e ? ' border-critico focus:border-critico' : ''}`
 
   function passoValido(n: number): boolean {
@@ -372,13 +381,33 @@ function FormReembolso({ perfil, aoEnviar, setAviso, setErro }: {
           <div className="space-y-3">
             <div>
               <p className="text-sm font-semibold text-tinta">Identificação</p>
-              <p className="mt-1 text-xs text-tinta-3">Preenchido automaticamente do seu cadastro, confira e siga.</p>
+              <p className="mt-1 text-xs text-tinta-3">
+                {escolheCentro
+                  ? 'Confira seus dados e escolha o centro de custo da despesa.'
+                  : 'Preenchido automaticamente do seu cadastro, confira e siga.'}
+              </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <CampoLeitura Icone={User} rotulo="Solicitante" valor={perfil.nome || perfil.email || '-'} />
-              <CampoLeitura Icone={Building2} rotulo="Centro de custo" valor={centro || 'Não definido'} />
+              {escolheCentro ? (
+                <label className="block">
+                  <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-tinta-3">
+                    <Building2 size={13} className="text-marca" aria-hidden /> Centro de custo da despesa
+                  </span>
+                  <select value={centro} onChange={(e) => setCentro(e.target.value)} className={ENTRADA}>
+                    {opcoesCentro.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+              ) : (
+                <CampoLeitura Icone={Building2} rotulo="Centro de custo" valor={centro || 'Não definido'} />
+              )}
               <CampoLeitura Icone={CalendarDays} rotulo="Data da solicitação" valor={fmtDataBR(hoje)} />
             </div>
+            {escolheCentro && (
+              <p className="text-xs leading-5 text-tinta-3">
+                Este reembolso será aprovado pelo gestor do centro de custo escolhido.
+              </p>
+            )}
             {semCentro && (
               <p className="flex items-start gap-2 rounded-lg border border-[#f0c2c2] bg-[#fdeaea] px-3 py-2 text-xs leading-5 text-[#8a1f1f]">
                 <AlertCircle size={14} className="mt-0.5 flex-none" aria-hidden />
