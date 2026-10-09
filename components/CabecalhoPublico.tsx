@@ -6,6 +6,7 @@ import { LogIn, LogOut, LayoutDashboard, ChevronDown, Megaphone } from 'lucide-r
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 import { SinoNotificacoes } from '@/components/SinoNotificacoes'
+import { BuscaPortal } from '@/components/BuscaPortal'
 
 /** Menu suspenso "Sobre Nós" com as duas páginas institucionais. */
 function MenuSobre() {
@@ -132,8 +133,15 @@ export function CabecalhoPublico({ empresa }: { empresa: string }) {
 export function RodapePublico() {
   return (
     <footer className="mt-20 border-t border-borda bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-6 text-xs text-tinta-3">
-        <p>© {new Date().getFullYear()} Soulan Recursos Humanos</p>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-tinta">Encontre o que precisa</p>
+            <p className="mt-0.5 text-xs text-tinta-3">Busque por qualquer seção do portal.</p>
+          </div>
+          <BuscaPortal />
+        </div>
+        <p className="mt-8 text-xs text-tinta-3">© {new Date().getFullYear()} Soulan Recursos Humanos</p>
       </div>
     </footer>
   )
