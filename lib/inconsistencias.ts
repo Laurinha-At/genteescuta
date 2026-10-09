@@ -9,35 +9,13 @@
 //  - Mesmo funcionário repetido no mesmo setor → soma as quantidades.
 // =============================================================
 import * as XLSX from 'xlsx'
+import { SETORES_OFICIAIS, chaveSetor as chave, normalizarSetorInfo } from './setores'
 
-// Lista oficial de setores (mesma base de centros de custo do portal).
-export const SETORES_OFICIAIS = [
-  'Comercial Soulan',
-  'Marketing',
-  'Administrativo/Financeiro',
-  'Suporte e Dados',
-  'Thomas',
-  'Atração & Seleção',
-  'Diretoria',
-  'Gente & Cultura/Cadastro e Suprimentos',
-] as const
-
-/** Chave tolerante: sem acento/caixa, "&"→"e", "/"→espaço, pontuação colapsada. */
-function chave(s: string): string {
-  return String(s ?? '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/&/g, ' e ').replace(/\//g, ' ')
-    .replace(/[^a-z0-9]+/gi, ' ')
-    .trim().toLowerCase()
-}
-const MAPA_OFICIAL = new Map(SETORES_OFICIAIS.map((s) => [chave(s), s]))
+// Fonte única da lista oficial e da normalização de setores: '@/lib/setores'.
+export { SETORES_OFICIAIS }
 
 /** Mapeia um nome de setor bruto para o oficial. `conhecido=false` se não casou. */
-export function normalizarSetor(raw: string): { setor: string; conhecido: boolean } {
-  const limpo = String(raw ?? '').replace(/\s+/g, ' ').trim()
-  const oficial = MAPA_OFICIAL.get(chave(limpo))
-  return oficial ? { setor: oficial, conhecido: true } : { setor: limpo, conhecido: false }
-}
+export const normalizarSetor = normalizarSetorInfo
 
 export interface ItemInconsistencia {
   setor: string
