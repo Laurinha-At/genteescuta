@@ -26,9 +26,17 @@ export const PAPEL_DESC: Record<Papel, string> = {
 }
 
 // -------- Centros de custo (= áreas da Soulan) --------
-// Fonte única em '@/lib/setores' (mesma lista usada em humor, inconsistências
-// e gráficos), para não divergir.
-export { SETORES_OFICIAIS as CENTROS_CUSTO } from './setores'
+// Mantém a MESMA lista oficial usada nos dashboards (lib/fb/publico.ts).
+export const CENTROS_CUSTO = [
+  'Comercial Soulan',
+  'Marketing',
+  'Administrativo/Financeiro',
+  'Suporte e Dados',
+  'Thomas',
+  'Atração & Seleção',
+  'Diretoria',
+  'Gente & Cultura/Cadastro e Suprimentos',
+] as const
 
 // Valor especial de centro de custo: um Gestor Aprovador com "Todos os centros
 // de custo" enxerga e aprova reembolsos de QUALQUER área.

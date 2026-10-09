@@ -6,11 +6,6 @@
 // são lidos e guardados, mas NUNCA exibidos: só agregados.
 // =============================================================
 
-import { normalizarSetor, SETORES_OFICIAIS } from './setores'
-
-// Normalização e lista oficial de setores: fonte única em '@/lib/setores'.
-export { normalizarSetor }
-
 export type Categoria = 'positivo' | 'neutro' | 'negativo'
 
 export const HUMORES = [
@@ -72,8 +67,17 @@ export interface RegistroHumor {
   humor: Humor
 }
 
-/** Setores válidos da Soulan (fonte única em '@/lib/setores'). */
-export const SETORES_VALIDOS: readonly string[] = SETORES_OFICIAIS
+/** Setores válidos da Soulan (referência para ordenação/relatórios). */
+export const SETORES_VALIDOS = [
+  'Comercial Soulan',
+  'Marketing',
+  'Administrativo/Financeiro',
+  'Suporte e Dados',
+  'Thomas',
+  'Atração & Seleção',
+  'Diretoria',
+  'Gente & Cultura/Cadastro e Suprimentos',
+]
 
 // -------------------------------------------------------------
 // Decodificação: tenta UTF-8; se aparecer caractere inválido,
@@ -147,6 +151,45 @@ function semAcentos(s: string): string {
 function normalizarHumor(v: string): Humor | null {
   const alvo = semAcentos(v).trim().toLowerCase()
   return HUMORES.find((h) => semAcentos(h).toLowerCase() === alvo) ?? null
+}
+
+// -------------------------------------------------------------
+// Setores: reconhecimento flexível (sem acento, sem caixa, & = e)
+// -------------------------------------------------------------
+function chaveSetor(s: string): string {
+  return semAcentos(s)
+    .toLowerCase()
+    .replace(/&/g, ' e ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+const SETOR_OFICIAL: { nome: string; chaves: string[] }[] = [
+  { nome: 'Comercial Soulan', chaves: ['comercial soulan', 'comercial'] },
+  { nome: 'Marketing', chaves: ['marketing', 'mkt'] },
+  { nome: 'Administrativo/Financeiro', chaves: ['administrativo financeiro', 'adm financeiro', 'administrativo', 'financeiro'] },
+  { nome: 'Suporte e Dados', chaves: ['suporte e dados', 'suporte dados', 'suporte', 'dados'] },
+  { nome: 'Thomas', chaves: ['thomas'] },
+  { nome: 'Atração & Seleção', chaves: ['atracao e selecao', 'atracao selecao', 'atracao', 'recrutamento e selecao'] },
+  { nome: 'Diretoria', chaves: ['diretoria', 'diretor'] },
+  {
+    nome: 'Gente & Cultura/Cadastro e Suprimentos',
+    chaves: ['gente e cultura', 'gente cultura', 'recursos humanos', 'rh'],
+  },
+]
+
+/**
+ * Casa o setor bruto com a lista oficial (ignora caixa, acentos e "&"/"E").
+ * Retorna o nome padronizado; 'Não informado' se vazio; 'Outros' se não casar.
+ */
+export function normalizarSetor(raw: string): string {
+  const k = chaveSetor(raw)
+  if (!k) return 'Não informado'
+  for (const s of SETOR_OFICIAL) {
+    if (s.chaves.some((c) => k === c || k.startsWith(c + ' '))) return s.nome
+  }
+  return 'Outros'
 }
 
 export interface ResultadoParse {
@@ -347,15 +390,13 @@ export function tendenciaDiaria(regs: RegistroHumor[], classif: Record<Humor, Ca
 export function porSetor(regs: RegistroHumor[], classif: Record<Humor, Categoria>) {
   const grupos = new Map<string, { pos: number; neu: number; neg: number; total: number }>()
   for (const r of regs) {
-    // Normaliza no agrupamento: corrige variações já gravadas (caixa/acento/"&").
-    const setor = normalizarSetor(r.setor)
-    const g = grupos.get(setor) ?? { pos: 0, neu: 0, neg: 0, total: 0 }
+    const g = grupos.get(r.setor) ?? { pos: 0, neu: 0, neg: 0, total: 0 }
     const c = classif[r.humor]
     if (c === 'positivo') g.pos++
     else if (c === 'neutro') g.neu++
     else g.neg++
     g.total++
-    grupos.set(setor, g)
+    grupos.set(r.setor, g)
   }
   const totalGeral = regs.length || 1
   return Array.from(grupos.entries())

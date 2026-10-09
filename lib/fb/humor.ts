@@ -12,7 +12,6 @@
 // =============================================================
 import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase'
-import { normalizarSetor } from '../setores'
 import {
   CLASSIFICACAO_PADRAO,
   HUMORES,
@@ -45,30 +44,6 @@ export async function salvarRegistrosHumor(novos: RegistroHumor[]): Promise<numb
     await lote.commit()
   }
   return gravados
-}
-
-/**
- * Correção única (opcional): regrava o setor dos registros existentes no
- * formato oficial. O ID do documento não depende do setor, então basta
- * atualizar o campo. Idempotente (só mexe no que está fora do padrão).
- */
-export async function padronizarSetoresHumor(): Promise<{ atualizados: number; total: number }> {
-  const snap = await getDocs(collection(db(), 'humor_registros'))
-  const alvo = snap.docs.filter((d) => {
-    const s = (d.data() as RegistroHumor).setor || ''
-    return normalizarSetor(s) !== s
-  })
-  let atualizados = 0
-  for (let i = 0; i < alvo.length; i += 400) {
-    const lote = writeBatch(db())
-    for (const d of alvo.slice(i, i + 400)) {
-      const s = (d.data() as RegistroHumor).setor || ''
-      lote.update(d.ref, { setor: normalizarSetor(s) })
-      atualizados++
-    }
-    await lote.commit()
-  }
-  return { atualizados, total: snap.size }
 }
 
 /** Apaga TODOS os registros de humor: para recomeçar do zero. */

@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download, ChevronRight, Wand2 } from 'lucide-react'
+import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download, ChevronRight } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui'
 import {
   listarRegistrosHumor,
   salvarRegistrosHumor,
   limparRegistrosHumor,
-  padronizarSetoresHumor,
   getClassificacaoHumor,
 } from '@/lib/fb/humor'
 import {
@@ -17,7 +16,6 @@ import {
   distribuicao,
   termometro,
   porSetor,
-  normalizarSetor,
   mesesDisponiveis,
   rotuloMes,
   CLASSIFICACAO_PADRAO,
@@ -47,7 +45,6 @@ export default function HumorEquipe() {
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [limpando, setLimpando] = useState(false)
-  const [padronizando, setPadronizando] = useState(false)
   const [periodo, setPeriodo] = useState('geral')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -119,23 +116,6 @@ export default function HumorEquipe() {
     setLimpando(false)
   }
 
-  async function padronizar() {
-    setErro(null); setAviso(null); setPadronizando(true)
-    try {
-      const { atualizados } = await padronizarSetoresHumor()
-      const regs = await listarRegistrosHumor()
-      setRegistros(regs)
-      setAviso(
-        atualizados > 0
-          ? `Pronto: ${atualizados} registro(s) tiveram o setor padronizado.`
-          : 'Tudo certo: os setores já estavam no formato oficial.',
-      )
-    } catch {
-      setErro('Não consegui padronizar os setores.')
-    }
-    setPadronizando(false)
-  }
-
   const meses = useMemo(() => mesesDisponiveis(registros), [registros])
   const periodoAtual = periodo === 'geral' || meses.includes(periodo) ? periodo : 'geral'
   const rotuloPeriodo = periodoAtual === 'geral' ? 'Geral' : rotuloMes(periodoAtual)
@@ -158,8 +138,7 @@ export default function HumorEquipe() {
   const setorHumores = useMemo(() => {
     const mapa = new Map<string, { setor: string; total: number; humores: Record<Humor, number> }>()
     for (const reg of regsP) {
-      // Normaliza para o nome oficial: junta variações (caixa/acento/"&").
-      const setor = normalizarSetor(reg.setor)
+      const setor = reg.setor || 'Outros'
       let e = mapa.get(setor)
       if (!e) {
         e = { setor, total: 0, humores: Object.fromEntries(HUMORES.map((h) => [h, 0])) as Record<Humor, number> }
@@ -249,15 +228,6 @@ export default function HumorEquipe() {
           registros.length > 0 ? (
             <>
               {botaoImportar}
-              <button
-                type="button"
-                onClick={padronizar}
-                disabled={padronizando}
-                title="Regrava o setor dos registros no nome oficial (junta variações de caixa/acento)."
-                className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3.5 py-2 text-sm font-medium text-tinta transition-colors hover:border-marca hover:text-marca-texto disabled:opacity-60"
-              >
-                <Wand2 size={15} aria-hidden /> {padronizando ? 'Padronizando…' : 'Padronizar setores'}
-              </button>
               <button
                 type="button"
                 onClick={limparTudo}
