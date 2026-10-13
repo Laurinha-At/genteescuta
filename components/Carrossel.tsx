@@ -7,7 +7,7 @@
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
-import { ChevronLeft, ChevronRight, ArrowRight, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowRight, Star, Cake, Clock } from 'lucide-react'
 import {
   getCarrosselConfig,
   listarSlidesAtivos,
@@ -15,8 +15,16 @@ import {
   type CarrosselConfig,
   type SlideCarrossel,
 } from '@/lib/fb/carrossel'
+import { destaquesDoDia } from '@/lib/fb/aniversarios'
 
 const GRAD_PADRAO = 'linear-gradient(135deg, #aad12f 0%, #1a4895 100%)'
+// Degradês festivos dos destaques automáticos (iguais à versão anterior).
+const GRAD_ANIV = 'linear-gradient(135deg, #ff7eb3 0%, #ff6a3d 52%, #ffb648 100%)'
+const GRAD_TEMPO = 'linear-gradient(135deg, #7c5cff 0%, #4e7cf0 100%)'
+
+// Slide de exibição: um slide manual (Firestore) ou um destaque automático
+// (aniversariante/tempo de casa do dia), que leva o selo e o ícone próprios.
+type SlideView = SlideCarrossel & { tag?: string; auto?: 'aniversario' | 'tempo' }
 
 function ehExterno(href: string): boolean {
   return /^https?:\/\//i.test(href)
@@ -24,7 +32,7 @@ function ehExterno(href: string): boolean {
 
 export function Carrossel() {
   const [config, setConfig] = useState<CarrosselConfig>(CARROSSEL_CONFIG_PADRAO)
-  const [slides, setSlides] = useState<SlideCarrossel[] | null>(null)
+  const [slides, setSlides] = useState<SlideView[] | null>(null)
   const [i, setI] = useState(0)
   const [pausado, setPausado] = useState(false)
   const [reduz, setReduz] = useState(false)
@@ -35,11 +43,26 @@ export function Carrossel() {
 
   useEffect(() => {
     let vivo = true
-    Promise.all([getCarrosselConfig(), listarSlidesAtivos()])
-      .then(([cfg, ss]) => {
+    Promise.all([getCarrosselConfig(), listarSlidesAtivos(), destaquesDoDia().catch(() => [])])
+      .then(([cfg, ss, destaques]) => {
         if (!vivo) return
         setConfig(cfg)
-        setSlides(cfg.ativo ? ss : [])
+        // Destaques automáticos do dia (aniversariantes e tempo de casa) vêm
+        // primeiro, como antes; depois os slides manuais do painel.
+        const autos: SlideView[] = destaques.map((d, idx) => ({
+          id: `auto-${idx}`,
+          ordem: -1000 + idx,
+          imagem: '',
+          titulo: d.texto,
+          texto: '',
+          link: '/aniversariantes',
+          cor: d.tipo === 'aniversario' ? GRAD_ANIV : GRAD_TEMPO,
+          ativo: true,
+          destaque: false,
+          tag: d.tipo === 'aniversario' ? 'Aniversário de hoje' : 'Tempo de Soulan',
+          auto: d.tipo,
+        }))
+        setSlides(cfg.ativo ? [...autos, ...ss] : [])
       })
       .catch(() => { if (vivo) setSlides([]) })
     return () => { vivo = false }
@@ -142,8 +165,9 @@ function luminancia(hex: string): number {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255
 }
 
-function SlideItem({ s, ativo }: { s: SlideCarrossel; ativo: boolean }) {
+function SlideItem({ s, ativo }: { s: SlideView; ativo: boolean }) {
   const temImagem = !!s.imagem
+  const IconeTag = s.auto === 'tempo' ? Clock : Cake
   const corFundo = s.cor && !temImagem ? s.cor : null
   // Texto escuro só em cor de fundo clara (sem imagem). Com imagem ou cor
   // escura ou degradê, o texto é branco (com escurecedor para contraste).
@@ -167,6 +191,11 @@ function SlideItem({ s, ativo }: { s: SlideCarrossel; ativo: boolean }) {
       )}
 
       <div className="relative z-[1] min-w-0" style={{ color: corTexto }}>
+        {s.tag && (
+          <span className="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.09em] text-white ring-1 ring-inset ring-white/25 backdrop-blur">
+            <IconeTag size={13} aria-hidden /> {s.tag}
+          </span>
+        )}
         <p className="line-clamp-2 max-w-[36ch] text-[1.4rem] font-bold leading-[1.15] tracking-[-0.02em] sm:text-[2rem]">{s.titulo}</p>
         {s.texto && <p className="mt-2 line-clamp-2 max-w-[48ch] text-sm leading-6 sm:text-base" style={{ color: textoEscuro ? 'rgba(0,36,67,0.8)' : 'rgba(255,255,255,0.9)' }}>{s.texto}</p>}
         {s.link && (
