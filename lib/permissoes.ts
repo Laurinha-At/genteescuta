@@ -78,6 +78,7 @@ export const TELAS: Tela[] = [
   { id: 'carrossel',    rotulo: 'Carrossel da home', href: '/admin/carrossel',         grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar', 'excluir'] },
   { id: 'informacoes',  rotulo: 'Informações Adm.', href: '/admin/informacoes',        grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar', 'excluir'] },
   { id: 'treinamento',  rotulo: 'Treinamento',      href: '/admin/treinamento',        grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar'] },
+  { id: 'trilhas_dev',  rotulo: 'Trilha de Desenvolvimento', href: '/admin/trilha-desenvolvimento', grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar', 'excluir'] },
   { id: 'contato',      rotulo: 'Contato',          href: '/admin/contato',            grupo: 'conteudo', acoes: ['ver', 'editar'] },
   { id: 'institucional',rotulo: 'Sobre / Missão',   href: '/admin/institucional',      grupo: 'conteudo', acoes: ['ver', 'editar'] },
 
@@ -156,6 +157,7 @@ export const PERFIS: Perfil[] = [
       carrossel: todas('carrossel'),
       informacoes: todas('informacoes'),
       treinamento: todas('treinamento'),
+      trilhas_dev: todas('trilhas_dev'),
       contato: todas('contato'),
       institucional: todas('institucional'),
     },

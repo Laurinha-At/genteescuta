@@ -125,38 +125,35 @@ export async function minhaConta(): Promise<Conta | null> {
       centro_custo: (d.centro_custo as string) ?? '',
     }
   }
-  // Sem doc em /admins: um funcionário com papel "master" também é Master.
+  // Sem doc em /admins: avalia o doc de /funcionarios. É admin do painel quem
+  // é ATIVO e tem um destes indicadores (tolerante a contas antigas e à
+  // mudança que introduziu os campos `perfil`/`permissoes`):
+  //  - papel "master" ou "administrador"; OU
+  //  - um `perfil` de admin salvo (adm / adm_principal / adm_master); OU
+  //  - `permissoes` de painel já configuradas (tem ao menos uma ação liberada).
   const fSnap = await getDoc(doc(db(), 'funcionarios', u.uid)).catch(() => null)
   if (fSnap && fSnap.exists()) {
     const d = fSnap.data() as Record<string, unknown>
+    const ativo = d.ativo !== false
     const papeis = Array.isArray(d.papeis) ? (d.papeis as string[]) : []
-    if (d.ativo !== false && papeis.includes('master')) {
-      const perfil = perfilDe(d, 'master')
+    const perfil = perfilDe(d, papeis.includes('master') ? 'master' : null)
+    const permissoes = permissoesEfetivas(d, perfil)
+
+    const perfilDeAdmin = perfil === 'adm' || perfil === 'adm_principal' || perfil === 'adm_master'
+    const temPermissoesPainel = Object.values(permissoes).some((a) => Array.isArray(a) && a.length > 0)
+    const ehMasterPainel = papeis.includes('master') || perfil === 'adm_principal' || perfil === 'adm_master'
+    const ehAdminPainel = ehMasterPainel || papeis.includes('administrador') || perfilDeAdmin || temPermissoesPainel
+
+    if (ativo && ehAdminPainel) {
       return {
         uid: u.uid,
         email: (d.email as string) ?? u.email ?? '',
         nome: (d.nome as string) ?? '',
-        nivel: 'master',
+        nivel: ehMasterPainel ? 'master' : 'comum',
         ativo: true,
         senha_provisoria: d.senha_provisoria === true,
         perfil,
-        permissoes: permissoesEfetivas(d, perfil),
-        centro_custo: (d.centro_custo as string) ?? '',
-      }
-    }
-    // Funcionário com papel "administrador": entra no painel com acesso LIMITADO
-    // (edita/adiciona conteúdo). Nível "comum" (não é Super nem Master).
-    if (d.ativo !== false && papeis.includes('administrador')) {
-      const perfil = perfilDe(d, null)
-      return {
-        uid: u.uid,
-        email: (d.email as string) ?? u.email ?? '',
-        nome: (d.nome as string) ?? '',
-        nivel: 'comum',
-        ativo: true,
-        senha_provisoria: d.senha_provisoria === true,
-        perfil,
-        permissoes: permissoesEfetivas(d, perfil),
+        permissoes,
         centro_custo: (d.centro_custo as string) ?? '',
       }
     }

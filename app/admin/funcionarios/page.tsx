@@ -16,6 +16,7 @@ import {
   atualizarPapeisFuncionario,
   salvarPermissoesFuncionario,
   sincronizarAniversarios,
+  corrigirAdministradores,
 } from '@/lib/fb/funcionarios'
 import { CENTROS_CUSTO, TODOS_CENTROS, PAPEL_LABEL, PAPEL_DESC } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
@@ -94,6 +95,23 @@ export default function Funcionarios() {
     return todos.filter((u) => `${u.nome ?? ''} ${u.email ?? ''}`.toLowerCase().includes(q))
   }, [todos, busca])
 
+  const [corrigindo, setCorrigindo] = useState(false)
+  async function corrigirAcessos() {
+    setErro(null); setAviso(null); setCorrigindo(true)
+    try {
+      const r = await corrigirAdministradores()
+      setAviso(
+        r.corrigidos > 0
+          ? `Pronto: ${r.corrigidos} conta(s) de administrador tiveram o acesso corrigido (papel preenchido).`
+          : 'Tudo certo: nenhuma conta ativa de administrador precisava de correção.',
+      )
+      recarregar()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui corrigir os acessos.')
+    }
+    setCorrigindo(false)
+  }
+
   async function acao(fn: () => Promise<unknown>, msg: string) {
     setErro(null)
     setAviso(null)
@@ -138,6 +156,18 @@ export default function Funcionarios() {
       <div className="max-w-6xl space-y-4 p-4 sm:p-6">
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
         {erro && <Aviso tom="erro">{erro}</Aviso>}
+
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-borda bg-white px-3 py-2.5">
+          <span className="text-xs text-tinta-3">Alguma conta de administrador ativa não consegue entrar no painel? Corrija o acesso (preenche o papel que estiver faltando).</span>
+          <button
+            type="button"
+            onClick={corrigirAcessos}
+            disabled={corrigindo}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta transition-colors hover:border-marca hover:text-marca-texto disabled:opacity-60"
+          >
+            <ShieldCheck size={15} aria-hidden /> {corrigindo ? 'Corrigindo…' : 'Corrigir acessos de administradores'}
+          </button>
+        </div>
 
         <Cartao titulo="Adicionar funcionário" apoio={`A pessoa entra com o e-mail e a senha padrão "${SENHA_PADRAO}", e troca no primeiro acesso.`}>
           <FormFunc onDone={recarregar} setAviso={setAviso} setErro={setErro} />

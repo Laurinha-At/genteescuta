@@ -64,6 +64,33 @@ export async function salvarPermissoesFuncionario(
   await registrarLog('permissoes', email ?? uid)
 }
 
+/**
+ * Correção única: contas ATIVAS que já são admin por `perfil` (adm/adm_principal/
+ * adm_master) ou por `permissoes` de painel, mas que não têm o papel correspondente
+ * em `papeis`, recebem o papel "administrador". Isso libera o acesso ao painel e as
+ * ações de conteúdo (as Regras do Firestore conferem o papel). Só Master/Super roda.
+ */
+export async function corrigirAdministradores(): Promise<{ corrigidos: number; total: number }> {
+  const funcs = await listarFuncionarios()
+  let corrigidos = 0
+  for (const f of funcs) {
+    if ((f as any).ativo === false) continue
+    const papeis = Array.isArray(f.papeis) ? (f.papeis as string[]) : []
+    if (papeis.includes('master') || papeis.includes('administrador')) continue
+    const perfil = (f as any).perfil as string | undefined
+    const perfilAdmin = perfil === 'adm' || perfil === 'adm_principal' || perfil === 'adm_master'
+    const permissoes = (f as any).permissoes
+    const temPermissoes = permissoes && typeof permissoes === 'object'
+      && Object.values(permissoes as Record<string, unknown>).some((a) => Array.isArray(a) && a.length > 0)
+    if (!perfilAdmin && !temPermissoes) continue
+    const novos = Array.from(new Set(['colaborador', ...papeis, 'administrador']))
+    await updateDoc(doc(db(), 'funcionarios', f.uid), { papeis: novos })
+    corrigidos++
+  }
+  await registrarLog('corrigir_administradores', `${corrigidos} de ${funcs.length}`)
+  return { corrigidos, total: funcs.length }
+}
+
 export async function sincronizarAniversarios(): Promise<number> {
   const funcs = await listarFuncionarios()
   let n = 0

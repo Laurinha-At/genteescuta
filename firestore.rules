@@ -372,6 +372,22 @@ service cloud.firestore {
       allow create, update, delete: if podeConteudo();
     }
 
+    // -------- Trilhas de Desenvolvimento gamificadas (Fase 1) --------
+    // Colaborador logado LÊ as trilhas e atividades; só conteúdo (admin/RH) edita.
+    match /trilhas_dev/{id} {
+      allow read: if participante();
+      allow create, update, delete: if podeConteudo();
+      match /atividades/{aid} {
+        allow read: if participante();
+        allow create, update, delete: if podeConteudo();
+      }
+    }
+    // Progresso e pontos: cada pessoa lê e grava só o próprio doc; admin lê todos.
+    match /trilhas_dev_progresso/{uid} {
+      allow read: if admin() || (logado() && request.auth.uid == uid);
+      allow write: if participante() && request.auth.uid == uid;
+    }
+
     // -------- Banco de Horas (planilha mensal por matrícula) --------
     // Master vê/edita tudo. Gestor lê só o próprio centro (ou todos, se
     // "Todos os centros"). O colaborador lê só o próprio saldo (uid).

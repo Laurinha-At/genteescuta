@@ -22,6 +22,7 @@ import {
   Users,
   TriangleAlert,
   GalleryHorizontal,
+  Rocket,
 } from 'lucide-react'
 import { podeVer, type Permissoes } from '@/lib/permissoes'
 
@@ -87,6 +88,7 @@ const GRUPOS: Grupo[] = [
       { href: '/admin/carrossel', rotulo: 'Carrossel da home', Icone: GalleryHorizontal, tela: 'carrossel' },
       { href: '/admin/informacoes', rotulo: 'Informações Adm.', Icone: Info, tela: 'informacoes' },
       { href: '/admin/treinamento', rotulo: 'Treinamento', Icone: GraduationCap, tela: 'treinamento' },
+      { href: '/admin/trilha-desenvolvimento', rotulo: 'Trilha de Desenvolvimento', Icone: Rocket, tela: 'trilhas_dev' },
       { href: '/admin/contato', rotulo: 'Contato', Icone: LifeBuoy, tela: 'contato' },
       { href: '/admin/institucional', rotulo: 'Sobre / Missão', Icone: BookOpen, tela: 'institucional' },
     ],

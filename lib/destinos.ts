@@ -24,6 +24,7 @@ const PUBLICOS: { nome: string; href: string; requer?: 'todos' | 'logado' }[] = 
   { nome: 'Aniversariantes do mês', href: '/aniversariantes' },
   { nome: 'Informações Administrativas', href: '/informacoes-administrativas' },
   { nome: 'Treinamento e Desenvolvimento', href: '/treinamento' },
+  { nome: 'Trilhas de Desenvolvimento', href: '/trilhas', requer: 'logado' },
   { nome: 'Contato e Suporte', href: '/contato' },
   { nome: 'Gente e Cultura (Sobre nós)', href: '/sobre' },
   { nome: 'Missão, Visão e Valores', href: '/missao-visao-valores' },
