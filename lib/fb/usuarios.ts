@@ -108,8 +108,11 @@ export async function minhaConta(): Promise<Conta | null> {
       perfil: 'adm_principal', permissoes: resolverPermissoes('adm_principal'),
     }
   }
-  const snap = await getDoc(doc(db(), 'admins', u.uid))
-  if (snap.exists()) {
+  const snap = await getDoc(doc(db(), 'admins', u.uid)).catch(() => null)
+  // Só retorna pelo /admins quando o doc existe E está ATIVO. Se existir mas
+  // estiver inativo, NÃO barra aqui: cai para /funcionarios (a pessoa pode ser
+  // um administrador ativo por lá).
+  if (snap && snap.exists() && (snap.data() as Record<string, unknown>).ativo !== false) {
     const d = snap.data() as Record<string, unknown>
     const nivel = (d.nivel as Nivel) ?? 'comum'
     const perfil = perfilDe(d, nivel)
@@ -118,7 +121,7 @@ export async function minhaConta(): Promise<Conta | null> {
       email: (d.email as string) ?? u.email ?? '',
       nome: (d.nome as string) ?? '',
       nivel,
-      ativo: d.ativo !== false,
+      ativo: true,
       senha_provisoria: d.senha_provisoria === true,
       perfil,
       permissoes: permissoesEfetivas(d, perfil),
@@ -161,6 +164,36 @@ export async function minhaConta(): Promise<Conta | null> {
   return {
     uid: u.uid, email: u.email ?? '', nome: '', nivel: 'nenhum', ativo: false, senha_provisoria: false,
     perfil: 'colaborador', permissoes: {},
+  }
+}
+
+export interface DiagnosticoAcesso {
+  uid: string
+  func_existe: boolean
+  func_ativo: boolean | null
+  papeis: string[]
+  perfil: string | null
+  tem_permissoes: boolean
+}
+
+/** Lê o próprio doc em /funcionarios (permitido pelas Regras) para diagnosticar
+ * por que o acesso ao painel foi barrado. Retorna null se não houver login. */
+export async function diagnosticoAcesso(): Promise<DiagnosticoAcesso | null> {
+  const u = auth().currentUser
+  if (!u) return null
+  const snap = await getDoc(doc(db(), 'funcionarios', u.uid)).catch(() => null)
+  if (!snap || !snap.exists()) {
+    return { uid: u.uid, func_existe: false, func_ativo: null, papeis: [], perfil: null, tem_permissoes: false }
+  }
+  const d = snap.data() as Record<string, unknown>
+  const perms = d.permissoes
+  return {
+    uid: u.uid,
+    func_existe: true,
+    func_ativo: d.ativo !== false,
+    papeis: Array.isArray(d.papeis) ? (d.papeis as string[]) : [],
+    perfil: (d.perfil as string) ?? null,
+    tem_permissoes: !!(perms && typeof perms === 'object' && Object.values(perms as Record<string, unknown>).some((a) => Array.isArray(a) && a.length > 0)),
   }
 }
 

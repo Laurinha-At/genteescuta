@@ -8,7 +8,7 @@ import { configurado } from '@/lib/firebase'
 import { observarLogin, sair, type User } from '@/lib/fb/auth'
 import { getConfig } from '@/lib/fb/publico'
 import { listarManifestacoes } from '@/lib/fb/admin'
-import { minhaConta, definirNovaSenhaInicial, type Conta } from '@/lib/fb/usuarios'
+import { minhaConta, definirNovaSenhaInicial, diagnosticoAcesso, type Conta, type DiagnosticoAcesso } from '@/lib/fb/usuarios'
 import { PERFIL_POR_ID } from '@/lib/permissoes'
 import { TelaConfiguracao } from '@/components/TelaConfiguracao'
 import { NavAdmin } from '@/components/NavAdmin'
@@ -61,6 +61,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
             A conta <strong className="font-medium text-tinta">{user.email}</strong> está inativa ou ainda não tem
             permissão de acesso. Fale com um administrador para liberar.
           </p>
+          <DiagnosticoBox />
           <button
             type="button"
             onClick={fazerLogout}
@@ -176,6 +177,28 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
       </aside>
 
       <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  )
+}
+
+// Diagnóstico técnico (temporário) para entender por que o acesso foi barrado.
+function DiagnosticoBox() {
+  const [d, setD] = useState<DiagnosticoAcesso | null | undefined>(undefined)
+  useEffect(() => { diagnosticoAcesso().then(setD).catch(() => setD(null)) }, [])
+  if (d === undefined || d === null) return null
+  const linha = (rot: string, val: string) => (
+    <div className="flex justify-between gap-3"><span className="text-tinta-3">{rot}</span><span className="font-medium text-tinta">{val}</span></div>
+  )
+  return (
+    <div className="mt-4 rounded-lg border border-borda bg-superficie-2 p-3 text-left text-xs">
+      <p className="mb-1.5 font-semibold text-tinta-2">Diagnóstico de acesso (envie este print ao suporte)</p>
+      <div className="space-y-1">
+        {linha('Cadastro de funcionário encontrado', d.func_existe ? 'Sim' : 'Não')}
+        {linha('Ativo', d.func_ativo === null ? '—' : d.func_ativo ? 'Sim' : 'Não')}
+        {linha('Papéis', d.papeis.length ? d.papeis.join(', ') : '(nenhum)')}
+        {linha('Perfil', d.perfil ?? '(nenhum)')}
+        {linha('Permissões de painel', d.tem_permissoes ? 'Sim' : 'Não')}
+      </div>
     </div>
   )
 }
