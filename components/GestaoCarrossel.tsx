@@ -54,7 +54,7 @@ function ConfigCarrossel() {
   }
 
   return (
-    <Cartao titulo="Carrossel da home" apoio="Ligar/desligar, passagem automática, velocidade e pausa no hover.">
+    <Cartao titulo="Carrossel" apoio="Ligar/desligar, passagem automática, velocidade e pausa no hover.">
       {aviso && <div className="mb-3"><Aviso tom="sucesso">{aviso}</Aviso></div>}
       {erro && <div className="mb-3"><Aviso tom="erro">{erro}</Aviso></div>}
       {!cfg ? (
@@ -215,6 +215,9 @@ function SlidesCarrossel() {
                   <Campo rotulo="Link (opcional)" ajuda="Para onde o slide leva ao clicar. Ex.: /mural ou um endereço http.">
                     <input value={draft.link} onChange={(e) => patch({ link: e.target.value })} className={ENTRADA} placeholder="/mural" />
                   </Campo>
+                  <Campo rotulo="Cor do card" ajuda="Cor de fundo do slide na home (usada quando não há imagem). O texto ajusta o contraste automaticamente.">
+                    <SeletorCor valor={draft.cor} onChange={(c) => patch({ cor: c })} />
+                  </Campo>
                   <div className="flex flex-wrap gap-4">
                     <label className="flex items-center gap-2.5 text-sm text-tinta">
                       <input type="checkbox" checked={draft.destaque} onChange={(e) => patch({ destaque: e.target.checked })} className="h-4 w-4 accent-[var(--color-marca)]" /> Destaque (mostra o selo)
@@ -242,6 +245,58 @@ function SlidesCarrossel() {
         </div>
       )}
     </Cartao>
+  )
+}
+
+// Cores da identidade Soulan (atalho rápido).
+const CORES_SOULAN: { nome: string; hex: string }[] = [
+  { nome: 'Azul médio', hex: '#1A4895' },
+  { nome: 'Azul escuro', hex: '#002443' },
+  { nome: 'Azul claro', hex: '#59A4D8' },
+  { nome: 'Azul suave', hex: '#BFD7EA' },
+  { nome: 'Verde', hex: '#AAD12F' },
+  { nome: 'Verde claro', hex: '#E8F9A0' },
+  { nome: 'Verde água', hex: '#89D5C9' },
+  { nome: 'Coral', hex: '#FF8864' },
+  { nome: 'Bege', hex: '#EFDCBD' },
+]
+
+function SeletorCor({ valor, onChange }: { valor: string; onChange: (c: string) => void }) {
+  const atual = /^#[0-9a-f]{6}$/i.test(valor) ? valor : ''
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {CORES_SOULAN.map((c) => {
+          const on = atual.toLowerCase() === c.hex.toLowerCase()
+          return (
+            <button
+              key={c.hex}
+              type="button"
+              onClick={() => onChange(c.hex)}
+              title={c.nome}
+              aria-label={c.nome}
+              aria-pressed={on}
+              className={`h-7 w-7 rounded-full border transition-transform hover:scale-110 ${on ? 'ring-2 ring-marca ring-offset-2' : 'border-black/10'}`}
+              style={{ background: c.hex }}
+            />
+          )
+        })}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-tinta-2">
+          Outra cor
+          <input type="color" value={atual || '#1a4895'} onChange={(e) => onChange(e.target.value)} className="h-7 w-10 cursor-pointer rounded border border-borda-forte bg-white p-0.5" />
+        </label>
+        {atual && (
+          <>
+            <span className="rounded bg-superficie-2 px-2 py-1 text-xs font-medium text-tinta-2 tabular">{atual.toUpperCase()}</span>
+            <button type="button" onClick={() => onChange('')} className="inline-flex items-center gap-1 text-xs font-medium text-tinta-3 hover:text-critico">
+              <X size={12} aria-hidden /> Limpar (usar degradê padrão)
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 

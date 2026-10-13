@@ -134,16 +134,31 @@ export function Carrossel() {
   )
 }
 
+function luminancia(hex: string): number {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex || '').trim())
+  if (!m) return 0
+  const n = parseInt(m[1], 16)
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255
+}
+
 function SlideItem({ s, ativo }: { s: SlideCarrossel; ativo: boolean }) {
+  const temImagem = !!s.imagem
+  const corFundo = s.cor && !temImagem ? s.cor : null
+  // Texto escuro só em cor de fundo clara (sem imagem). Com imagem ou cor
+  // escura ou degradê, o texto é branco (com escurecedor para contraste).
+  const textoEscuro = !!corFundo && luminancia(corFundo) > 0.6
+  const corTexto = textoEscuro ? '#002443' : '#ffffff'
+
   const conteudo = (
     <>
-      {s.imagem ? (
+      {temImagem ? (
         <img src={s.imagem} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
       ) : (
-        <span className="absolute inset-0" style={{ background: GRAD_PADRAO }} aria-hidden />
+        <span className="absolute inset-0" style={{ background: corFundo ?? GRAD_PADRAO }} aria-hidden />
       )}
-      {/* Escurecedor para o texto ficar legível sobre a imagem */}
-      <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/15" aria-hidden />
+      {/* Escurecedor só quando o texto é branco (imagem, cor escura ou degradê) */}
+      {!textoEscuro && <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" aria-hidden />}
 
       {s.destaque && (
         <span className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-marca-escura shadow-sm sm:right-6">
@@ -151,9 +166,9 @@ function SlideItem({ s, ativo }: { s: SlideCarrossel; ativo: boolean }) {
         </span>
       )}
 
-      <div className="relative z-[1] min-w-0">
+      <div className="relative z-[1] min-w-0" style={{ color: corTexto }}>
         <p className="line-clamp-2 max-w-[36ch] text-[1.4rem] font-bold leading-[1.15] tracking-[-0.02em] sm:text-[2rem]">{s.titulo}</p>
-        {s.texto && <p className="mt-2 line-clamp-2 max-w-[48ch] text-sm leading-6 text-white/90 sm:text-base">{s.texto}</p>}
+        {s.texto && <p className="mt-2 line-clamp-2 max-w-[48ch] text-sm leading-6 sm:text-base" style={{ color: textoEscuro ? 'rgba(0,36,67,0.8)' : 'rgba(255,255,255,0.9)' }}>{s.texto}</p>}
         {s.link && (
           <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-marca-escura shadow-sm transition-transform group-hover:-translate-y-0.5 [text-shadow:none]">
             Ver <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
@@ -163,7 +178,7 @@ function SlideItem({ s, ativo }: { s: SlideCarrossel; ativo: boolean }) {
     </>
   )
 
-  const classe = 'group relative flex w-full flex-none flex-col justify-end overflow-hidden px-6 pb-6 pt-16 text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.3)] min-h-[12rem] sm:min-h-[14rem] sm:px-9 sm:pb-8'
+  const classe = `group relative flex w-full flex-none flex-col justify-end overflow-hidden px-6 pb-6 pt-16 min-h-[12rem] sm:min-h-[14rem] sm:px-9 sm:pb-8 ${textoEscuro ? '' : '[text-shadow:0_1px_10px_rgba(0,0,0,0.3)]'}`
 
   if (s.link && ehExterno(s.link)) {
     return (

@@ -7,7 +7,7 @@ export default function AdminCarrossel() {
   return (
     <>
       <CabecalhoPagina
-        titulo="Carrossel da home"
+        titulo="Carrossel"
         descricao="Configure o carrossel de informações e gerencie os slides. As mudanças aparecem no site na hora."
         voltar={{ href: '/', rotulo: 'Ver página pública' }}
       />

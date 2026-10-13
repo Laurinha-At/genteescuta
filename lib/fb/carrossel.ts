@@ -32,6 +32,7 @@ export interface SlideCarrossel {
   titulo: string
   texto: string
   link: string // opcional
+  cor: string // cor de fundo do card (hex); vazio = degradê padrão
   ativo: boolean
   destaque: boolean
 }
@@ -45,6 +46,7 @@ export const SLIDES_SEED: SlideCarrossel[] = [
     titulo: 'Bem-vindo(a) ao Gente Cultura',
     texto: 'Acompanhe por aqui as novidades da Soulan.',
     link: '/mural',
+    cor: '',
     ativo: true,
     destaque: false,
   },
@@ -90,6 +92,7 @@ function normSlide(d: Record<string, unknown>, id: string): SlideCarrossel {
     titulo: String(d.titulo ?? ''),
     texto: String(d.texto ?? ''),
     link: String(d.link ?? ''),
+    cor: String(d.cor ?? ''),
     ativo: d.ativo !== false,
     destaque: d.destaque === true,
   }
@@ -124,6 +127,7 @@ export async function salvarSlide(s: SlideCarrossel): Promise<void> {
     titulo: String(s.titulo ?? '').trim(),
     texto: String(s.texto ?? '').trim(),
     link: String(s.link ?? '').trim(),
+    cor: String(s.cor ?? '').trim(),
     ativo: !!s.ativo,
     destaque: !!s.destaque,
   })
@@ -138,5 +142,5 @@ export function novoIdSlide(): string {
 }
 
 export function slideVazio(ordem: number): SlideCarrossel {
-  return { id: novoIdSlide(), ordem, imagem: '', titulo: '', texto: '', link: '', ativo: true, destaque: false }
+  return { id: novoIdSlide(), ordem, imagem: '', titulo: '', texto: '', link: '', cor: '', ativo: true, destaque: false }
 }
