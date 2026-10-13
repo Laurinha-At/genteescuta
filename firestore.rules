@@ -111,7 +111,7 @@ service cloud.firestore {
       // (e Master) edita os conteúdos do site (Contato, Sobre, Missão/Visão/Valores).
       allow write: if souSuper()
         || (doc == 'humor' && admin())
-        || ((doc == 'contato' || doc == 'sobre' || doc == 'missao' || doc == 'treinamento') && podeConteudo());
+        || ((doc == 'contato' || doc == 'sobre' || doc == 'missao' || doc == 'treinamento' || doc == 'carrossel') && podeConteudo());
     }
 
     // -------- Áreas/setores: público lê; só SUPER edita (é configuração).
@@ -124,6 +124,12 @@ service cloud.firestore {
     // Público lê (a filtragem por papel/visibilidade é feita na consulta do
     // cliente). Admin/administrador de conteúdo gerencia os itens.
     match /orientacao_solicitacoes/{id} {
+      allow read: if true;
+      allow create, update, delete: if podeConteudo();
+    }
+
+    // -------- Slides do carrossel da home. Público lê; conteúdo gerencia.
+    match /carrossel_slides/{id} {
       allow read: if true;
       allow create, update, delete: if podeConteudo();
     }

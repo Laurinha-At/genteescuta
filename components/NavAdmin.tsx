@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Users,
   TriangleAlert,
+  GalleryHorizontal,
 } from 'lucide-react'
 import { podeVer, type Permissoes } from '@/lib/permissoes'
 
@@ -83,6 +84,7 @@ const GRUPOS: Grupo[] = [
     titulo: 'Conteúdo do site',
     abertoPadrao: false,
     itens: [
+      { href: '/admin/carrossel', rotulo: 'Carrossel da home', Icone: GalleryHorizontal, tela: 'carrossel' },
       { href: '/admin/informacoes', rotulo: 'Informações Adm.', Icone: Info, tela: 'informacoes' },
       { href: '/admin/treinamento', rotulo: 'Treinamento', Icone: GraduationCap, tela: 'treinamento' },
       { href: '/admin/contato', rotulo: 'Contato', Icone: LifeBuoy, tela: 'contato' },

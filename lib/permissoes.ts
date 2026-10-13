@@ -75,6 +75,7 @@ export const TELAS: Tela[] = [
   { id: 'inconsistencias', rotulo: 'Inconsistências', href: '/admin/inconsistencias',  grupo: 'pessoas', acoes: ['ver', 'adicionar'], sensivel: true },
 
   // ---- Conteúdo do site ----
+  { id: 'carrossel',    rotulo: 'Carrossel da home', href: '/admin/carrossel',         grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar', 'excluir'] },
   { id: 'informacoes',  rotulo: 'Informações Adm.', href: '/admin/informacoes',        grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar', 'excluir'] },
   { id: 'treinamento',  rotulo: 'Treinamento',      href: '/admin/treinamento',        grupo: 'conteudo', acoes: ['ver', 'adicionar', 'editar'] },
   { id: 'contato',      rotulo: 'Contato',          href: '/admin/contato',            grupo: 'conteudo', acoes: ['ver', 'editar'] },
@@ -152,6 +153,7 @@ export const PERFIS: Perfil[] = [
       canal: ['ver', 'aprovar'],
       mural: todas('mural'),
       moderacao: todas('moderacao'),
+      carrossel: todas('carrossel'),
       informacoes: todas('informacoes'),
       treinamento: todas('treinamento'),
       contato: todas('contato'),
