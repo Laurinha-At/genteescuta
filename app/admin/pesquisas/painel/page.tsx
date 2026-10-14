@@ -10,6 +10,7 @@ import { BarrasRisco } from '@/components/charts/BarrasRisco'
 import { MapaCalor } from '@/components/charts/MapaCalor'
 import { BarraENPS } from '@/components/charts/BarraENPS'
 import { BotaoImprimir } from '@/components/BotaoImprimir'
+import { CabecalhoImpressao } from '@/components/CabecalhoImpressao'
 import { FAIXA_LABEL } from '@/lib/types'
 import { fmtData, fmtPercentual } from '@/lib/format'
 
@@ -76,6 +77,7 @@ function Painel() {
       />
 
       <div className="space-y-4 p-4 sm:p-6">
+        <CabecalhoImpressao titulo={`Painel de pesquisa: ${pesquisa.titulo}`} filtros={`${a.totalRespostas} respostas`} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Scorecard rotulo="Índice geral de risco" valor={a.indiceGeral} sufixo="/100" faixa={a.faixaGeral} apoio="Média das 12 dimensões avaliadas" />
           <Scorecard rotulo="Respostas recebidas" valor={a.totalRespostas} apoio={a.taxaParticipacao !== null ? `${fmtPercentual(a.taxaParticipacao)} de ${a.publicoAlvo} convidados` : 'Informe o público-alvo para ver a participação'} />

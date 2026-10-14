@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download, ChevronRight } from 'lucide-react'
+import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download, ChevronRight, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui'
+import { exportarXlsx } from '@/lib/exportar'
+import { CabecalhoImpressao } from '@/components/CabecalhoImpressao'
 import {
   listarRegistrosHumor,
   salvarRegistrosHumor,
@@ -181,6 +183,25 @@ export default function HumorEquipe() {
     window.print()
   }
 
+  const [gerandoXlsx, setGerandoXlsx] = useState(false)
+  // Planilha .xlsx com logo: a tabela "Por setor" (dados principais do período).
+  async function baixarXlsx() {
+    setGerandoXlsx(true)
+    try {
+      await exportarXlsx({
+        nomeArquivo: `humor-${periodoAtual === 'geral' ? 'geral' : periodoAtual}`,
+        titulo: `Relatório de Humor da equipe: ${rotuloPeriodo}`,
+        filtros: `${r.total} registros · ${r.pessoas} pessoas`,
+        colunas: ['Setor', 'Registros', 'Participação', 'Positivos', 'Neutros', 'Negativos', 'Índice de clima'],
+        linhas: participacao.map((s) => [s.setor, s.total, `${s.pct}%`, s.pos, s.neu, s.neg, s.indice]),
+        larguras: [30, 12, 14, 12, 10, 12, 16],
+        nomeAba: 'Humor por setor',
+      })
+    } finally {
+      setGerandoXlsx(false)
+    }
+  }
+
   function baixarCsv() {
     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
     const linha = (arr: unknown[]) => arr.map(esc).join(';')
@@ -316,21 +337,27 @@ export default function HumorEquipe() {
                 </button>
                 <button
                   type="button"
+                  onClick={baixarXlsx}
+                  disabled={gerandoXlsx}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3.5 py-2 text-sm font-medium text-tinta hover:bg-superficie-2 disabled:opacity-60"
+                >
+                  {gerandoXlsx ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <FileSpreadsheet size={15} aria-hidden />} Planilha
+                </button>
+                <button
+                  type="button"
                   onClick={baixarCsv}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3.5 py-2 text-sm font-medium text-tinta hover:bg-superficie-2"
                 >
-                  <Download size={15} aria-hidden /> Baixar CSV
+                  <Download size={15} aria-hidden /> CSV
                 </button>
               </div>
             </div>
 
-            {/* Título do relatório (aparece no PDF/impressão) */}
-            <div className="print-only">
-              <h2 className="text-lg font-bold text-tinta">Relatório de Humor da equipe: {rotuloPeriodo}</h2>
-              <p className="text-xs text-tinta-3">
-                {r.total} registros · {r.pessoas} pessoas · {fmtData(r.inicio)} a {fmtData(r.fim)}
-              </p>
-            </div>
+            {/* Cabeçalho do relatório (com logo; aparece no PDF/impressão) */}
+            <CabecalhoImpressao
+              titulo={`Relatório de Humor da equipe: ${rotuloPeriodo}`}
+              filtros={`${r.total} registros · ${r.pessoas} pessoas · ${fmtData(r.inicio)} a ${fmtData(r.fim)}`}
+            />
 
             {/* 1) Resumo geral */}
             <div className="grid gap-3 sm:grid-cols-3">

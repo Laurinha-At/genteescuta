@@ -9,7 +9,8 @@
 // =============================================================
 import { useEffect, useMemo, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
-import { Clock, Upload, Download, Printer, CheckCircle2, Loader2, Search, Link2 } from 'lucide-react'
+import { Clock, Upload, Download, Printer, CheckCircle2, Loader2, Search, Link2, FileSpreadsheet } from 'lucide-react'
+import { exportarXlsx, cabecalhoImpressaoHtml } from '@/lib/exportar'
 import { BotaoVoltar } from '@/components/BotaoVoltar'
 import {
   lerBancoHoras, formatSaldo, mesAtualRef, mesRefLabel, mesesRecentes, type LinhaBH,
@@ -204,6 +205,9 @@ function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
           </select>
         </Campo>
         <div className="flex gap-2">
+          <button type="button" onClick={() => baixarXlsxBH(filtrados, mesRef, escopo)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto">
+            <FileSpreadsheet size={15} aria-hidden /> Planilha
+          </button>
           <button type="button" onClick={() => baixarCSV(filtrados, mesRef)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto">
             <Download size={15} aria-hidden /> CSV
           </button>
@@ -406,6 +410,19 @@ function baixarCSV(rs: RegistroBH[], mesRef: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
+async function baixarXlsxBH(rs: RegistroBH[], mesRef: string, escopo: string) {
+  const linhas = linhasExport(rs); if (linhas.length === 0) return
+  const cab = Object.keys(linhas[0])
+  await exportarXlsx({
+    nomeArquivo: `banco-horas-${mesRef}`,
+    titulo: `Banco de Horas: ${mesRefLabel(mesRef)}`,
+    filtros: `Escopo: ${escopo} · ${linhas.length} registro(s)`,
+    colunas: cab,
+    linhas: linhas.map((l) => cab.map((c) => (l as any)[c] ?? '')),
+    nomeAba: 'Banco de Horas',
+  })
+}
+
 function imprimirPDF(rs: RegistroBH[], mesRef: string, escopo: string) {
   const linhas = linhasExport(rs)
   const cab = linhas.length ? Object.keys(linhas[0]) : []
@@ -414,11 +431,9 @@ function imprimirPDF(rs: RegistroBH[], mesRef: string, escopo: string) {
   const body = linhas.map((l) => `<tr>${cab.map((c) => `<td>${String((l as any)[c] ?? '')}</td>`).join('')}</tr>`).join('')
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Banco de Horas</title>
     <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;color:#1a1714;margin:32px}
-    h1{font-size:18px;margin:0 0 4px}p{color:#57514a;margin:0 0 16px;font-size:12px}
     table{width:100%;border-collapse:collapse;font-size:12px}
-    th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left}th{background:#eaf3f7;color:#002443}</style>
-    </head><body><h1>Banco de Horas: ${mesRefLabel(mesRef)}</h1>
-    <p>Escopo: ${escopo} · Gerado em ${new Date().toLocaleString('pt-BR')} · ${linhas.length} registro(s)</p>
+    th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left}th{background:#e7eefb;color:#002443}</style>
+    </head><body>${cabecalhoImpressaoHtml(`Banco de Horas: ${mesRefLabel(mesRef)}`, `Escopo: ${escopo} · ${linhas.length} registro(s)`)}
     <table><thead><tr>${cab.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
     <script>window.onload=function(){window.print()}</script></body></html>`)
   w.document.close()

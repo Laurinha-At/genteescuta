@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
 import {
   Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
-  CheckCircle2, XCircle, Download, Printer, FileText, Image as ImageIcon, Search,
+  CheckCircle2, XCircle, Download, Printer, FileText, Image as ImageIcon, Search, FileSpreadsheet,
   X, ChevronUp, ChevronDown, ChevronsUpDown, Check, Lock, User, Building2, CalendarDays, AlertCircle,
   ArrowLeft, ArrowRight, Pencil, Trash2,
 } from 'lucide-react'
@@ -29,6 +29,7 @@ import {
 } from '@/lib/fb/reembolso'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
+import { exportarXlsx, cabecalhoImpressaoHtml } from '@/lib/exportar'
 import { BotaoVoltar } from '@/components/BotaoVoltar'
 
 type Aba = 'solicitar' | 'minhas' | 'fila' | 'central'
@@ -1144,6 +1145,7 @@ function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-tinta-3">Você enxerga {escopo}.</p>
         <div className="flex gap-2">
+          <button type="button" onClick={() => baixarXlsxReemb(registros, escopo)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><FileSpreadsheet size={15} aria-hidden /> Planilha</button>
           <button type="button" onClick={() => baixarCSV(registros)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Download size={15} aria-hidden /> CSV</button>
           <button type="button" onClick={() => imprimirPDF(registros, escopo)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Printer size={15} aria-hidden /> PDF</button>
         </div>
@@ -1291,15 +1293,27 @@ function baixarCSV(itens: Reembolso[]) {
   const a = document.createElement('a'); a.href = url; a.download = `reembolsos-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
+async function baixarXlsxReemb(itens: Reembolso[], escopo: string) {
+  const linhas = linhasExport(itens); if (linhas.length === 0) return
+  const cab = Object.keys(linhas[0])
+  await exportarXlsx({
+    nomeArquivo: `reembolsos-${new Date().toISOString().slice(0, 10)}`,
+    titulo: 'Central das Solicitações de Reembolso',
+    filtros: `Escopo: ${escopo} · ${itens.length} registro(s)`,
+    colunas: cab,
+    linhas: linhas.map((l) => cab.map((c) => (l as any)[c] ?? '')),
+    nomeAba: 'Reembolsos',
+  })
+}
 function imprimirPDF(itens: Reembolso[], escopo: string) {
   const linhas = linhasExport(itens); const cab = linhas.length ? Object.keys(linhas[0]) : []
   const total = itens.reduce((s, r) => s + (Number(r.valor) || 0), 0)
   const w = window.open('', '_blank'); if (!w) return
   const body = linhas.map((l) => `<tr>${cab.map((c) => `<td>${String((l as any)[c] ?? '')}</td>`).join('')}</tr>`).join('')
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Reembolsos</title>
-    <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;color:#1a1714;margin:32px}h1{font-size:18px;margin:0 0 4px}p{color:#57514a;margin:0 0 16px;font-size:12px}
-    table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left;vertical-align:top}th{background:#eaf3f7;color:#002443}tfoot td{font-weight:bold;background:#f7f5f2}</style></head><body>
-    <h1>Central das Solicitações: Soulan</h1><p>Escopo: ${escopo} · ${new Date().toLocaleString('pt-BR')} · ${itens.length} registro(s)</p>
+    <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;color:#1a1714;margin:32px}
+    table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left;vertical-align:top}th{background:#e7eefb;color:#002443}tfoot td{font-weight:bold;background:#f7f5f2}</style></head><body>
+    ${cabecalhoImpressaoHtml('Central das Solicitações de Reembolso', `Escopo: ${escopo} · ${itens.length} registro(s)`)}
     <table><thead><tr>${cab.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${body}</tbody>
     <tfoot><tr><td colspan="${Math.max(1, cab.length - 3)}">Total</td><td>${formatBRL(total)}</td><td></td><td></td></tr></tfoot></table>
     <script>window.onload=function(){window.print()}</script></body></html>`)

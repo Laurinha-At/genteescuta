@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Search, Download, Printer, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, Download, Printer, X, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { BotaoVoltar } from '@/components/BotaoVoltar'
+import { exportarXlsx } from '@/lib/exportar'
+import { CabecalhoImpressao } from '@/components/CabecalhoImpressao'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { aniversariantesDoMes, mesAtualSP, NOMES_MESES, type AniversariantesMes, type PessoaMes } from '@/lib/fb/aniversarios'
@@ -123,6 +125,29 @@ export default function Aniversariantes() {
     baixarTexto('﻿' + linhas.join('\r\n'), `aniversariantes-${mesNome}.csv`, 'text/csv;charset=utf-8')
   }
 
+  const [gerandoXlsx, setGerandoXlsx] = useState(false)
+  const filtrosTexto = `${mesTitulo}${temFiltro ? ' · Filtro: ' + [busca.trim() && `“${busca.trim()}”`, areaSel].filter(Boolean).join(' · ') : ''}`
+  async function exportarXlsxAniv() {
+    setGerandoXlsx(true)
+    try {
+      const linhas: (string | number)[][] = [
+        ...aniversarios.map((p) => ['Aniversário', p.nome, p.area ?? '', `${pad2(p.dia)}/${pad2(mes)}`, '']),
+        ...tempos.map((p) => ['Tempo de casa', p.nome, p.area ?? '', `${pad2(p.dia)}/${pad2(mes)}`, String(p.anos ?? '')]),
+      ]
+      await exportarXlsx({
+        nomeArquivo: `aniversariantes-${mesNome}`,
+        titulo: `Aniversariantes e tempo de casa: ${mesTitulo}`,
+        filtros: filtrosTexto,
+        colunas: ['Tipo', 'Nome', 'Área', 'Dia', 'Anos de casa'],
+        linhas,
+        larguras: [16, 30, 24, 10, 14],
+        nomeAba: 'Aniversariantes',
+      })
+    } finally {
+      setGerandoXlsx(false)
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <div className="sem-impressao">
@@ -131,11 +156,9 @@ export default function Aniversariantes() {
       <main className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
         <div className="sem-impressao"><BotaoVoltar /></div>
 
-        {/* Título do relatório (aparece na impressão/PDF) */}
-        <div className="print-only mb-4">
-          <p className="text-lg font-bold">🎂 Aniversariantes de {mesTitulo}: {empresa}</p>
-          {temFiltro && <p className="text-sm">Filtro: {[busca.trim() && `“${busca.trim()}”`, areaSel].filter(Boolean).join(' · ')}</p>}
-        </div>
+        {/* Cabeçalho do relatório (com logo; aparece na impressão/PDF) */}
+        <CabecalhoImpressao titulo={`Aniversariantes de ${mesTitulo}`} filtros={filtrosTexto} />
+        <div className="print-only mb-4 -mt-2 text-sm">{empresa}</div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sem-impressao">
           <h1 className="titulo-hero text-[1.75rem] text-tinta">🎂 Aniversariantes de {mesTitulo}</h1>
@@ -193,6 +216,9 @@ export default function Aniversariantes() {
             </button>
           )}
           <div className="ml-auto flex items-center gap-2">
+            <button type="button" onClick={exportarXlsxAniv} disabled={totalFiltrado === 0 || gerandoXlsx} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-superficie-2 disabled:opacity-50">
+              {gerandoXlsx ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <FileSpreadsheet size={15} aria-hidden />} Planilha
+            </button>
             <button type="button" onClick={exportarCsv} disabled={totalFiltrado === 0} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta hover:bg-superficie-2 disabled:opacity-50">
               <Download size={15} aria-hidden /> CSV
             </button>
