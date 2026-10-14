@@ -9,7 +9,7 @@
 //    KPIs + filtros + busca + exportação).
 // Segurança reforçada nas Regras do Firestore.
 // =============================================================
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
 import {
   Receipt, Plus, ClipboardList, CheckSquare, LayoutList, Paperclip,
@@ -876,8 +876,10 @@ const COLS_CENTRAL: Coluna[] = [
   { key: 'pagamento', label: 'Pagamento', texto: (r) => (r.data_pagamento ? formatData(r.data_pagamento) : '-'), ord: (r) => r.data_pagamento ?? '' },
 ]
 
-function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
+function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes, aoFiltrar }: {
   registros: Reembolso[]; colunas: Coluna[]; aoAbrir: (r: Reembolso) => void; acoes?: (r: Reembolso) => React.ReactNode
+  /** Informa ao pai a lista já filtrada e o resumo dos filtros (para exportar o mesmo recorte). */
+  aoFiltrar?: (dados: Reembolso[], resumoFiltros: string) => void
 }) {
   const [busca, setBusca] = useState('')
   const [fStatus, setFStatus] = useState('')
@@ -916,6 +918,18 @@ function TabelaSolicitacoes({ registros, colunas, aoAbrir, acoes }: {
     if (col) arr.sort((a, b) => { const va = col.ord(a), vb = col.ord(b); return (va < vb ? -1 : va > vb ? 1 : 0) * ordDir })
     return arr
   }, [registros, busca, fStatus, fCentro, fCategoria, fMes, ordKey, ordDir, colunas])
+
+  // Resumo textual dos filtros ativos (para o topo das exportações).
+  const resumoFiltros = useMemo(() => [
+    fStatus && `Status: ${STATUS_LABEL[fStatus as StatusReembolso] ?? fStatus}`,
+    fMes && `Mês: ${rotuloMes(fMes)}`,
+    fCentro && `Centro de custo: ${fCentro}`,
+    fCategoria && `Categoria: ${fCategoria}`,
+    busca.trim() && `Busca: “${busca.trim()}”`,
+  ].filter(Boolean).join(' · '), [fStatus, fMes, fCentro, fCategoria, busca])
+
+  // Repassa ao pai a lista filtrada e o resumo, para exportar o MESMO recorte.
+  useEffect(() => { aoFiltrar?.(filtrados, resumoFiltros) }, [filtrados, resumoFiltros, aoFiltrar])
 
   // Totais do que está filtrado: total geral e total AINDA PENDENTE (em R$).
   const totalGeral = useMemo(() => filtrados.reduce((s, r) => s + (Number(r.valor) || 0), 0), [filtrados])
@@ -1126,6 +1140,16 @@ function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso
   const escopo = perfil.papeis.includes('gestor') && !perfil.papeis.includes('master') && !perfil.papeis.includes('financeiro')
     ? `centro ${perfil.centro_custo || '-'}` : 'todos os centros de custo'
 
+  // Exportar EXATAMENTE o que a tabela mostra: a lista filtrada e o resumo dos
+  // filtros vêm da própria TabelaSolicitacoes (mesma coleção que ela renderiza).
+  const [expDados, setExpDados] = useState<Reembolso[]>(registros)
+  const [expResumo, setExpResumo] = useState('')
+  const aoFiltrar = useCallback((dados: Reembolso[], resumo: string) => {
+    setExpDados(dados)
+    setExpResumo(resumo)
+  }, [])
+  const filtrosExport = [expResumo, `Escopo: ${escopo}`].filter(Boolean).join(' · ')
+
   if (carregando) return <p className="text-sm text-tinta-3">Carregando…</p>
 
   return (
@@ -1145,13 +1169,13 @@ function Central({ perfil, carregando, registros, aoAtualizar, setErro, setAviso
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-tinta-3">Você enxerga {escopo}.</p>
         <div className="flex gap-2">
-          <button type="button" onClick={() => baixarXlsxReemb(registros, escopo)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><FileSpreadsheet size={15} aria-hidden /> Planilha</button>
-          <button type="button" onClick={() => baixarCSV(registros)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Download size={15} aria-hidden /> CSV</button>
-          <button type="button" onClick={() => imprimirPDF(registros, escopo)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Printer size={15} aria-hidden /> PDF</button>
+          <button type="button" onClick={() => baixarXlsxReemb(expDados, filtrosExport)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><FileSpreadsheet size={15} aria-hidden /> Planilha</button>
+          <button type="button" onClick={() => baixarCSV(expDados, filtrosExport)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Download size={15} aria-hidden /> CSV</button>
+          <button type="button" onClick={() => imprimirPDF(expDados, filtrosExport)} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-1.5 text-sm font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Printer size={15} aria-hidden /> PDF</button>
         </div>
       </div>
 
-      <TabelaSolicitacoes registros={registros} colunas={COLS_CENTRAL} aoAbrir={setAberto} acoes={acoesMaster} />
+      <TabelaSolicitacoes registros={registros} colunas={COLS_CENTRAL} aoAbrir={setAberto} acoes={acoesMaster} aoFiltrar={aoFiltrar} />
 
       {aberto && <ModalDetalhe r={aberto} onFechar={() => setAberto(null)} />}
     </div>
@@ -1285,27 +1309,34 @@ function linhasExport(itens: Reembolso[]) {
     Status: STATUS_LABEL[statusEfetivo(r.status, r.data_pagamento)], Pagamento: r.data_pagamento ? formatData(r.data_pagamento) : '-',
   }))
 }
-function baixarCSV(itens: Reembolso[]) {
+function baixarCSV(itens: Reembolso[], filtros: string) {
   const linhas = linhasExport(itens); if (linhas.length === 0) return
   const cab = Object.keys(linhas[0]); const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const csv = [cab.join(';'), ...linhas.map((l) => cab.map((c) => esc((l as any)[c])).join(';'))].join('\r\n')
+  // Topo: título, filtros aplicados + total de registros e data.
+  const topo = [
+    [esc('Central das Solicitações de Reembolso')].join(';'),
+    [esc(`${filtros || 'Sem filtros'} · ${itens.length} registro(s)`)].join(';'),
+    [esc(`Gerado em ${new Date().toLocaleString('pt-BR')}`)].join(';'),
+    '',
+  ]
+  const csv = [...topo, cab.join(';'), ...linhas.map((l) => cab.map((c) => esc((l as any)[c])).join(';'))].join('\r\n')
   const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
   const a = document.createElement('a'); a.href = url; a.download = `reembolsos-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
-async function baixarXlsxReemb(itens: Reembolso[], escopo: string) {
+async function baixarXlsxReemb(itens: Reembolso[], filtros: string) {
   const linhas = linhasExport(itens); if (linhas.length === 0) return
   const cab = Object.keys(linhas[0])
   await exportarXlsx({
     nomeArquivo: `reembolsos-${new Date().toISOString().slice(0, 10)}`,
     titulo: 'Central das Solicitações de Reembolso',
-    filtros: `Escopo: ${escopo} · ${itens.length} registro(s)`,
+    filtros: `${filtros || 'Sem filtros'} · ${itens.length} registro(s)`,
     colunas: cab,
     linhas: linhas.map((l) => cab.map((c) => (l as any)[c] ?? '')),
     nomeAba: 'Reembolsos',
   })
 }
-function imprimirPDF(itens: Reembolso[], escopo: string) {
+function imprimirPDF(itens: Reembolso[], filtros: string) {
   const linhas = linhasExport(itens); const cab = linhas.length ? Object.keys(linhas[0]) : []
   const total = itens.reduce((s, r) => s + (Number(r.valor) || 0), 0)
   const w = window.open('', '_blank'); if (!w) return
@@ -1313,7 +1344,7 @@ function imprimirPDF(itens: Reembolso[], escopo: string) {
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Reembolsos</title>
     <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;color:#1a1714;margin:32px}
     table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d6d0c7;padding:6px 8px;text-align:left;vertical-align:top}th{background:#e7eefb;color:#002443}tfoot td{font-weight:bold;background:#f7f5f2}</style></head><body>
-    ${cabecalhoImpressaoHtml('Central das Solicitações de Reembolso', `Escopo: ${escopo} · ${itens.length} registro(s)`)}
+    ${cabecalhoImpressaoHtml('Central das Solicitações de Reembolso', `${filtros || 'Sem filtros'} · ${itens.length} registro(s)`)}
     <table><thead><tr>${cab.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${body}</tbody>
     <tfoot><tr><td colspan="${Math.max(1, cab.length - 3)}">Total</td><td>${formatBRL(total)}</td><td></td><td></td></tr></tfoot></table>
     <script>window.onload=function(){window.print()}</script></body></html>`)
