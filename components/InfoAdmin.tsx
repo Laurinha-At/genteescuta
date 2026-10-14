@@ -12,7 +12,7 @@ import {
   Plus, Pencil, Trash2, X, ExternalLink, ArrowUp, ArrowDown, Upload, Link2, Loader2,
   ClipboardList, Clock, Bus, CreditCard, Wallet, Laptop, FileText, BookOpen, HeartPulse,
   Wrench, Building2, Gift, GraduationCap, Info, Video, Image as ImageIcon, Search, Table2, CalendarDays,
-  Lock, Users, Eye, EyeOff, ArrowUpToLine, Check,
+  Lock, Users, Eye, EyeOff, ArrowUpToLine, Check, ArrowRight,
 } from 'lucide-react'
 import {
   listarTopicos, criarTopico, atualizarTopico, excluirTopico, trocarOrdemTopicos,
@@ -270,31 +270,34 @@ function CartaoPreview({
       tabIndex={0}
       onClick={onAbrir}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir() } }}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-borda bg-white text-left shadow-[0_1px_3px_rgba(26,23,20,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-borda-forte hover:shadow-[0_10px_28px_rgba(26,23,20,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-marca focus-visible:ring-offset-2"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-borda bg-superficie text-left shadow-[0_1px_2px_rgba(0,36,67,0.04),0_1px_3px_rgba(0,36,67,0.05)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(0,36,67,0.15)] focus:outline-none focus-visible:ring-2 focus-visible:ring-marca focus-visible:ring-offset-2"
     >
-      {/* Faixa de cor + ícone grande. O gradiente escuro por cima garante que o
-          título (branco) fique sempre legível, independente da cor escolhida. */}
+      {/* Cabeçalho colorido. O gradiente escuro por cima garante o título legível. */}
       <div className="relative flex h-24 items-center gap-3 px-5" style={{ background: `linear-gradient(90deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.10) 60%, rgba(0,0,0,0.02) 100%), ${grad}` }}>
-        <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-white/25 text-white ring-1 ring-inset ring-white/30 backdrop-blur-sm">
+        <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-white/25 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md">
           <IconeTopico nome={topico.icone} size={26} />
         </span>
         <RichHtml
           html={topico.titulo}
           className="line-clamp-2 min-w-0 flex-1 text-[1.1875rem] font-bold leading-snug text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.45)]"
         />
+        {/* Ações do admin: discretas, agrupadas e só no hover (no celular ficam visíveis). */}
         {ehAdmin && (
-          <div className="absolute right-2 top-2 flex gap-0.5" onClick={stop}>
-            <button type="button" title="Mover para cima" disabled={primeiro} onClick={() => onMover(-1)} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowUp size={14} aria-hidden /></button>
-            <button type="button" title="Mover para baixo" disabled={ultimo} onClick={() => onMover(1)} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowDown size={14} aria-hidden /></button>
-            <button type="button" title={inativo ? 'Ativar (mostrar no site)' : 'Inativar (esconder do site)'} onClick={onAtivo} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white">{inativo ? <Eye size={14} aria-hidden /> : <EyeOff size={14} aria-hidden />}</button>
-            <button type="button" title="Repostar (jogar para o topo)" onClick={onRepor} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><ArrowUpToLine size={14} aria-hidden /></button>
-            <button type="button" title="Editar assunto" onClick={onEditar} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><Pencil size={14} aria-hidden /></button>
-            <button type="button" title="Remover assunto" onClick={onExcluir} className="rounded-md p-1 text-white/80 hover:bg-white/25 hover:text-white"><Trash2 size={14} aria-hidden /></button>
+          <div
+            onClick={stop}
+            className="absolute right-2 top-2 flex gap-0.5 rounded-xl bg-black/25 p-0.5 opacity-100 backdrop-blur-sm transition-opacity duration-200 group-focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            <button type="button" title="Mover para cima" disabled={primeiro} onClick={() => onMover(-1)} className="rounded-lg p-1.5 text-white/85 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowUp size={14} aria-hidden /></button>
+            <button type="button" title="Mover para baixo" disabled={ultimo} onClick={() => onMover(1)} className="rounded-lg p-1.5 text-white/85 hover:bg-white/25 hover:text-white disabled:opacity-30"><ArrowDown size={14} aria-hidden /></button>
+            <button type="button" title={inativo ? 'Publicar (mostrar no site)' : 'Ocultar (esconder do site)'} onClick={onAtivo} className="rounded-lg p-1.5 text-white/85 hover:bg-white/25 hover:text-white">{inativo ? <Eye size={14} aria-hidden /> : <EyeOff size={14} aria-hidden />}</button>
+            <button type="button" title="Repostar (jogar para o topo)" onClick={onRepor} className="rounded-lg p-1.5 text-white/85 hover:bg-white/25 hover:text-white"><ArrowUpToLine size={14} aria-hidden /></button>
+            <button type="button" title="Editar assunto" onClick={onEditar} className="rounded-lg p-1.5 text-white/85 hover:bg-white/25 hover:text-white"><Pencil size={14} aria-hidden /></button>
+            <button type="button" title="Excluir assunto" onClick={onExcluir} className="rounded-lg p-1.5 text-white/85 hover:bg-critico hover:text-white"><Trash2 size={14} aria-hidden /></button>
           </div>
         )}
       </div>
 
-      {/* Corpo: descrição curta + prévia (chips de tipos) */}
+      {/* Corpo: descrição (2 linhas) + tags em pílula */}
       <div className="flex flex-1 flex-col p-4">
         {topico.descricao ? (
           <RichHtml html={topico.descricao} className="line-clamp-2 text-[0.8125rem] leading-6 text-tinta-2" />
@@ -302,27 +305,34 @@ function CartaoPreview({
           <p className="text-[0.8125rem] leading-6 text-tinta-3">Toque para ver os conteúdos deste assunto.</p>
         )}
 
-        <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {inativo && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#fbe9e1] px-2 py-0.5 text-[0.6875rem] font-semibold text-[#7a3418]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#fbe9e1] px-2.5 py-1 text-[0.6875rem] font-semibold text-[#7a3418]">
               <EyeOff size={11} aria-hidden /> Inativo
             </span>
           )}
           {!publicosDe(topico).includes('todos') && publicosDe(topico).map((p) => (
-            <span key={p} className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2 py-0.5 text-[0.6875rem] font-semibold text-marca-escura">
+            <span key={p} className="inline-flex items-center gap-1 rounded-full bg-marca-clara px-2.5 py-1 text-[0.6875rem] font-semibold text-marca-escura">
               <Lock size={11} aria-hidden /> {p === 'admin' ? 'Administrativo' : 'Gestor Aprovador'}
             </span>
           ))}
           {tipos.map((tp) => {
             const { label, Icone } = CHIP_ITEM[tp]
             return (
-              <span key={tp} className="inline-flex items-center gap-1 rounded-full bg-superficie-2 px-2 py-0.5 text-[0.6875rem] font-medium text-tinta-2">
+              <span key={tp} className="inline-flex items-center gap-1 rounded-full bg-superficie-2 px-2.5 py-1 text-[0.6875rem] font-medium text-tinta-2">
                 <Icone size={11} className="text-marca" aria-hidden /> {label}
               </span>
             )
           })}
-          <span className="ml-auto text-[0.6875rem] font-semibold text-tinta-3">
+        </div>
+
+        {/* Rodapé: contagem à esquerda + seta circular à direita (muda no hover) */}
+        <div className="mt-auto flex items-center justify-between border-t border-borda pt-3">
+          <span className="text-[0.6875rem] font-semibold text-tinta-3">
             {n === 0 ? 'Sem itens' : `${n} ${n === 1 ? 'item' : 'itens'}`}
+          </span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-superficie-2 text-tinta-3 transition-colors duration-200 group-hover:bg-marca group-hover:text-white" aria-hidden>
+            <ArrowRight size={16} />
           </span>
         </div>
       </div>
