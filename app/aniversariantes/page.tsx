@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Search, Download, Printer, X, FileSpreadshee
 import { BotaoVoltar } from '@/components/BotaoVoltar'
 import { exportarXlsx } from '@/lib/exportar'
 import { CabecalhoImpressao } from '@/components/CabecalhoImpressao'
+import { observarLogin } from '@/lib/fb/auth'
+import { perfilAtual } from '@/lib/fb/funcionarios'
 import { configurado } from '@/lib/firebase'
 import { getConfig } from '@/lib/fb/publico'
 import { aniversariantesDoMes, mesAtualSP, NOMES_MESES, type AniversariantesMes, type PessoaMes } from '@/lib/fb/aniversarios'
@@ -62,11 +64,20 @@ export default function Aniversariantes() {
   const [mesSel, setMesSel] = useState(mesAtualSP())
   const [busca, setBusca] = useState('')
   const [areaSel, setAreaSel] = useState('')
+  // Só admin/RH (e gestor/financeiro) veem filtros e exportações. Colaborador
+  // comum e visitante só navegam a lista por mês.
+  const [podeGerenciar, setPodeGerenciar] = useState(false)
   const mesAtual = mesAtualSP()
 
   useEffect(() => {
     if (!configurado()) return
     getConfig().then((c) => setEmpresa(c.empresa_nome)).catch(() => {})
+    const off = observarLogin(async (u) => {
+      if (!u) { setPodeGerenciar(false); return }
+      const p = await perfilAtual().catch(() => null)
+      setPodeGerenciar(!!p && p.ativo && (p.tipo === 'admin' || p.papeis.some((x) => ['master', 'administrador', 'gestor', 'financeiro'].includes(x))))
+    })
+    return off
   }, [])
 
   useEffect(() => {
@@ -189,7 +200,8 @@ export default function Aniversariantes() {
           )}
         </div>
 
-        {/* Busca + filtro por área + exportar */}
+        {/* Busca + filtro por área + exportar (só admin/RH). */}
+        {podeGerenciar && (
         <div className="mt-4 flex flex-wrap items-center gap-2 sem-impressao">
           <div className="relative min-w-[12rem] flex-1">
             <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-tinta-3" aria-hidden />
@@ -227,6 +239,7 @@ export default function Aniversariantes() {
             </button>
           </div>
         </div>
+        )}
 
         {temFiltro && dados !== null && (
           <p className="mt-2 text-xs text-tinta-3 sem-impressao">
