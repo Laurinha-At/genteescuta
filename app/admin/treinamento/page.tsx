@@ -59,7 +59,7 @@ export default function AdminTreinamento() {
   return (
     <>
       <CabecalhoPagina
-        titulo="Treinamento e Desenvolvimento"
+        titulo="Central de Conhecimento"
         descricao="Crie e edite as trilhas da página pública. As mudanças aparecem no site na hora."
         voltar={{ href: '/treinamento', rotulo: 'Ver página pública' }}
         acoes={<Botao type="button" onClick={() => setEditando({ ...VAZIA })}><Plus size={15} aria-hidden /> Nova trilha</Botao>}
