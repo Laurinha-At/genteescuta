@@ -18,7 +18,7 @@ const CARDS: CardHome[] = [
   { href: '/aniversariantes', titulo: 'Aniversariantes do mês', frase: 'Veja quem aniversaria e quem completa tempo de casa neste mês.', Icone: Cake, cor: 'linear-gradient(135deg, #2f9e8a 0%, #0f5a52 100%)' },
   { href: '/informacoes-administrativas', titulo: 'Informações Administrativas', frase: 'Aqui você encontra acessos e informações importantes para facilitar sua rotina, consultar documentos, e acompanhar os principais processos administrativos da Soulan.', Icone: ClipboardList, cor: 'linear-gradient(135deg, #3f8fcf 0%, #1a4895 100%)' },
   { href: '/contato', titulo: 'Contato e Suporte', frase: 'Fale com a equipe de Gente & Cultura.', Icone: LifeBuoy, cor: 'linear-gradient(135deg, #1f5f9a 0%, #002443 100%)' },
-  { href: '/treinamento', titulo: 'Central de Conhecimento', frase: 'Informações, orientações e materiais para o dia a dia na Soulan.', Icone: GraduationCap, cor: 'linear-gradient(135deg, #1a4895 0%, #0a2f63 100%)', emBreve: true },
+  { href: '/treinamento', titulo: 'Central de Conhecimento', frase: 'Acesse os materiais da sua área disponíveis no Google Classroom, além das trilhas de desenvolvimento, treinamentos e conteúdos institucionais da Soulan.', Icone: GraduationCap, cor: 'linear-gradient(135deg, #1a4895 0%, #0a2f63 100%)', emBreve: true },
   { href: '/reembolso', titulo: 'Solicitação de Reembolso', frase: 'Peça reembolsos, anexe o comprovante e acompanhe a aprovação.', Icone: Receipt, cor: 'linear-gradient(135deg, #ff8864 0%, #d2451c 100%)', destaque: true },
 ]
 
