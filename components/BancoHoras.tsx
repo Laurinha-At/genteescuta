@@ -13,7 +13,7 @@ import { Clock, Upload, Download, Printer, CheckCircle2, Loader2, Search, Link2,
 import { exportarXlsx, cabecalhoImpressaoHtml } from '@/lib/exportar'
 import { BotaoVoltar } from '@/components/BotaoVoltar'
 import {
-  lerBancoHoras, formatSaldo, mesAtualRef, mesRefLabel, mesesRecentes, type LinhaBH,
+  lerBancoHoras, formatSaldo, competenciaRef, mesRefLabel, mesesRecentes, type LinhaBH,
 } from '@/lib/bancoHoras'
 import {
   importarBancoHoras, listarBancoHoras, meuSaldoAtual, sincronizarVinculos, type RegistroBH,
@@ -128,7 +128,7 @@ function MeuSaldo() {
 // Master / Gestor: tabela, resumo, exportação e (Master) upload
 // -------------------------------------------------------------
 function Gestao({ perfil, master }: { perfil: Perfil; master: boolean }) {
-  const [mesRef, setMesRef] = useState(mesAtualRef())
+  const [mesRef, setMesRef] = useState(competenciaRef())
   const [registros, setRegistros] = useState<RegistroBH[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -308,7 +308,7 @@ function RevincularMatricula({ onOk, setErro }: { onOk: (msg: string) => void; s
 // -------------------------------------------------------------
 function UploadMes({ onImportado, setErro }: { onImportado: (msg: string, mes: string) => void; setErro: (s: string | null) => void }) {
   const [linhas, setLinhas] = useState<LinhaBH[] | null>(null)
-  const [mes, setMes] = useState(mesAtualRef())
+  const [mes, setMes] = useState(competenciaRef())
   const [nome, setNome] = useState('')
   const [lendo, setLendo] = useState(false)
   const [importando, setImportando] = useState(false)
@@ -356,11 +356,11 @@ function UploadMes({ onImportado, setErro }: { onImportado: (msg: string, mes: s
       </div>
 
       {/* Competência sempre visível, no topo (vincula os dados ao mês/ano). */}
-      <Campo rotulo="Competência (mês/ano)" ajuda="Mês de referência ao qual esta planilha será vinculada.">
+      <Campo rotulo="Competência (mês/ano)" ajuda="Vem preenchida com o mês fechado (regra do dia 10): a partir do dia 10, o mês anterior; antes do dia 10, dois meses atrás. Você pode ajustar se precisar.">
         <input
           type="month"
           value={mes}
-          onChange={(e) => setMes(e.target.value || mesAtualRef())}
+          onChange={(e) => setMes(e.target.value || competenciaRef())}
           className={`${ENTRADA} max-w-[13rem]`}
         />
       </Campo>

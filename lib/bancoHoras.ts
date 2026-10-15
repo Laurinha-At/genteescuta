@@ -64,6 +64,24 @@ export function mesAtualRef(): string {
   return `${g('year')}-${g('month')}`
 }
 
+/**
+ * Competência (mês fechado) pela regra do dia 10, no fuso de São Paulo:
+ *  - hoje no dia 10 ou depois  → mês anterior (ex.: 13/10 → Setembro);
+ *  - hoje antes do dia 10       → dois meses atrás (ex.: 05/10 → Agosto,
+ *    pois a atualização do mês anterior só acontece no dia 10).
+ * Vira o ano corretamente (ex.: janeiro → dezembro do ano anterior).
+ */
+export function competenciaRef(hoje: Date = new Date()): string {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(hoje)
+  const g = (t: string) => Number(p.find((x) => x.type === t)?.value)
+  let ano = g('year')
+  let mes = g('month')
+  const dia = g('day')
+  mes -= dia >= 10 ? 1 : 2
+  while (mes <= 0) { mes += 12; ano -= 1 }
+  return `${ano}-${String(mes).padStart(2, '0')}`
+}
+
 /** 'YYYY-MM' → "Setembro/2026". */
 export function mesRefLabel(ref: string): string {
   const m = /^(\d{4})-(\d{2})$/.exec(ref ?? '')
