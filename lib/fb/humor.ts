@@ -10,7 +10,7 @@
 // Dedup: o ID do documento é determinístico (matrícula_ts_humor), então
 // reimportar o mesmo arquivo sobrescreve em vez de duplicar.
 // =============================================================
-import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, writeBatch, query, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import {
   CLASSIFICACAO_PADRAO,
@@ -25,6 +25,22 @@ export async function listarRegistrosHumor(): Promise<RegistroHumor[]> {
   return snap.docs.map((d) => {
     const x = d.data() as RegistroHumor
     // registros antigos podem não ter `setor`
+    return { ...x, setor: x.setor || 'Não informado' }
+  })
+}
+
+/**
+ * Registros do humor de UM centro de custo (para o Gestor Aprovador).
+ * O filtro por setor é imposto na consulta (as Regras só liberam ao gestor os
+ * registros do seu centro). Centro vazio ou "Todos os centros" lê tudo.
+ */
+export async function listarRegistrosHumorCentro(centro: string): Promise<RegistroHumor[]> {
+  const col = collection(db(), 'humor_registros')
+  const c = String(centro ?? '').trim()
+  if (!c || c === 'Todos os centros de custo') return listarRegistrosHumor()
+  const snap = await getDocs(query(col, where('setor', '==', c)))
+  return snap.docs.map((d) => {
+    const x = d.data() as RegistroHumor
     return { ...x, setor: x.setor || 'Não informado' }
   })
 }

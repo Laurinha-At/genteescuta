@@ -63,9 +63,18 @@ export default function Inconsistencias() {
   useEffect(() => { minhaConta().then(setEu).catch(() => setEu(null)); recarregar() }, [])
 
   const souGerente = ehGerente(eu ?? null)
+  // Gestor Aprovador: só ACOMPANHA (ver + exportar) o SEU centro de custo.
+  const ehGestorSo = !!eu && eu.ativo && !souGerente && eu.perfil === 'gestor'
+  const centroGestor = eu?.centro_custo ?? ''
+  const gestorGlobal = centroGestor === 'Todos os centros de custo'
+  const podeVer = souGerente || ehGestorSo
 
-  // Todos os itens (achatados com o mês), e as listas de setores/funcionários.
-  const todos = useMemo<ItemMes[]>(() => docs.flatMap((d) => d.itens.map((i) => ({ mes: d.mes_ref, ...i }))), [docs])
+  // Todos os itens (achatados com o mês). Para o gestor, já recortado ao SEU
+  // centro de custo (as Regras liberam o doc; o recorte dos itens é feito aqui).
+  const todos = useMemo<ItemMes[]>(() => {
+    const flat = docs.flatMap((d) => d.itens.map((i) => ({ mes: d.mes_ref, ...i })))
+    return ehGestorSo && !gestorGlobal ? flat.filter((i) => i.setor === centroGestor) : flat
+  }, [docs, ehGestorSo, gestorGlobal, centroGestor])
   const setoresDisp = useMemo(() => Array.from(new Set(todos.map((i) => i.setor))).sort((a, b) => a.localeCompare(b)), [todos])
   const funcsDisp = useMemo(() => Array.from(new Set(todos.map((i) => i.funcionario))).sort((a, b) => a.localeCompare(b)), [todos])
 
@@ -113,11 +122,11 @@ export default function Inconsistencias() {
   }
 
   if (eu === undefined) return <><CabecalhoPagina titulo="Inconsistências" /><p className="p-6 text-sm text-tinta-3">Carregando…</p></>
-  if (!souGerente) {
+  if (!podeVer) {
     return (
       <>
         <CabecalhoPagina titulo="Inconsistências" />
-        <div className="p-4 sm:p-6"><Aviso tom="alerta" titulo="Acesso restrito">Esta área é da equipe de Gente &amp; Cultura (Master / Super Admin).</Aviso></div>
+        <div className="p-4 sm:p-6"><Aviso tom="alerta" titulo="Acesso restrito">Esta área é da equipe de Gente &amp; Cultura ou do Gestor Aprovador do centro de custo.</Aviso></div>
       </>
     )
   }
@@ -126,20 +135,27 @@ export default function Inconsistencias() {
 
   return (
     <>
-      <CabecalhoPagina titulo="Inconsistências" descricao="Importe a planilha do mês e acompanhe por setor e funcionário. Números agregados." />
+      <CabecalhoPagina
+        titulo="Inconsistências"
+        descricao={ehGestorSo
+          ? `Acompanhe (ver e exportar) as inconsistências do seu centro de custo${centroGestor && !gestorGlobal ? `: ${centroGestor}` : ''}. Números agregados.`
+          : 'Importe a planilha do mês e acompanhe por setor e funcionário. Números agregados.'}
+      />
 
       <div className="space-y-4 p-4 sm:p-6">
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 
-        <div className="sem-impressao">
-          <UploadInconsistencias onSalvo={(msg) => { setAviso(msg); setErro(null); recarregar() }} setErro={setErro} />
-        </div>
+        {souGerente && (
+          <div className="sem-impressao">
+            <UploadInconsistencias onSalvo={(msg) => { setAviso(msg); setErro(null); recarregar() }} setErro={setErro} />
+          </div>
+        )}
 
         {carregando ? (
           <p className="text-sm text-tinta-3">Carregando…</p>
         ) : docs.length === 0 ? (
-          <Vazio titulo="Nenhuma inconsistência importada" descricao="Envie a primeira planilha acima para montar o painel." />
+          <Vazio titulo="Nenhuma inconsistência importada" descricao={souGerente ? 'Envie a primeira planilha acima para montar o painel.' : 'Ainda não há dados de inconsistências para acompanhar.'} />
         ) : (
           <>
             {/* Barra de filtros + exportação (não sai no PDF) */}
@@ -150,13 +166,15 @@ export default function Inconsistencias() {
                   {docs.map((d) => <option key={d.mes_ref} value={d.mes_ref}>{rotuloMes(d.mes_ref)}</option>)}
                 </select>
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-tinta-3">Centro de custo / setor</span>
-                <select value={fSetor} onChange={(e) => setFSetor(e.target.value)} className={ENTRADA_SEL}>
-                  <option value="">Todos os setores</option>
-                  {setoresDisp.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </label>
+              {!ehGestorSo && (
+                <label className="text-sm">
+                  <span className="mb-1 block text-xs font-medium text-tinta-3">Centro de custo / setor</span>
+                  <select value={fSetor} onChange={(e) => setFSetor(e.target.value)} className={ENTRADA_SEL}>
+                    <option value="">Todos os setores</option>
+                    {setoresDisp.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="text-sm">
                 <span className="mb-1 block text-xs font-medium text-tinta-3">Funcionário</span>
                 <input list="lista-funcs" value={fFunc} onChange={(e) => setFFunc(e.target.value)} placeholder="Buscar / todos" className={`${ENTRADA_SEL} min-w-[12rem]`} />

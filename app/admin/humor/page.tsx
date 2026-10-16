@@ -7,10 +7,12 @@ import { exportarXlsx } from '@/lib/exportar'
 import { CabecalhoImpressao } from '@/components/CabecalhoImpressao'
 import {
   listarRegistrosHumor,
+  listarRegistrosHumorCentro,
   salvarRegistrosHumor,
   limparRegistrosHumorMes,
   getClassificacaoHumor,
 } from '@/lib/fb/humor'
+import { minhaConta, type Conta } from '@/lib/fb/usuarios'
 import {
   decodificar,
   parseHumorCsv,
@@ -48,16 +50,35 @@ export default function HumorEquipe() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [limpando, setLimpando] = useState(false)
   const [periodo, setPeriodo] = useState('geral')
+  const [conta, setConta] = useState<Conta | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Admin/RH (Master/Super/Administrador) edita e vê tudo. O Gestor Aprovador
+  // só ACOMPANHA (ver + exportar) os dados do seu centro de custo.
+  const ehAdminTotal = !!conta && conta.ativo && (conta.nivel === 'master' || conta.nivel === 'super' || ['adm', 'adm_principal', 'adm_master'].includes(conta.perfil))
+  const ehGestorSo = !!conta && conta.ativo && !ehAdminTotal && conta.perfil === 'gestor'
+  const podeEditar = ehAdminTotal
+
   useEffect(() => {
-    Promise.all([listarRegistrosHumor(), getClassificacaoHumor()])
-      .then(([regs, cls]) => {
+    async function carregar() {
+      try {
+        const c = await minhaConta().catch(() => null)
+        setConta(c)
+        const admin = !!c && c.ativo && (c.nivel === 'master' || c.nivel === 'super' || ['adm', 'adm_principal', 'adm_master'].includes(c.perfil))
+        const gestor = !!c && c.ativo && !admin && c.perfil === 'gestor'
+        const [regs, cls] = await Promise.all([
+          gestor ? listarRegistrosHumorCentro(c!.centro_custo ?? '') : listarRegistrosHumor(),
+          getClassificacaoHumor(),
+        ])
         setRegistros(regs)
         setClassif(cls)
-      })
-      .catch(() => setErro('Não consegui carregar os dados de humor do banco.'))
-      .finally(() => setCarregando(false))
+      } catch {
+        setErro('Não consegui carregar os dados de humor do banco.')
+      } finally {
+        setCarregando(false)
+      }
+    }
+    carregar()
   }, [])
 
   async function importar(file: File) {
@@ -249,9 +270,11 @@ export default function HumorEquipe() {
     <>
       <CabecalhoPagina
         titulo="Humor da equipe (clima)"
-        descricao="Importe o CSV de humor e veja os indicadores agregados. Nomes e matrículas ficam só no banco, nunca aparecem aqui."
+        descricao={ehGestorSo
+          ? `Acompanhe (ver e exportar) o humor do seu centro de custo${conta?.centro_custo && conta.centro_custo !== 'Todos os centros de custo' ? `: ${conta.centro_custo}` : ''}. Nomes e matrículas ficam só no banco.`
+          : 'Importe o CSV de humor e veja os indicadores agregados. Nomes e matrículas ficam só no banco, nunca aparecem aqui.'}
         acoes={
-          registros.length > 0 ? (
+          podeEditar && registros.length > 0 ? (
             <>
               {botaoImportar}
               <button
@@ -283,6 +306,9 @@ export default function HumorEquipe() {
         {carregando ? (
           <p className="p-2 text-sm text-tinta-3">Carregando…</p>
         ) : registros.length === 0 ? (
+          !podeEditar ? (
+            <Vazio titulo="Sem dados de humor" descricao="Ainda não há registros de humor do seu centro de custo para acompanhar." />
+          ) : (
           <>
             <label
               className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-borda-forte bg-white px-6 py-16 text-center transition-colors hover:bg-superficie-2"
@@ -308,6 +334,7 @@ export default function HumorEquipe() {
             </label>
             <NotaPrivacidade />
           </>
+          )
         ) : (
           <>
             {/* Barra de período + downloads (não sai no PDF) */}

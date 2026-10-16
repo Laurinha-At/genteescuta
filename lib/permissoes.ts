@@ -131,10 +131,12 @@ export const PERFIS: Perfil[] = [
   {
     id: 'gestor',
     nome: 'Gestor Aprovador',
-    desc: 'Aprova reembolsos e vê o Banco de Horas: apenas do centro de custo pelo qual responde.',
+    desc: 'Aprova reembolsos do seu centro de custo e acompanha (ver + exportar) Humor, Banco de Horas e Inconsistências da mesma área. Não edita, importa nem exclui.',
     base: {
       reembolsos: ['ver', 'aprovar'],
       banco_horas: ['ver'],
+      humor: ['ver'],
+      inconsistencias: ['ver'],
     },
   },
   {

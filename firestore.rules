@@ -204,14 +204,22 @@ service cloud.firestore {
     }
 
     // -------- Humor da equipe (clima) — CSV importado pelo admin.
-    // Contêm nome/matrícula: SÓ o admin lê e escreve. Público nunca acessa.
+    // Contêm nome/matrícula: o admin lê/escreve tudo. O Gestor Aprovador LÊ só
+    // os registros do SEU centro de custo (ou todos, se "Todos os centros"),
+    // imposto AQUI (consulta por setor). Gestor nunca escreve. Público nunca acessa.
     match /humor_registros/{id} {
-      allow read, write: if admin();
+      allow read: if admin()
+        || (temPapel('gestor') && (meuCentro() == 'Todos os centros de custo' || resource.data.get('setor', '') == meuCentro()));
+      allow write: if admin();
     }
 
-    // -------- Inconsistências (planilha por mês) — SÓ o admin lê e escreve.
+    // -------- Inconsistências (um doc por mês com a lista de itens).
+    // Admin lê/escreve. O Gestor Aprovador LÊ o documento do mês (o recorte por
+    // centro é feito na tela, pois o doc guarda todos os setores juntos).
+    // Gestor nunca escreve.
     match /inconsistencias/{id} {
-      allow read, write: if admin();
+      allow read: if admin() || temPapel('gestor');
+      allow write: if admin();
     }
 
     // -------- Solicitações de Reembolso --------
