@@ -192,6 +192,33 @@ export function normalizarSetor(raw: string): string {
   return 'Outros'
 }
 
+// -------------------------------------------------------------
+// Chave estável da marcação (para dedup): identidade + data/hora.
+// A identidade é a MATRÍCULA quando houver; senão o NOME, sempre sem acento e
+// em minúsculas, para não duplicar só porque o nome veio em caixa diferente.
+// O humor NÃO entra na chave: reimportar a mesma marcação atualiza, não duplica.
+// -------------------------------------------------------------
+export function chaveIdentidadeHumor(matricula: string, funcionario: string): string {
+  const m = semAcentos(String(matricula ?? '')).toLowerCase().replace(/[^a-z0-9]+/g, '').trim()
+  if (m) return `m:${m}`
+  const n = semAcentos(String(funcionario ?? '')).toLowerCase().replace(/\s+/g, ' ').trim()
+  return n ? `n:${n}` : 'anon'
+}
+
+export function chaveMarcacao(r: { matricula: string; funcionario: string; ts: number }): string {
+  return `${chaveIdentidadeHumor(r.matricula, r.funcionario)}_${r.ts}`
+}
+
+/** Quantas marcações são duplicadas (mesma identidade + data/hora). Conta os
+ *  EXCEDENTES: um grupo com 3 cópias conta 2. */
+export function contarDuplicadosHumor(regs: { matricula: string; funcionario: string; ts: number }[]): number {
+  const vistos = new Map<string, number>()
+  for (const r of regs) vistos.set(chaveMarcacao(r), (vistos.get(chaveMarcacao(r)) ?? 0) + 1)
+  let dup = 0
+  for (const n of vistos.values()) if (n > 1) dup += n - 1
+  return dup
+}
+
 export interface ResultadoParse {
   registros: RegistroHumor[]
   lidas: number // linhas de dados consideradas
@@ -287,9 +314,10 @@ export function parseHumorCsv(texto: string): ResultadoParse {
     const mo = String(dt.getMonth() + 1).padStart(2, '0')
     const d = String(dt.getDate()).padStart(2, '0')
     const ts = dt.getTime()
-    const identidade = matricula || funcionario || 'anon'
     registros.push({
-      id: `${identidade}_${ts}_${humor}`,
+      // Chave estável: identidade (matrícula ou nome, sem caixa/acento) + data/hora.
+      // Não inclui o humor, então reimportar a mesma marcação atualiza em vez de duplicar.
+      id: chaveMarcacao({ matricula, funcionario, ts }),
       ts,
       dia: `${y}-${mo}-${d}`,
       matricula,

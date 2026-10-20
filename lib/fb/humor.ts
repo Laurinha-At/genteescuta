@@ -15,6 +15,7 @@ import { db } from '../firebase'
 import {
   CLASSIFICACAO_PADRAO,
   HUMORES,
+  chaveMarcacao,
   type Categoria,
   type Humor,
   type RegistroHumor,
@@ -79,6 +80,48 @@ export async function limparRegistrosHumorMes(mesRef: string): Promise<number> {
     await lote.commit()
   }
   return apagados
+}
+
+/**
+ * Remove marcações DUPLICADAS (mesma identidade + data/hora), mantendo uma por
+ * grupo. Mantém a com SETOR informado (prioriza a reimportada, já com o centro
+ * de custo correto); em empate, a de id mais "novo" (ordem estável). Só Master
+ * grava/exclui (Regras). Use depois de reimportar com a chave nova.
+ */
+export async function limparDuplicadosHumor(): Promise<{ removidos: number; grupos: number }> {
+  const snap = await getDocs(collection(db(), 'humor_registros'))
+  const setorRuim = (s: unknown) => {
+    const v = String(s ?? '').trim()
+    return v === '' || v === 'Não informado' || v === 'Outros'
+  }
+  // Agrupa por chave estável da marcação (ignora a caixa do nome e o id antigo).
+  const grupos = new Map<string, { id: string; setorBom: boolean }[]>()
+  for (const d of snap.docs) {
+    const x = d.data() as RegistroHumor
+    const k = chaveMarcacao({ matricula: x.matricula, funcionario: x.funcionario, ts: x.ts })
+    const arr = grupos.get(k) ?? []
+    arr.push({ id: d.id, setorBom: !setorRuim(x.setor) })
+    grupos.set(k, arr)
+  }
+  // Decide o que remover: em cada grupo com mais de um, mantém o melhor.
+  const aRemover: string[] = []
+  let gruposDup = 0
+  for (const arr of grupos.values()) {
+    if (arr.length <= 1) continue
+    gruposDup++
+    const manter = arr.slice().sort((a, b) =>
+      (a.setorBom === b.setorBom ? (a.id < b.id ? 1 : -1) : a.setorBom ? -1 : 1),
+    )[0]
+    for (const r of arr) if (r.id !== manter.id) aRemover.push(r.id)
+  }
+  // Exclui em lotes de 400 (limite do writeBatch é 500).
+  let removidos = 0
+  for (let i = 0; i < aRemover.length; i += 400) {
+    const lote = writeBatch(db())
+    for (const id of aRemover.slice(i, i + 400)) { lote.delete(doc(db(), 'humor_registros', id)); removidos++ }
+    await lote.commit()
+  }
+  return { removidos, grupos: gruposDup }
 }
 
 /** Apaga TODOS os registros de humor: para recomeçar do zero. */

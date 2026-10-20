@@ -10,6 +10,7 @@ import {
   listarRegistrosHumorCentro,
   salvarRegistrosHumor,
   limparRegistrosHumorMes,
+  limparDuplicadosHumor,
   getClassificacaoHumor,
 } from '@/lib/fb/humor'
 import { minhaConta, type Conta } from '@/lib/fb/usuarios'
@@ -26,6 +27,7 @@ import {
   COR_HUMOR,
   COR_CATEGORIA,
   HUMORES,
+  contarDuplicadosHumor,
   type Categoria,
   type Humor,
   type RegistroHumor,
@@ -75,6 +77,7 @@ export default function HumorEquipe() {
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [limpando, setLimpando] = useState(false)
+  const [limpandoDup, setLimpandoDup] = useState(false)
   const [periodo, setPeriodo] = useState('geral')
   const [conta, setConta] = useState<Conta | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -84,6 +87,10 @@ export default function HumorEquipe() {
   const ehAdminTotal = !!conta && conta.ativo && (conta.nivel === 'master' || conta.nivel === 'super' || ['adm', 'adm_principal', 'adm_master'].includes(conta.perfil))
   const ehGestorSo = !!conta && conta.ativo && !ehAdminTotal && conta.perfil === 'gestor'
   const podeEditar = ehAdminTotal
+  // Só o Master apaga em massa (as Regras também exigem). Super/adm_* contam como Master do painel.
+  const ehMaster = !!conta && conta.ativo && (conta.nivel === 'master' || conta.nivel === 'super')
+  // Duplicados no banco (mesma pessoa + data/hora), calculado sobre TODOS os registros carregados.
+  const duplicados = useMemo(() => contarDuplicadosHumor(registros), [registros])
 
   useEffect(() => {
     async function carregar() {
@@ -168,6 +175,26 @@ export default function HumorEquipe() {
       setErro('Não consegui limpar os registros do mês.')
     }
     setLimpando(false)
+  }
+
+  async function limparDuplicados() {
+    if (duplicados === 0) return
+    if (!confirm(`Encontrei ${duplicados} marcação(ões) duplicada(s) (mesma pessoa e data/hora). Vou manter uma de cada e apagar as cópias, priorizando a que tem o setor preenchido. Deseja continuar?`)) return
+    setErro(null)
+    setAviso(null)
+    setLimpandoDup(true)
+    try {
+      const { removidos } = await limparDuplicadosHumor()
+      // Recarrega do banco para refletir o que ficou.
+      const regs = await listarRegistrosHumor()
+      setRegistros(regs)
+      setAviso(removidos > 0
+        ? `Pronto: ${removidos} cópia(s) duplicada(s) removida(s). Mantive uma marcação por pessoa e data/hora.`
+        : 'Nada a remover: não há marcações duplicadas.')
+    } catch {
+      setErro('Não consegui limpar os duplicados.')
+    }
+    setLimpandoDup(false)
   }
 
   const meses = useMemo(() => mesesDisponiveis(registros), [registros])
@@ -373,6 +400,24 @@ export default function HumorEquipe() {
           <p className="rounded-lg border border-[#f0c2c2] bg-[#fdeaea] px-4 py-3 text-sm text-[#8a1f1f]">
             {erro}
           </p>
+        )}
+
+        {ehMaster && duplicados > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#e7cf98] bg-[#fdf6e6] px-4 py-3">
+            <p className="text-sm text-[#7a5c12]">
+              <strong className="font-semibold">{duplicados} marcação(ões) duplicada(s)</strong> no banco (mesma pessoa e data/hora, provavelmente de importações com o nome em caixa diferente).
+            </p>
+            <button
+              type="button"
+              onClick={limparDuplicados}
+              disabled={limpandoDup}
+              title="Mantém uma marcação por pessoa e data/hora, priorizando a que tem o setor preenchido."
+              className="inline-flex flex-none items-center gap-1.5 rounded-lg border border-[#e7cf98] bg-white px-3.5 py-2 text-sm font-semibold text-[#7a5c12] transition-colors hover:bg-[#fbeecb] disabled:opacity-60"
+            >
+              {limpandoDup ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Trash2 size={15} aria-hidden />}
+              {limpandoDup ? 'Limpando…' : 'Limpar duplicados'}
+            </button>
+          </div>
         )}
 
         {carregando ? (
