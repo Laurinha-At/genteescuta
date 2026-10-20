@@ -228,7 +228,9 @@ function mapearColunas(campos: string[]): MapaColunas | null {
     matricula: achaColuna(campos, ['matric']),
     funcionario: achaColuna(campos, ['funcion', 'colaborador', 'nome']),
     cargo: achaColuna(campos, ['cargo', 'funcao', 'função']),
-    setor: achaColuna(campos, ['setor', 'area', 'área', 'depart']),
+    // Aceita o cabeçalho antigo ("Setor"/"Área") e o novo ("CENTRO DE CUSTO"),
+    // tolerando caixa, acentos e espaços (achaColuna já remove acento e baixa a caixa).
+    setor: achaColuna(campos, ['setor', 'area', 'depart', 'centro de custo', 'centro', 'custo']),
   }
 }
 
