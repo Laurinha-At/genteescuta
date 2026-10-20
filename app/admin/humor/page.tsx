@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download, ChevronRight, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { UploadCloud, ShieldCheck, Users, CalendarRange, Hash, Trash2, Printer, Download, ChevronRight, ChevronLeft, Search, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui'
 import { exportarXlsx } from '@/lib/exportar'
 import { CabecalhoImpressao } from '@/components/CabecalhoImpressao'
@@ -42,10 +42,30 @@ function fmtDataHora(ts: number | null): string {
   return new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+/** Texto em minúsculas e sem acentos, para busca tolerante. */
+function normalizar(s: string): string {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
+
 const CATEGORIA_LABEL: Record<Categoria, string> = {
   positivo: 'Positivo',
   neutro: 'Neutro',
   negativo: 'Negativo',
+}
+
+/** Resumo do humor predominante de uma pessoa no período filtrado. */
+interface PessoaResumo {
+  chave: string
+  nome: string
+  setor: string
+  total: number
+  /** Quantas vezes marcou o humor predominante (= maior contagem). */
+  vezes: number
+  /** Humor(es) predominante(s): mais de um quando há empate. */
+  predominantes: { humor: Humor; n: number }[]
+  empate: boolean
+  /** Todas as marcações da pessoa (mais recentes primeiro). */
+  historico: { ts: number; humor: Humor }[]
 }
 export default function HumorEquipe() {
   const [registros, setRegistros] = useState<RegistroHumor[]>([])
@@ -216,6 +236,46 @@ export default function HumorEquipe() {
     ? `Centro de custo: ${conta.centro_custo}` : 'Todos os centros de custo'
   // Marcações detalhadas do período, mais recentes primeiro (já recortadas por papel).
   const marcacoes = useMemo(() => [...regsP].sort((a, b) => b.ts - a.ts), [regsP])
+
+  // Humor predominante por pessoa no período (nome, humor que mais marcou,
+  // quantas vezes e total). Em caso de empate, lista os humores empatados
+  // (ordenados do mais recente para o mais antigo) e marca "empate".
+  const porPessoa = useMemo<PessoaResumo[]>(() => {
+    const mapa = new Map<string, { nome: string; setor: string; setorTs: number; regs: RegistroHumor[] }>()
+    for (const reg of regsP) {
+      const chave = (reg.matricula && String(reg.matricula).trim()) || reg.funcionario || 'Não informado'
+      let e = mapa.get(chave)
+      if (!e) {
+        e = { nome: reg.funcionario || 'Não informado', setor: reg.setor || 'Não informado', setorTs: reg.ts, regs: [] }
+        mapa.set(chave, e)
+      }
+      e.regs.push(reg)
+      // setor mais recente (uma pessoa pode mudar de área ao longo do período)
+      if (reg.ts >= e.setorTs) { e.setor = reg.setor || 'Não informado'; e.setorTs = reg.ts }
+    }
+    return Array.from(mapa.entries())
+      .map(([chave, e]) => {
+        const cont = Object.fromEntries(HUMORES.map((h) => [h, 0])) as Record<Humor, number>
+        for (const rg of e.regs) cont[rg.humor] = (cont[rg.humor] ?? 0) + 1
+        const max = Math.max(0, ...HUMORES.map((h) => cont[h]))
+        const ultimo = (h: Humor) => Math.max(...e.regs.filter((rg) => rg.humor === h).map((rg) => rg.ts))
+        const predominantes = HUMORES.filter((h) => cont[h] === max && max > 0)
+          .map((h) => ({ humor: h, n: cont[h] }))
+          .sort((a, b) => ultimo(b.humor) - ultimo(a.humor))
+        const historico = [...e.regs].sort((a, b) => b.ts - a.ts).map((rg) => ({ ts: rg.ts, humor: rg.humor }))
+        return {
+          chave,
+          nome: e.nome,
+          setor: e.setor,
+          total: e.regs.length,
+          vezes: max,
+          predominantes,
+          empate: predominantes.length > 1,
+          historico,
+        }
+      })
+      .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR'))
+  }, [regsP])
 
   // Planilha .xlsx com logo: as marcações detalhadas (quem marcou, qual humor e quando).
   async function baixarXlsx() {
@@ -459,6 +519,15 @@ export default function HumorEquipe() {
               <TabelaMarcacoes marcacoes={marcacoes} />
             </Cartao>
 
+            {/* 6) Humor predominante por pessoa (com histórico ao clicar) */}
+            <Cartao
+              titulo="Humor predominante por pessoa"
+              apoio={`Para cada funcionário${ehGestorSo && conta?.centro_custo && conta.centro_custo !== 'Todos os centros de custo' ? ` do centro ${conta.centro_custo}` : ''}, o humor que mais marcou no período. Clique na linha para ver o histórico completo.`}
+              padding={false}
+            >
+              <TabelaPredominante pessoas={porPessoa} />
+            </Cartao>
+
             {/* Explicação do cálculo dos gráficos */}
             <div className="rounded-xl border border-borda bg-superficie-2 px-4 py-3.5 text-xs leading-5 text-tinta-2">
               <p className="font-semibold text-tinta">Como os gráficos são calculados</p>
@@ -499,33 +568,232 @@ function NotaTransparencia() {
   )
 }
 
-// Tabela detalhada das marcações (data, funcionário, setor, humor).
+const POR_PAGINA = 10
+
+// Tabela detalhada das marcações (data, funcionário, setor, humor),
+// com busca por nome e paginação (10 por página). A busca e as páginas
+// trabalham sobre o que já chega recortado por mês e centro de custo.
 function TabelaMarcacoes({ marcacoes }: { marcacoes: RegistroHumor[] }) {
+  const [busca, setBusca] = useState('')
+  const [pagina, setPagina] = useState(1)
+
+  const filtradas = useMemo(() => {
+    const termo = normalizar(busca)
+    if (!termo) return marcacoes
+    return marcacoes.filter((m) => normalizar(m.funcionario || 'Não informado').includes(termo))
+  }, [marcacoes, busca])
+
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA))
+  // Se o filtro encolher a lista, não deixa a página passar do fim.
+  const paginaAtual = Math.min(pagina, totalPaginas)
+  useEffect(() => { if (pagina > totalPaginas) setPagina(totalPaginas) }, [pagina, totalPaginas])
+  // Volta para a primeira página sempre que a busca muda.
+  useEffect(() => { setPagina(1) }, [busca])
+
+  const inicio = (paginaAtual - 1) * POR_PAGINA
+  const visiveis = filtradas.slice(inicio, inicio + POR_PAGINA)
+  const de = filtradas.length === 0 ? 0 : inicio + 1
+  const ate = inicio + visiveis.length
+
   if (marcacoes.length === 0) return <p className="px-4 py-6 text-sm text-tinta-3">Sem marcações no período.</p>
+
+  return (
+    <div>
+      {/* Busca por nome */}
+      <div className="border-b border-borda px-4 py-3">
+        <div className="relative max-w-sm">
+          <Search size={15} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3" />
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome do funcionário"
+            aria-label="Buscar por nome do funcionário"
+            className="w-full rounded-lg border border-borda-forte bg-white py-2 pl-9 pr-3 text-sm text-tinta placeholder:text-tinta-3 focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca"
+          />
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[34rem] text-sm">
+          <thead>
+            <tr className="border-b border-borda text-left text-xs font-semibold text-tinta-3">
+              <th className="px-4 py-2.5 font-semibold">Data e hora</th>
+              <th className="px-4 py-2.5 font-semibold">Funcionário</th>
+              <th className="px-4 py-2.5 font-semibold">Setor</th>
+              <th className="px-4 py-2.5 font-semibold">Humor</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-borda">
+            {visiveis.map((m) => (
+              <tr key={m.id} className="hover:bg-superficie-2">
+                <td className="whitespace-nowrap px-4 py-2.5 text-tinta-2 tabular">{fmtDataHora(m.ts)}</td>
+                <td className="px-4 py-2.5 font-medium text-tinta">{m.funcionario || 'Não informado'}</td>
+                <td className="px-4 py-2.5 text-tinta-2">{m.setor}</td>
+                <td className="px-4 py-2.5">
+                  <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
+                    <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: COR_HUMOR[m.humor] }} aria-hidden /> {m.humor}
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {visiveis.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-sm text-tinta-3">
+                  Nenhum funcionário encontrado para “{busca.trim()}”.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Rodapé: indicador + paginação */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-borda px-4 py-3">
+        <p className="text-xs text-tinta-3 tabular">
+          Mostrando {de} a {ate} de {filtradas.length} marcação(ões)
+        </p>
+        {totalPaginas > 1 && (
+          <Paginacao pagina={paginaAtual} totalPaginas={totalPaginas} aoMudar={setPagina} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Controles de página: Anterior / números / Próxima (com reticências quando há muitas).
+function Paginacao({ pagina, totalPaginas, aoMudar }: { pagina: number; totalPaginas: number; aoMudar: (p: number) => void }) {
+  const paginas = paginasVisiveis(pagina, totalPaginas)
+  const btn = 'inline-flex min-w-8 items-center justify-center rounded-lg border px-2.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+  return (
+    <nav className="flex items-center gap-1" aria-label="Paginação das marcações">
+      <button
+        type="button"
+        onClick={() => aoMudar(pagina - 1)}
+        disabled={pagina <= 1}
+        className={`${btn} border-borda-forte bg-white text-tinta hover:bg-superficie-2`}
+      >
+        <ChevronLeft size={15} aria-hidden /> <span className="sr-only sm:not-sr-only">Anterior</span>
+      </button>
+      {paginas.map((p, i) =>
+        p === '…' ? (
+          <span key={`e${i}`} className="px-1.5 text-sm text-tinta-3" aria-hidden>…</span>
+        ) : (
+          <button
+            key={p}
+            type="button"
+            onClick={() => aoMudar(p)}
+            aria-current={p === pagina ? 'page' : undefined}
+            className={`${btn} ${p === pagina ? 'border-marca bg-marca text-white' : 'border-borda-forte bg-white text-tinta hover:bg-superficie-2'}`}
+          >
+            {p}
+          </button>
+        ),
+      )}
+      <button
+        type="button"
+        onClick={() => aoMudar(pagina + 1)}
+        disabled={pagina >= totalPaginas}
+        className={`${btn} border-borda-forte bg-white text-tinta hover:bg-superficie-2`}
+      >
+        <span className="sr-only sm:not-sr-only">Próxima</span> <ChevronRight size={15} aria-hidden />
+      </button>
+    </nav>
+  )
+}
+
+// Janela de páginas: sempre 1 e a última, com reticências em volta da atual.
+function paginasVisiveis(atual: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const out: (number | '…')[] = [1]
+  const ini = Math.max(2, atual - 1)
+  const fim = Math.min(total - 1, atual + 1)
+  if (ini > 2) out.push('…')
+  for (let p = ini; p <= fim; p++) out.push(p)
+  if (fim < total - 1) out.push('…')
+  out.push(total)
+  return out
+}
+
+// Chip de humor (bolinha na cor + nome), opcionalmente com a contagem.
+function ChipHumor({ humor, n }: { humor: Humor; n?: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-medium text-tinta">
+      <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: COR_HUMOR[humor] }} aria-hidden />
+      {humor}{typeof n === 'number' ? <span className="text-tinta-3">({n})</span> : null}
+    </span>
+  )
+}
+
+// Lista por pessoa: humor predominante no período + histórico ao clicar.
+function TabelaPredominante({ pessoas }: { pessoas: PessoaResumo[] }) {
+  const [aberta, setAberta] = useState<string | null>(null)
+  if (pessoas.length === 0) return <p className="px-4 py-6 text-sm text-tinta-3">Sem marcações no período.</p>
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[34rem] text-sm">
+      <table className="w-full min-w-[40rem] text-sm">
         <thead>
           <tr className="border-b border-borda text-left text-xs font-semibold text-tinta-3">
-            <th className="px-4 py-2.5 font-semibold">Data e hora</th>
             <th className="px-4 py-2.5 font-semibold">Funcionário</th>
-            <th className="px-4 py-2.5 font-semibold">Setor</th>
-            <th className="px-4 py-2.5 font-semibold">Humor</th>
+            <th className="px-4 py-2.5 font-semibold">Humor predominante</th>
+            <th className="px-4 py-2.5 text-right font-semibold">Vezes</th>
+            <th className="px-4 py-2.5 text-right font-semibold">Total no período</th>
+            <th className="px-4 py-2.5" aria-label="Expandir" />
           </tr>
         </thead>
         <tbody className="divide-y divide-borda">
-          {marcacoes.map((m) => (
-            <tr key={m.id} className="hover:bg-superficie-2">
-              <td className="whitespace-nowrap px-4 py-2.5 text-tinta-2 tabular">{fmtDataHora(m.ts)}</td>
-              <td className="px-4 py-2.5 font-medium text-tinta">{m.funcionario || 'Não informado'}</td>
-              <td className="px-4 py-2.5 text-tinta-2">{m.setor}</td>
-              <td className="px-4 py-2.5">
-                <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
-                  <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: COR_HUMOR[m.humor] }} aria-hidden /> {m.humor}
-                </span>
-              </td>
-            </tr>
-          ))}
+          {pessoas.map((p) => {
+            const expandida = aberta === p.chave
+            return (
+              <Fragment key={p.chave}>
+                <tr
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={expandida}
+                  onClick={() => setAberta(expandida ? null : p.chave)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAberta(expandida ? null : p.chave) }
+                  }}
+                  className="cursor-pointer hover:bg-superficie-2"
+                >
+                  <td className="px-4 py-2.5 align-top">
+                    <span className="font-medium text-tinta">{p.nome}</span>
+                    <span className="block text-xs text-tinta-3">{p.setor}</span>
+                  </td>
+                  <td className="px-4 py-2.5 align-top">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {p.predominantes.map((d) => <ChipHumor key={d.humor} humor={d.humor} n={p.empate ? d.n : undefined} />)}
+                      {p.empate && (
+                        <span className="rounded-md bg-[#f3ead6] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#8a6d1f]">empate</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right align-top text-tinta-2 tabular">{p.vezes}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right align-top text-tinta-2 tabular">{p.total}</td>
+                  <td className="px-4 py-2.5 align-top text-tinta-3">
+                    <ChevronRight size={15} aria-hidden className={`transition-transform ${expandida ? 'rotate-90' : ''}`} />
+                  </td>
+                </tr>
+                {expandida && (
+                  <tr className="bg-superficie-2">
+                    <td colSpan={5} className="px-4 py-3">
+                      <p className="mb-2 text-xs font-semibold text-tinta-2">
+                        Histórico de {p.nome} · {p.total} marcação(ões)
+                      </p>
+                      <ul className="space-y-1">
+                        {p.historico.map((h, i) => (
+                          <li key={`${h.ts}-${i}`} className="flex items-center justify-between gap-3 border-b border-borda/60 py-1 last:border-0">
+                            <span className="text-tinta-2 tabular">{fmtDataHora(h.ts)}</span>
+                            <ChipHumor humor={h.humor} />
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            )
+          })}
         </tbody>
       </table>
     </div>
