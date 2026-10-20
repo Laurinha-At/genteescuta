@@ -16,7 +16,7 @@ import {
   lerBancoHoras, formatSaldo, competenciaRef, mesRefLabel, mesesRecentes, type LinhaBH,
 } from '@/lib/bancoHoras'
 import {
-  importarBancoHoras, listarBancoHoras, meuSaldoAtual, sincronizarVinculos, type RegistroBH,
+  importarBancoHoras, listarBancoHoras, meuSaldoAtual, sincronizarVinculos, type RegistroBH, type MeuBanco,
 } from '@/lib/fb/bancoHoras'
 import type { Perfil } from '@/lib/fb/funcionarios'
 import { Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
@@ -60,11 +60,15 @@ export function BancoHorasApp({ perfil }: { perfil: Perfil }) {
 
 /** Resumo compacto do próprio saldo (para embutir em Informações Administrativas). */
 export function MeuBancoHorasResumo() {
-  const [reg, setReg] = useState<RegistroBH | null | undefined>(undefined)
-  useEffect(() => { meuSaldoAtual().then(setReg).catch(() => setReg(null)) }, [])
+  const [res, setRes] = useState<MeuBanco | undefined>(undefined)
+  useEffect(() => { meuSaldoAtual().then(setRes).catch(() => setRes({ estado: 'sem_registro' })) }, [])
 
-  if (reg === undefined) return null
+  if (res === undefined) return null
+  const reg = res.estado === 'ok' ? res.reg : null
   const temSaldo = !!reg && reg.saldo_min != null
+  const legenda = res.estado === 'sem_matricula'
+    ? 'Não possui matrícula vinculada'
+    : reg ? `Competência: ${mesRefLabel(reg.mes_ref)}` : 'Sem saldo registrado ainda'
   return (
     <Link
       href="/banco-horas"
@@ -77,9 +81,7 @@ export function MeuBancoHorasResumo() {
       <span className="min-w-0 flex-1">
         <span className="block text-[0.7rem] font-bold uppercase tracking-wide text-white/70">Seu banco de horas</span>
         <span className="block text-lg font-semibold text-white sm:text-xl">Saldo atual</span>
-        <span className="block text-xs text-white/75">
-          {reg ? `Competência: ${mesRefLabel(reg.mes_ref)}` : 'Sem saldo registrado ainda'}
-        </span>
+        <span className="block text-xs text-white/75">{legenda}</span>
       </span>
       <span className="flex-none rounded-xl bg-white px-4 py-2.5 text-center shadow-sm sm:px-5 sm:py-3">
         <span className={`block text-2xl font-[720] tracking-tight sm:text-[1.75rem] ${temSaldo ? (reg!.saldo_min! < 0 ? 'text-critico' : 'text-verde-escuro') : 'text-tinta-3'}`}>
@@ -95,13 +97,14 @@ export function MeuBancoHorasResumo() {
 // Colaborador: só o próprio saldo
 // -------------------------------------------------------------
 function MeuSaldo() {
-  const [reg, setReg] = useState<RegistroBH | null | undefined>(undefined)
-  useEffect(() => { meuSaldoAtual().then(setReg).catch(() => setReg(null)) }, [])
+  const [res, setRes] = useState<MeuBanco | undefined>(undefined)
+  useEffect(() => { meuSaldoAtual().then(setRes).catch(() => setRes({ estado: 'sem_registro' })) }, [])
 
+  const reg = res && res.estado === 'ok' ? res.reg : null
   return (
     <div className="cartao-g max-w-md p-6 text-center">
       <p className="text-xs font-medium uppercase tracking-wide text-tinta-3">Saldo atual</p>
-      {reg === undefined ? (
+      {res === undefined ? (
         <p className="mt-4 text-sm text-tinta-3">Carregando…</p>
       ) : reg && reg.saldo_min != null ? (
         <>
@@ -116,8 +119,15 @@ function MeuSaldo() {
             Esta é a posição mais recente registrada pela empresa. O saldo é atualizado mensalmente pela equipe de Gente &amp; Cultura.
           </p>
         </>
+      ) : res.estado === 'sem_matricula' ? (
+        <>
+          <p className="mt-4 text-sm font-medium text-tinta-2">Não possui matrícula vinculada.</p>
+          <p className="mx-auto mt-2 max-w-xs text-[11px] leading-4 text-tinta-3">
+            O banco de horas é identificado pela matrícula. Fale com a equipe de Gente &amp; Cultura para vincular a sua.
+          </p>
+        </>
       ) : (
-        <p className="mt-4 text-sm text-tinta-2">Sem saldo registrado ainda.</p>
+        <p className="mt-4 text-sm text-tinta-2">Sem banco de horas.</p>
       )}
       <p className="mt-2 text-xs text-tinta-3">Dúvidas sobre o cálculo? Fale com Gente &amp; Cultura.</p>
     </div>
