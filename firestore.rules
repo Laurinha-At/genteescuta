@@ -411,11 +411,12 @@ service cloud.firestore {
       allow create, update, delete: if ehMaster();
     }
 
-    // -------- Aniversários / tempo de casa (projeção PÚBLICA p/ o Mural)
-    // Só nome + dia/mês (nada de e-mail/matrícula). Público lê; só admin
-    // (Master) escreve — alimentado pelo cadastro/importação de funcionários.
+    // -------- Aniversários / tempo de casa (projeção p/ o Mural)
+    // Nome + área + dia/mês (nada de e-mail/matrícula). Agora exige LOGIN para
+    // ler (não fica mais público, para não expor nome/área a quem não entrou);
+    // só admin (Master) escreve — alimentado pelo cadastro/importação.
     match /aniversarios/{uid} {
-      allow read: if true;
+      allow read: if logado();
       allow write: if admin();
     }
 
