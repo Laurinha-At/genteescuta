@@ -36,6 +36,12 @@ function fmtData(ts: number | null): string {
   return new Date(ts).toLocaleDateString('pt-BR')
 }
 
+/** Data e hora da marcação (para a visão detalhada e a planilha). */
+function fmtDataHora(ts: number | null): string {
+  if (ts === null) return '-'
+  return new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
 const CATEGORIA_LABEL: Record<Categoria, string> = {
   positivo: 'Positivo',
   neutro: 'Neutro',
@@ -205,18 +211,24 @@ export default function HumorEquipe() {
   }
 
   const [gerandoXlsx, setGerandoXlsx] = useState(false)
-  // Planilha .xlsx com logo: a tabela "Por setor" (dados principais do período).
+  // Escopo do recorte (gestor = só o seu centro de custo) para o cabeçalho.
+  const escopoTexto = ehGestorSo && conta?.centro_custo && conta.centro_custo !== 'Todos os centros de custo'
+    ? `Centro de custo: ${conta.centro_custo}` : 'Todos os centros de custo'
+  // Marcações detalhadas do período, mais recentes primeiro (já recortadas por papel).
+  const marcacoes = useMemo(() => [...regsP].sort((a, b) => b.ts - a.ts), [regsP])
+
+  // Planilha .xlsx com logo: as marcações detalhadas (quem marcou, qual humor e quando).
   async function baixarXlsx() {
     setGerandoXlsx(true)
     try {
       await exportarXlsx({
-        nomeArquivo: `humor-${periodoAtual === 'geral' ? 'geral' : periodoAtual}`,
-        titulo: `Relatório de Humor da equipe: ${rotuloPeriodo}`,
-        filtros: `${r.total} registros · ${r.pessoas} pessoas`,
-        colunas: ['Setor', 'Registros', 'Participação', 'Positivos', 'Neutros', 'Negativos', 'Índice de clima'],
-        linhas: participacao.map((s) => [s.setor, s.total, `${s.pct}%`, s.pos, s.neu, s.neg, s.indice]),
-        larguras: [30, 12, 14, 12, 10, 12, 16],
-        nomeAba: 'Humor por setor',
+        nomeArquivo: `humor-marcacoes-${periodoAtual === 'geral' ? 'geral' : periodoAtual}`,
+        titulo: `Humor da equipe (marcações): ${rotuloPeriodo}`,
+        filtros: `${escopoTexto} · ${marcacoes.length} marcação(ões)`,
+        colunas: ['Data e hora', 'Funcionário', 'Setor', 'Humor'],
+        linhas: marcacoes.map((m) => [fmtDataHora(m.ts), m.funcionario || 'Não informado', m.setor, m.humor]),
+        larguras: [20, 32, 28, 16],
+        nomeAba: 'Marcações',
       })
     } finally {
       setGerandoXlsx(false)
@@ -271,8 +283,8 @@ export default function HumorEquipe() {
       <CabecalhoPagina
         titulo="Humor da equipe (clima)"
         descricao={ehGestorSo
-          ? `Acompanhe (ver e exportar) o humor do seu centro de custo${conta?.centro_custo && conta.centro_custo !== 'Todos os centros de custo' ? `: ${conta.centro_custo}` : ''}. Nomes e matrículas ficam só no banco.`
-          : 'Importe o CSV de humor e veja os indicadores agregados. Nomes e matrículas ficam só no banco, nunca aparecem aqui.'}
+          ? `Acompanhe (ver e exportar) o humor do seu centro de custo${conta?.centro_custo && conta.centro_custo !== 'Todos os centros de custo' ? `: ${conta.centro_custo}` : ''}. O humor não é anônimo: você vê quem marcou e qual humor.`
+          : 'Importe o CSV de humor e veja os indicadores agregados e as marcações por pessoa. O humor não é anônimo.'}
         acoes={
           podeEditar && registros.length > 0 ? (
             <>
@@ -332,7 +344,7 @@ export default function HumorEquipe() {
                 }}
               />
             </label>
-            <NotaPrivacidade />
+            <NotaTransparencia />
           </>
           )
         ) : (
@@ -438,6 +450,15 @@ export default function HumorEquipe() {
               <ClimaSetorBarras dados={setorHumores} />
             </Cartao>
 
+            {/* 5) Marcações detalhadas (quem marcou, qual humor e quando) */}
+            <Cartao
+              titulo="Marcações (quem marcou)"
+              apoio={`Data, funcionário, setor e humor${ehGestorSo && conta?.centro_custo && conta.centro_custo !== 'Todos os centros de custo' ? ` do centro ${conta.centro_custo}` : ''}. Os nomes aparecem aqui e na planilha; o humor não é anônimo.`}
+              padding={false}
+            >
+              <TabelaMarcacoes marcacoes={marcacoes} />
+            </Cartao>
+
             {/* Explicação do cálculo dos gráficos */}
             <div className="rounded-xl border border-borda bg-superficie-2 px-4 py-3.5 text-xs leading-5 text-tinta-2">
               <p className="font-semibold text-tinta">Como os gráficos são calculados</p>
@@ -451,11 +472,11 @@ export default function HumorEquipe() {
                   setor em três faixas: Positivo (Feliz, Animado, Satisfeito), Neutro (Tranquilo) e Negativo (Entediado, Aflito,
                   Triste, Irritado). Clique no setor para abrir os 8 humores individuais.
                 </li>
-                <li>Todos os números são <strong className="font-semibold text-tinta">agregados por setor</strong>, nunca por pessoa.</li>
+                <li>Os gráficos acima são <strong className="font-semibold text-tinta">agregados por setor</strong>. A tabela <strong className="font-semibold text-tinta">Marcações</strong> mostra cada registro por pessoa.</li>
               </ul>
             </div>
 
-            <NotaPrivacidade />
+            <NotaTransparencia />
           </>
         )}
       </div>
@@ -464,16 +485,49 @@ export default function HumorEquipe() {
 }
 
 // ---------------------------------------------------------------
-function NotaPrivacidade() {
+function NotaTransparencia() {
   return (
-    <div className="flex items-start gap-2.5 rounded-md border border-borda bg-white px-4 py-3">
-      <ShieldCheck size={16} className="mt-0.5 flex-none text-marca" aria-hidden />
-      <p className="text-xs leading-4 text-tinta-2">
-        <strong className="font-semibold text-tinta">Privacidade:</strong> o CSV é lido no seu
-        navegador e o dado bruto (incluindo nome e matrícula) é guardado no Firestore com acesso
-        restrito ao administrador. Estas telas mostram <strong>apenas números agregados</strong>,
-        nenhum nome ou matrícula é exibido.
+    <div className="flex items-start gap-2.5 rounded-md border border-[#e2b4b4] bg-[#fdeaea] px-4 py-3">
+      <ShieldCheck size={16} className="mt-0.5 flex-none text-critico" aria-hidden />
+      <p className="text-xs leading-5 text-[#7a2f2f]">
+        <strong className="font-semibold">O humor não é anônimo.</strong> A equipe de Gente &amp; Cultura (RH)
+        e o Gestor Aprovador da área conseguem ver quem marcou, qual humor e quando (nesta tela e na planilha
+        exportada). O gestor enxerga só o próprio centro de custo; o RH vê todos. A matrícula fica guardada,
+        mas não é exibida.
       </p>
+    </div>
+  )
+}
+
+// Tabela detalhada das marcações (data, funcionário, setor, humor).
+function TabelaMarcacoes({ marcacoes }: { marcacoes: RegistroHumor[] }) {
+  if (marcacoes.length === 0) return <p className="px-4 py-6 text-sm text-tinta-3">Sem marcações no período.</p>
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[34rem] text-sm">
+        <thead>
+          <tr className="border-b border-borda text-left text-xs font-semibold text-tinta-3">
+            <th className="px-4 py-2.5 font-semibold">Data e hora</th>
+            <th className="px-4 py-2.5 font-semibold">Funcionário</th>
+            <th className="px-4 py-2.5 font-semibold">Setor</th>
+            <th className="px-4 py-2.5 font-semibold">Humor</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-borda">
+          {marcacoes.map((m) => (
+            <tr key={m.id} className="hover:bg-superficie-2">
+              <td className="whitespace-nowrap px-4 py-2.5 text-tinta-2 tabular">{fmtDataHora(m.ts)}</td>
+              <td className="px-4 py-2.5 font-medium text-tinta">{m.funcionario || 'Não informado'}</td>
+              <td className="px-4 py-2.5 text-tinta-2">{m.setor}</td>
+              <td className="px-4 py-2.5">
+                <span className="inline-flex items-center gap-1.5 font-medium text-tinta">
+                  <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: COR_HUMOR[m.humor] }} aria-hidden /> {m.humor}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
