@@ -9,6 +9,7 @@ import Link from '@/components/LinkSemPrefetch'
 import { Trophy, Lock, Check, X, Play, ArrowLeft, Star, Loader2, PartyPopper, Medal, Link2, FileText } from 'lucide-react'
 import { observarLogin } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
+import { urlParaEmbed } from '@/lib/embed'
 import {
   listarTrilhasDevAtivas, listarAtividades, getProgressoUsuario, concluirAtividade,
   listarRankingTrilhas,
@@ -266,6 +267,7 @@ function QuizModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; 
         <p className="text-base font-semibold text-tinta">{atividade.titulo}</p>
         {atividade.enunciado && <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-tinta-2">{atividade.enunciado}</p>}
         <p className="mt-1 text-xs text-tinta-3">{perguntas.length} pergunta(s) · nota mínima {minimo} de {perguntas.length}</p>
+        <div className="mt-3"><MateriaisApoio a={atividade} /></div>
 
         <div className="mt-4 space-y-4">
           {perguntas.map((p, qi) => (
@@ -323,73 +325,97 @@ function QuizModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; 
   )
 }
 
-// Atividades sem correção (assinalar, responder, listar): só registra a resposta.
+// Materiais de apoio (valem para qualquer atividade): imagem, vídeo, link, documento.
+function MateriaisApoio({ a }: { a: Atividade }) {
+  const embed = urlParaEmbed(a.video)
+  if (!a.imagem && !a.video && !a.link && !a.arquivo) return null
+  const botao = 'flex items-center gap-2 rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm font-medium text-marca-texto transition-colors hover:border-marca hover:bg-marca-clara'
+  return (
+    <div className="space-y-2">
+      {a.imagem && <img src={a.imagem} alt="" className="max-h-56 w-full rounded-lg object-cover" />}
+      {a.video && (embed
+        ? <div className="relative w-full overflow-hidden rounded-lg bg-black" style={{ aspectRatio: '16 / 9' }}>
+            <iframe src={embed} title="Vídeo de apoio" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
+          </div>
+        : <a href={a.video} target="_blank" rel="noopener noreferrer" className={botao}><Play size={16} aria-hidden /> Abrir o vídeo</a>)}
+      {a.link && <a href={a.link} target="_blank" rel="noopener noreferrer" className={botao}><Link2 size={16} aria-hidden /> Abrir o link</a>}
+      {a.arquivo && <a href={a.arquivo} download={a.arquivoNome || 'material'} target="_blank" rel="noopener noreferrer" className={botao}><FileText size={16} aria-hidden /> {a.arquivoNome || 'Abrir o documento'}</a>}
+    </div>
+  )
+}
+
+// Atividades que só coletam a resposta (sem correção) ou só mostram material.
 function RespostaModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; aoFechar: () => void; aoConcluir: (a: Atividade, resposta: unknown) => Promise<void> }) {
-  const [sel, setSel] = useState<number[]>([])
+  const [uma, setUma] = useState(-1) // múltipla escolha / lista suspensa
+  const [sel, setSel] = useState<number[]>([]) // caixas / assinalar (legado)
   const [texto, setTexto] = useState('')
   const [campos, setCampos] = useState<string[]>(atividade.campos.map(() => ''))
   const [pendente, setPendente] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
+  const t = atividade.tipo
   function toggleSel(i: number) { setSel((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i])) }
 
   function valido(): boolean {
-    if (atividade.tipo === 'assinalar') return sel.length > 0
-    if (atividade.tipo === 'responder') return texto.trim().length > 0
-    if (atividade.tipo === 'listar') return campos.some((c) => c.trim().length > 0)
-    return true // material: só marcar como lido
+    if (t === 'multipla_uma' || t === 'suspensa') return uma >= 0
+    if (t === 'caixas' || t === 'assinalar') return sel.length > 0
+    if (t === 'curta' || t === 'paragrafo' || t === 'responder') return texto.trim().length > 0
+    if (t === 'listar') return campos.some((c) => c.trim().length > 0)
+    return true // material
   }
 
   async function enviar() {
     if (!valido()) { setErro('Responda antes de concluir.'); return }
     setPendente(true); setErro(null)
     const resposta =
-      atividade.tipo === 'assinalar' ? { opcoes: sel }
-        : atividade.tipo === 'responder' ? { texto: texto.trim() }
-          : atividade.tipo === 'listar' ? { campos: atividade.campos.map((rot, i) => ({ rotulo: rot, valor: campos[i] ?? '' })) }
-            : { lido: true }
+      t === 'multipla_uma' || t === 'suspensa' ? { opcao: uma }
+        : t === 'caixas' || t === 'assinalar' ? { opcoes: sel }
+          : t === 'curta' || t === 'paragrafo' || t === 'responder' ? { texto: texto.trim() }
+            : t === 'listar' ? { campos: atividade.campos.map((rot, i) => ({ rotulo: rot, valor: campos[i] ?? '' })) }
+              : { lido: true }
     try { await aoConcluir(atividade, resposta) }
     catch { setErro('Não consegui registrar. Tente de novo.'); setPendente(false) }
   }
+
+  const inputTexto = 'block w-full rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm text-tinta placeholder:text-tinta-3 focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca'
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={aoFechar}>
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl sm:p-6" onClick={(e) => e.stopPropagation()}>
         <p className="text-base font-semibold text-tinta">{atividade.titulo}</p>
         {atividade.enunciado && <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-tinta-2">{atividade.enunciado}</p>}
-        {atividade.imagem && <img src={atividade.imagem} alt="" className="mt-3 max-h-56 w-full rounded-lg object-cover" />}
+        <div className="mt-3"><MateriaisApoio a={atividade} /></div>
 
         <div className="mt-4 space-y-2">
-          {atividade.tipo === 'material' && (
-            <div className="space-y-2">
-              {atividade.link && (
-                <a href={atividade.link} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm font-medium text-marca-texto transition-colors hover:border-marca hover:bg-marca-clara">
-                  <Link2 size={16} aria-hidden /> Abrir o link do material
-                </a>
-              )}
-              {atividade.arquivo && (
-                <a href={atividade.arquivo} download={atividade.arquivoNome || 'material'} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm font-medium text-marca-texto transition-colors hover:border-marca hover:bg-marca-clara">
-                  <FileText size={16} aria-hidden /> {atividade.arquivoNome || 'Abrir o documento'}
-                </a>
-              )}
-              {!atividade.link && !atividade.arquivo && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta-3">Leia o conteúdo acima e marque como lido.</p>}
-            </div>
+          {(t === 'multipla_uma') && atividade.opcoes.map((o, i) => (
+            <label key={i} className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${uma === i ? 'border-marca bg-marca-clara' : 'border-borda-forte bg-white hover:border-marca'}`}>
+              <input type="radio" name="opcao" checked={uma === i} onChange={() => setUma(i)} className="h-4 w-4 accent-[var(--color-marca)]" />
+              <span className="text-tinta">{o}</span>
+            </label>
+          ))}
+          {t === 'suspensa' && (
+            <select value={uma} onChange={(e) => setUma(Number(e.target.value))} className={inputTexto}>
+              <option value={-1} disabled>Selecione…</option>
+              {atividade.opcoes.map((o, i) => <option key={i} value={i}>{o}</option>)}
+            </select>
           )}
-          {atividade.tipo === 'assinalar' && atividade.opcoes.map((o, i) => (
+          {(t === 'caixas' || t === 'assinalar') && atividade.opcoes.map((o, i) => (
             <label key={i} className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${sel.includes(i) ? 'border-marca bg-marca-clara' : 'border-borda-forte bg-white hover:border-marca'}`}>
               <input type="checkbox" checked={sel.includes(i)} onChange={() => toggleSel(i)} className="h-4 w-4 accent-[var(--color-marca)]" />
               <span className="text-tinta">{o}</span>
             </label>
           ))}
-          {atividade.tipo === 'responder' && (
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={4} placeholder="Escreva a sua resposta…" className="block w-full rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm text-tinta placeholder:text-tinta-3 focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca" />
-          )}
-          {atividade.tipo === 'listar' && atividade.campos.map((rot, i) => (
+          {t === 'curta' && <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Sua resposta…" className={inputTexto} />}
+          {(t === 'paragrafo' || t === 'responder') && <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={4} placeholder="Escreva a sua resposta…" className={inputTexto} />}
+          {t === 'listar' && atividade.campos.map((rot, i) => (
             <label key={i} className="block">
               <span className="mb-1 block text-xs font-medium text-tinta-2">{rot}</span>
-              <input value={campos[i] ?? ''} onChange={(e) => setCampos((cs) => cs.map((c, j) => (j === i ? e.target.value : c)))} className="block w-full rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca" />
+              <input value={campos[i] ?? ''} onChange={(e) => setCampos((cs) => cs.map((c, j) => (j === i ? e.target.value : c)))} className={inputTexto} />
             </label>
           ))}
+          {t === 'material' && !atividade.imagem && !atividade.video && !atividade.link && !atividade.arquivo && (
+            <p className="rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta-3">Leia o conteúdo acima e marque como lido.</p>
+          )}
         </div>
 
         {erro && <p className="mt-3 text-sm text-critico">{erro}</p>}
@@ -397,7 +423,7 @@ function RespostaModal({ atividade, aoFechar, aoConcluir }: { atividade: Ativida
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={aoFechar} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-tinta-2 hover:bg-superficie-2">Cancelar</button>
           <button type="button" onClick={enviar} disabled={pendente} className="botao-gradiente inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60">
-            {pendente ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Registrando…</> : <><Check size={15} aria-hidden /> {atividade.tipo === 'material' ? 'Marcar como lido' : 'Concluir atividade'}</>}
+            {pendente ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Registrando…</> : <><Check size={15} aria-hidden /> {t === 'material' ? 'Marcar como lido' : 'Concluir atividade'}</>}
           </button>
         </div>
       </div>

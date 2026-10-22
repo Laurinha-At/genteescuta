@@ -13,7 +13,7 @@ import {
   listarTrilhasDev, salvarTrilhaDev, excluirTrilhaDev, trilhaDevVazia,
   listarAtividades, salvarAtividade, excluirAtividade, atividadeVazia,
   semearOnboarding, perguntaVazia,
-  TIPO_LABEL,
+  TIPO_LABEL, TIPOS_SELECIONAVEIS, TIPOS_COM_OPCOES,
   type TrilhaDev, type Atividade, type TipoAtividade, type PerguntaQuiz,
 } from '@/lib/fb/trilhasDev'
 
@@ -196,7 +196,7 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
 
   function adicionar() {
     const ordem = (itens && itens.length ? Math.max(...itens.map((i) => i.ordem)) : 0) + 1
-    const nova = atividadeVazia(ordem, 'assinalar')
+    const nova = atividadeVazia(ordem, 'multipla_uma')
     setItens([...(itens ?? []), nova]); abrir(nova)
   }
   async function mover(a: Atividade, dir: 'up' | 'down') {
@@ -225,7 +225,7 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
           <div className="flex flex-wrap items-center gap-2 px-3 py-2">
             <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-marca-clara text-xs font-bold text-marca-texto">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-tinta">{a.titulo || '(sem título)'}</span>
-            <Chip faixa="neutro">{a.tipo === 'material' ? 'Material' : a.tipo === 'quiz' ? 'Quiz' : a.tipo === 'assinalar' ? 'Assinalar' : a.tipo === 'responder' ? 'Responder' : 'Listar'}</Chip>
+            <Chip faixa="neutro">{CHIP_TIPO[a.tipo]}</Chip>
             <div className="flex items-center gap-0.5">
               <BtnIcone title="Subir" onClick={() => mover(a, 'up')} disabled={i === 0}><ChevronUp size={15} /></BtnIcone>
               <BtnIcone title="Descer" onClick={() => mover(a, 'down')} disabled={i === itens.length - 1}><ChevronDown size={15} /></BtnIcone>
@@ -236,19 +236,35 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
           {editId === a.id && draft && (
             <div className="space-y-3 border-t border-borda px-3 py-3">
               <Campo rotulo="Tipo de atividade">
-                <select value={draft.tipo} onChange={(e) => patch({ tipo: e.target.value as TipoAtividade })} className={ENTRADA}>
-                  {(['material', 'quiz', 'assinalar', 'responder', 'listar'] as TipoAtividade[]).map((tp) => <option key={tp} value={tp}>{TIPO_LABEL[tp]}</option>)}
+                <select
+                  value={draft.tipo}
+                  onChange={(e) => {
+                    const novo = e.target.value as TipoAtividade
+                    const extra: Partial<Atividade> = {}
+                    if (TIPOS_COM_OPCOES.includes(novo) && (!draft.opcoes || draft.opcoes.length === 0)) extra.opcoes = ['', '']
+                    if (novo === 'quiz' && (!draft.perguntas || draft.perguntas.length === 0)) extra.perguntas = [perguntaVazia(false)]
+                    patch({ tipo: novo, ...extra })
+                  }}
+                  className={ENTRADA}
+                >
+                  {TIPOS_SELECIONAVEIS.map((tp) => <option key={tp} value={tp}>{TIPO_LABEL[tp]}</option>)}
+                  {!TIPOS_SELECIONAVEIS.includes(draft.tipo) && <option value={draft.tipo}>{TIPO_LABEL[draft.tipo]}</option>}
                 </select>
               </Campo>
-              <Campo rotulo="Título"><input value={draft.titulo} onChange={(e) => patch({ titulo: e.target.value })} className={ENTRADA} placeholder="Ex.: Quiz do Manual" /></Campo>
-              <Campo rotulo="Enunciado"><textarea value={draft.enunciado} onChange={(e) => patch({ enunciado: e.target.value })} rows={2} className={ENTRADA} placeholder="O que a pessoa deve fazer." /></Campo>
-              {draft.tipo !== 'quiz' && <ImagemCampo rotulo="Imagem (opcional)" valor={draft.imagem} onChange={(v) => patch({ imagem: v })} />}
+              <Campo rotulo="Título"><input value={draft.titulo} onChange={(e) => patch({ titulo: e.target.value })} className={ENTRADA} placeholder="Ex.: Nossos valores" /></Campo>
+              <Campo rotulo="Enunciado (a pergunta)"><textarea value={draft.enunciado} onChange={(e) => patch({ enunciado: e.target.value })} rows={2} className={ENTRADA} placeholder="O que a pessoa deve responder ou fazer." /></Campo>
 
-              {draft.tipo === 'material' && <EditorMaterial draft={draft} patch={patch} />}
+              {/* Configuração por tipo */}
+              {TIPOS_COM_OPCOES.includes(draft.tipo) && <EditorOpcoesSimples draft={draft} patch={patch} tipo={draft.tipo} />}
               {draft.tipo === 'quiz' && <EditorQuiz draft={draft} patch={patch} />}
+              {draft.tipo === 'curta' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Resposta curta (uma linha). O colaborador escreve e segue.</p>}
+              {draft.tipo === 'paragrafo' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Parágrafo (texto longo). O colaborador escreve e segue.</p>}
+              {draft.tipo === 'material' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Só leitura: adicione os materiais de apoio abaixo. A pessoa abre e marca como lido.</p>}
               {draft.tipo === 'assinalar' && <EditorAssinalar draft={draft} patch={patch} />}
-              {draft.tipo === 'responder' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Resposta aberta em texto. A resposta é apenas registrada (sem correção automática).</p>}
               {draft.tipo === 'listar' && <EditorListar draft={draft} patch={patch} />}
+
+              {/* Materiais de apoio: valem para qualquer tipo de atividade */}
+              <EditorMateriais draft={draft} patch={patch} />
 
               <div className="flex items-center gap-2">
                 <Botao type="button" onClick={salvar} disabled={pendente}>{pendente ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Salvando…</> : <><Save size={15} aria-hidden /> Salvar atividade</>}</Botao>
@@ -265,8 +281,38 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
   )
 }
 
-// Editor de material: link externo e/ou documento anexado (data URL).
-function EditorMaterial({ draft, patch }: { draft: Atividade; patch: (p: Partial<Atividade>) => void }) {
+// Rótulo curto do tipo para o chip da lista.
+const CHIP_TIPO: Record<TipoAtividade, string> = {
+  multipla_uma: 'Múltipla', caixas: 'Seleção', suspensa: 'Lista', curta: 'Curta', paragrafo: 'Parágrafo',
+  material: 'Material', quiz: 'Quiz', assinalar: 'Assinalar', responder: 'Responder', listar: 'Listar',
+}
+
+// Opções de múltipla escolha / caixas / lista suspensa (sem marcar correta).
+function EditorOpcoesSimples({ draft, patch, tipo }: { draft: Atividade; patch: (p: Partial<Atividade>) => void; tipo: TipoAtividade }) {
+  const opcoes = draft.opcoes.length ? draft.opcoes : ['', '']
+  function setOpcao(i: number, v: string) { patch({ opcoes: opcoes.map((o, j) => (j === i ? v : o)) }) }
+  function addOpcao() { patch({ opcoes: [...opcoes, ''] }) }
+  function removeOpcao(i: number) { patch({ opcoes: opcoes.filter((_, j) => j !== i) }) }
+  const rotulo = tipo === 'caixas' ? 'Opções (a pessoa marca uma ou mais)' : tipo === 'suspensa' ? 'Opções da lista' : 'Opções (a pessoa marca uma)'
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-semibold text-tinta-2">{rotulo}</p>
+      <div className="space-y-2">
+        {opcoes.map((o, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="flex-none text-xs text-tinta-3">{tipo === 'caixas' ? '☐' : tipo === 'suspensa' ? `${i + 1}.` : '○'}</span>
+            <input value={o} onChange={(e) => setOpcao(i, e.target.value)} className={ENTRADA} placeholder={`Opção ${i + 1}`} />
+            {opcoes.length > 2 && <button type="button" onClick={() => removeOpcao(i)} title="Remover opção" className="rounded p-1.5 text-tinta-3 hover:text-critico"><Trash2 size={14} /></button>}
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={addOpcao} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-2.5 py-1.5 text-xs font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Plus size={13} aria-hidden /> Adicionar opção</button>
+    </div>
+  )
+}
+
+// Materiais de apoio (valem para qualquer atividade): link, vídeo, imagem, documento.
+function EditorMateriais({ draft, patch }: { draft: Atividade; patch: (p: Partial<Atividade>) => void }) {
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(false)
   async function anexar(file: File | null) {
@@ -277,14 +323,19 @@ function EditorMaterial({ draft, patch }: { draft: Atividade; patch: (p: Partial
     setCarregando(false)
   }
   return (
-    <div className="space-y-3">
-      <Campo rotulo="Link (opcional)" ajuda="Manual, vídeo, pasta do Drive, etc. Abre em uma nova aba.">
+    <div className="space-y-3 rounded-lg border border-borda bg-superficie-2 p-3">
+      <p className="text-xs font-semibold text-tinta-2">Materiais de apoio (opcionais)</p>
+      <Campo rotulo="Link" ajuda="Manual, artigo, pasta do Google Drive, etc. Abre em nova aba.">
         <input value={draft.link} onChange={(e) => patch({ link: e.target.value })} className={ENTRADA} placeholder="https://..." />
       </Campo>
-      <Campo rotulo="Documento (opcional)" ajuda="PDF, Word ou planilha de até ~700 KB. Para arquivos maiores, use um link do Drive.">
+      <Campo rotulo="Vídeo (YouTube, Vimeo ou Google Drive)" ajuda="Cole o link do vídeo. Ele aparece incorporado na atividade.">
+        <input value={draft.video} onChange={(e) => patch({ video: e.target.value })} className={ENTRADA} placeholder="https://youtu.be/..." />
+      </Campo>
+      <ImagemCampo rotulo="Imagem" valor={draft.imagem} onChange={(v) => patch({ imagem: v })} />
+      <Campo rotulo="Documento" ajuda="PDF, Word ou planilha de até ~700 KB. Para arquivos maiores, use um link do Drive.">
         <div className="flex flex-wrap items-center gap-2">
           {draft.arquivo
-            ? <span className="inline-flex items-center gap-1.5 rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta"><FileText size={14} aria-hidden /> {draft.arquivoNome || 'documento'}</span>
+            ? <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm text-tinta"><FileText size={14} aria-hidden /> {draft.arquivoNome || 'documento'}</span>
             : <span className="text-xs text-tinta-3">Nenhum documento anexado.</span>}
           <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta transition-colors hover:border-marca hover:text-marca-texto">
             {carregando ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
@@ -295,7 +346,6 @@ function EditorMaterial({ draft, patch }: { draft: Atividade; patch: (p: Partial
         </div>
       </Campo>
       {erro && <p className="text-xs text-critico">{erro}</p>}
-      <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">A pessoa abre o link e/ou o documento e marca a casa como lida para seguir.</p>
     </div>
   )
 }

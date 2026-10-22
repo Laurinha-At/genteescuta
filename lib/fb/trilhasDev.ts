@@ -12,15 +12,29 @@ import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } fro
 import { db } from '../firebase'
 import { registrarLog } from './usuarios'
 
-export type TipoAtividade = 'material' | 'quiz' | 'assinalar' | 'responder' | 'listar'
+export type TipoAtividade =
+  | 'multipla_uma' | 'caixas' | 'suspensa' | 'curta' | 'paragrafo'
+  | 'material' | 'quiz'
+  // legados (ainda renderizam; não aparecem mais no seletor):
+  | 'assinalar' | 'responder' | 'listar'
 
 export const TIPO_LABEL: Record<TipoAtividade, string> = {
-  material: 'Material (link e/ou documento para ler)',
+  multipla_uma: 'Múltipla escolha (uma resposta)',
+  caixas: 'Caixas de seleção (várias respostas)',
+  suspensa: 'Lista suspensa',
+  curta: 'Resposta curta',
+  paragrafo: 'Parágrafo',
+  material: 'Material (só ler e seguir)',
   quiz: 'Quiz (perguntas com correção)',
-  assinalar: 'Assinalar (marcar a correta, sem corrigir)',
-  responder: 'Responder (texto aberto)',
-  listar: 'Listar (preencher campos)',
+  assinalar: 'Assinalar (legado)',
+  responder: 'Responder (legado)',
+  listar: 'Listar (legado)',
 }
+
+/** Tipos com lista de opções (sem correção: só coleta a resposta). */
+export const TIPOS_COM_OPCOES: TipoAtividade[] = ['multipla_uma', 'caixas', 'suspensa']
+/** Tipos oferecidos no seletor do admin (os legados ficam de fora). */
+export const TIPOS_SELECIONAVEIS: TipoAtividade[] = ['multipla_uma', 'caixas', 'suspensa', 'curta', 'paragrafo', 'material', 'quiz']
 
 /** Uma pergunta de quiz: múltipla escolha ou sim/não, com explicação. */
 export interface PerguntaQuiz {
@@ -68,11 +82,13 @@ export interface Atividade {
   perguntas: PerguntaQuiz[]
   /** quiz: mínimo de acertos para concluir a atividade (0 = todas). */
   notaMinima: number
-  /** material: link externo (manual, vídeo, Drive). */
+  /** materiais de apoio (valem para qualquer tipo): */
   link: string
-  /** material: documento anexado (data URL) e o nome do arquivo. */
+  /** documento anexado (data URL) e o nome do arquivo. */
   arquivo: string
   arquivoNome: string
+  /** vídeo para incorporar (YouTube, Vimeo ou Google Drive). */
+  video: string
 }
 
 export interface ProgressoTrilha {
@@ -165,8 +181,10 @@ function normPerguntas(v: unknown): PerguntaQuiz[] {
   })
 }
 
+const TIPOS_VALIDOS: TipoAtividade[] = ['multipla_uma', 'caixas', 'suspensa', 'curta', 'paragrafo', 'material', 'quiz', 'assinalar', 'responder', 'listar']
+
 function normAtividade(d: Record<string, unknown>, id: string): Atividade {
-  const tipo = d.tipo === 'material' || d.tipo === 'quiz' || d.tipo === 'responder' || d.tipo === 'listar' ? d.tipo : 'assinalar'
+  const tipo = TIPOS_VALIDOS.includes(d.tipo as TipoAtividade) ? (d.tipo as TipoAtividade) : 'curta'
   const strArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)) : [])
   const numArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [])
   return {
@@ -184,6 +202,7 @@ function normAtividade(d: Record<string, unknown>, id: string): Atividade {
     link: String(d.link ?? ''),
     arquivo: String(d.arquivo ?? ''),
     arquivoNome: String(d.arquivoNome ?? ''),
+    video: String(d.video ?? ''),
   }
 }
 
@@ -227,6 +246,7 @@ export async function salvarAtividade(trilhaId: string, a: Atividade): Promise<v
     link: String(a.link ?? '').trim(),
     arquivo: String(a.arquivo ?? '').trim(),
     arquivoNome: String(a.arquivoNome ?? '').trim(),
+    video: String(a.video ?? '').trim(),
   })
 }
 
@@ -237,12 +257,13 @@ export async function excluirAtividade(trilhaId: string, atividadeId: string): P
 export function novoIdAtividade(): string {
   return 'a_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
-export function atividadeVazia(ordem: number, tipo: TipoAtividade = 'quiz'): Atividade {
+export function atividadeVazia(ordem: number, tipo: TipoAtividade = 'multipla_uma'): Atividade {
+  const comOpcoes = TIPOS_COM_OPCOES.includes(tipo)
   return {
     id: novoIdAtividade(), ordem, tipo, titulo: '', enunciado: '', imagem: '',
-    opcoes: tipo === 'assinalar' ? ['', ''] : [], corretas: [], campos: tipo === 'listar' ? [''] : [],
+    opcoes: comOpcoes ? ['', ''] : (tipo === 'assinalar' ? ['', ''] : []), corretas: [], campos: tipo === 'listar' ? [''] : [],
     perguntas: tipo === 'quiz' ? [perguntaVazia(false)] : [], notaMinima: 0,
-    link: '', arquivo: '', arquivoNome: '',
+    link: '', arquivo: '', arquivoNome: '', video: '',
   }
 }
 
@@ -259,7 +280,7 @@ export async function semearOnboarding(): Promise<void> {
     descricao: 'Trilha de boas-vindas: manual, conferência de cadastro e acessos. Edite as perguntas conforme a Soulan.',
     capa: '', pontos: 200, ordem: 0, ativa: false,
   })
-  const base = { imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0, link: '', arquivo: '', arquivoNome: '' }
+  const base = { imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0, link: '', arquivo: '', arquivoNome: '', video: '' }
   const casas: Atividade[] = [
     {
       ...base, id: 'a_onb_1', ordem: 1, tipo: 'material', titulo: 'Integração Institucional',
