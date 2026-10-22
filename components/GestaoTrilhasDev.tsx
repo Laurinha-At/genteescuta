@@ -5,13 +5,15 @@
 // dentro de cada trilha, CRUD de atividades com editor por tipo.
 // =============================================================
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Save, Loader2, ChevronUp, ChevronDown, Pencil, Eye, EyeOff, X, ListChecks, Image as ImageIcon, Star } from 'lucide-react'
+import { Plus, Trash2, Save, Loader2, ChevronUp, ChevronDown, Pencil, Eye, EyeOff, X, ListChecks, Image as ImageIcon, Star, Upload, Sparkles } from 'lucide-react'
 import { Cartao, Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
+import { comprimirImagem } from '@/lib/imagem'
 import {
   listarTrilhasDev, salvarTrilhaDev, excluirTrilhaDev, trilhaDevVazia,
   listarAtividades, salvarAtividade, excluirAtividade, atividadeVazia,
+  semearOnboarding, perguntaVazia,
   TIPO_LABEL,
-  type TrilhaDev, type Atividade, type TipoAtividade,
+  type TrilhaDev, type Atividade, type TipoAtividade, type PerguntaQuiz,
 } from '@/lib/fb/trilhasDev'
 
 export function GestaoTrilhasDev() {
@@ -56,6 +58,14 @@ export function GestaoTrilhasDev() {
     await carregar()
   }
   async function alternarAtiva(t: TrilhaDev) { await salvarTrilhaDev({ ...t, ativa: !t.ativa }).catch(() => {}); await carregar() }
+
+  async function semear() {
+    if (!confirm('Criar (ou atualizar) a trilha de exemplo "Integração (Onboarding)" com as casas 1 a 4? Ela entra desativada, para você revisar antes de publicar.')) return
+    setPendente(true); setErro(null); setAviso(null)
+    try { await semearOnboarding(); setAviso('Trilha de Onboarding criada (desativada). Edite as perguntas e ative quando quiser.'); await carregar() }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui semear a trilha.') }
+    setPendente(false)
+  }
   async function remover(t: TrilhaDev) {
     if (!confirm(`Remover a trilha "${t.titulo || 'sem título'}" e todas as suas atividades?`)) return
     await excluirTrilhaDev(t.id).catch(() => {})
@@ -95,7 +105,7 @@ export function GestaoTrilhasDev() {
                   <Campo rotulo="Título"><input value={draft.titulo} onChange={(e) => patch({ titulo: e.target.value })} className={ENTRADA} placeholder="Ex.: Boas-vindas à Soulan" /></Campo>
                   <Campo rotulo="Descrição"><textarea value={draft.descricao} onChange={(e) => patch({ descricao: e.target.value })} rows={2} className={ENTRADA} /></Campo>
                   <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
-                    <Campo rotulo="Capa (caminho em public/)" ajuda="Ex.: /capa-trilha.jpg ou um endereço http."><input value={draft.capa} onChange={(e) => patch({ capa: e.target.value })} className={ENTRADA} placeholder="/capa-trilha.jpg" /></Campo>
+                    <ImagemCampo rotulo="Capa da trilha" valor={draft.capa} onChange={(v) => patch({ capa: v })} />
                     <Campo rotulo="Pontos ao concluir"><input type="number" min={0} value={draft.pontos} onChange={(e) => patch({ pontos: Math.max(0, Math.round(Number(e.target.value) || 0)) })} className={ENTRADA} /></Campo>
                   </div>
                   <label className="flex items-center gap-2.5 text-sm text-tinta"><input type="checkbox" checked={draft.ativa} onChange={(e) => patch({ ativa: e.target.checked })} className="h-4 w-4 accent-[var(--color-marca)]" /> Ativa (visível para os colaboradores)</label>
@@ -116,12 +126,46 @@ export function GestaoTrilhasDev() {
             </div>
           ))}
 
-          <button type="button" onClick={adicionar} className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-3 py-2 text-sm font-medium text-tinta-2 transition-colors hover:border-marca hover:text-marca-texto">
-            <Plus size={15} aria-hidden /> Adicionar trilha
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={adicionar} className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-3 py-2 text-sm font-medium text-tinta-2 transition-colors hover:border-marca hover:text-marca-texto">
+              <Plus size={15} aria-hidden /> Adicionar trilha
+            </button>
+            <button type="button" onClick={semear} disabled={pendente} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta-2 transition-colors hover:border-marca hover:text-marca-texto disabled:opacity-60">
+              <Sparkles size={15} aria-hidden /> Semear Onboarding (exemplo)
+            </button>
+          </div>
         </div>
       )}
     </Cartao>
+  )
+}
+
+// Campo de imagem: envia um arquivo e guarda como data URL (sem Storage).
+function ImagemCampo({ valor, onChange, rotulo }: { valor: string; onChange: (v: string) => void; rotulo: string }) {
+  const [erro, setErro] = useState<string | null>(null)
+  const [carregando, setCarregando] = useState(false)
+  async function escolher(file: File | null) {
+    if (!file) return
+    setErro(null); setCarregando(true)
+    try { onChange(await comprimirImagem(file)) }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui usar essa imagem.') }
+    setCarregando(false)
+  }
+  return (
+    <Campo rotulo={rotulo}>
+      <div className="flex items-center gap-2">
+        {valor
+          ? <img src={valor} alt="" className="h-12 w-20 flex-none rounded-md border border-borda object-cover" />
+          : <span className="flex h-12 w-20 flex-none items-center justify-center rounded-md bg-superficie-2 text-tinta-3"><ImageIcon size={16} aria-hidden /></span>}
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta transition-colors hover:border-marca hover:text-marca-texto">
+          {carregando ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
+          {valor ? 'Trocar' : 'Enviar imagem'}
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => escolher(e.target.files?.[0] ?? null)} />
+        </label>
+        {valor && <button type="button" onClick={() => onChange('')} title="Remover imagem" className="rounded p-1.5 text-tinta-3 hover:text-critico"><Trash2 size={14} /></button>}
+      </div>
+      {erro && <p className="mt-1 text-xs text-critico">{erro}</p>}
+    </Campo>
   )
 }
 
@@ -180,7 +224,7 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
           <div className="flex flex-wrap items-center gap-2 px-3 py-2">
             <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-marca-clara text-xs font-bold text-marca-texto">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-tinta">{a.titulo || '(sem título)'}</span>
-            <Chip faixa="neutro">{a.tipo === 'assinalar' ? 'Assinalar' : a.tipo === 'responder' ? 'Responder' : 'Listar'}</Chip>
+            <Chip faixa="neutro">{a.tipo === 'quiz' ? 'Quiz' : a.tipo === 'assinalar' ? 'Assinalar' : a.tipo === 'responder' ? 'Responder' : 'Listar'}</Chip>
             <div className="flex items-center gap-0.5">
               <BtnIcone title="Subir" onClick={() => mover(a, 'up')} disabled={i === 0}><ChevronUp size={15} /></BtnIcone>
               <BtnIcone title="Descer" onClick={() => mover(a, 'down')} disabled={i === itens.length - 1}><ChevronDown size={15} /></BtnIcone>
@@ -192,15 +236,16 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
             <div className="space-y-3 border-t border-borda px-3 py-3">
               <Campo rotulo="Tipo de atividade">
                 <select value={draft.tipo} onChange={(e) => patch({ tipo: e.target.value as TipoAtividade })} className={ENTRADA}>
-                  {(['assinalar', 'responder', 'listar'] as TipoAtividade[]).map((tp) => <option key={tp} value={tp}>{TIPO_LABEL[tp]}</option>)}
+                  {(['quiz', 'assinalar', 'responder', 'listar'] as TipoAtividade[]).map((tp) => <option key={tp} value={tp}>{TIPO_LABEL[tp]}</option>)}
                 </select>
               </Campo>
-              <Campo rotulo="Título"><input value={draft.titulo} onChange={(e) => patch({ titulo: e.target.value })} className={ENTRADA} placeholder="Ex.: Nossos valores" /></Campo>
+              <Campo rotulo="Título"><input value={draft.titulo} onChange={(e) => patch({ titulo: e.target.value })} className={ENTRADA} placeholder="Ex.: Quiz do Manual" /></Campo>
               <Campo rotulo="Enunciado"><textarea value={draft.enunciado} onChange={(e) => patch({ enunciado: e.target.value })} rows={2} className={ENTRADA} placeholder="O que a pessoa deve fazer." /></Campo>
-              <Campo rotulo="Imagem (opcional, caminho em public/)"><input value={draft.imagem} onChange={(e) => patch({ imagem: e.target.value })} className={ENTRADA} placeholder="/pergunta.jpg" /></Campo>
+              {draft.tipo !== 'quiz' && <ImagemCampo rotulo="Imagem (opcional)" valor={draft.imagem} onChange={(v) => patch({ imagem: v })} />}
 
+              {draft.tipo === 'quiz' && <EditorQuiz draft={draft} patch={patch} />}
               {draft.tipo === 'assinalar' && <EditorAssinalar draft={draft} patch={patch} />}
-              {draft.tipo === 'responder' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Resposta aberta em texto. Por ora a resposta é apenas registrada (sem correção automática).</p>}
+              {draft.tipo === 'responder' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Resposta aberta em texto. A resposta é apenas registrada (sem correção automática).</p>}
               {draft.tipo === 'listar' && <EditorListar draft={draft} patch={patch} />}
 
               <div className="flex items-center gap-2">
@@ -214,6 +259,76 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
       <button type="button" onClick={adicionar} className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-3 py-1.5 text-xs font-medium text-tinta-2 transition-colors hover:border-marca hover:text-marca-texto">
         <Plus size={14} aria-hidden /> Adicionar atividade
       </button>
+    </div>
+  )
+}
+
+// Editor do quiz: lista de perguntas (múltipla ou sim/não) + nota mínima.
+function EditorQuiz({ draft, patch }: { draft: Atividade; patch: (p: Partial<Atividade>) => void }) {
+  const perguntas = draft.perguntas ?? []
+  function setPergunta(i: number, np: PerguntaQuiz) { patch({ perguntas: perguntas.map((p, j) => (j === i ? np : p)) }) }
+  function add(simnao: boolean) { patch({ perguntas: [...perguntas, perguntaVazia(simnao)] }) }
+  function remove(i: number) { patch({ perguntas: perguntas.filter((_, j) => j !== i) }) }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-3">
+        {perguntas.map((p, i) => (
+          <PerguntaEditor key={i} n={i + 1} pergunta={p} onChange={(np) => setPergunta(i, np)} onRemove={() => remove(i)} />
+        ))}
+        {perguntas.length === 0 && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Adicione ao menos uma pergunta.</p>}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => add(false)} className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-2.5 py-1.5 text-xs font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Plus size={13} aria-hidden /> Pergunta de múltipla escolha</button>
+        <button type="button" onClick={() => add(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-2.5 py-1.5 text-xs font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Plus size={13} aria-hidden /> Pergunta sim ou não</button>
+      </div>
+      <Campo rotulo="Nota mínima (acertos para concluir)" ajuda={`De 0 a ${perguntas.length}. Use 0 para exigir todas. Para "qualquer Não trava", deixe igual ao total.`}>
+        <input type="number" min={0} max={perguntas.length} value={draft.notaMinima}
+          onChange={(e) => patch({ notaMinima: Math.max(0, Math.min(perguntas.length, Math.round(Number(e.target.value) || 0))) })}
+          className={`${ENTRADA} max-w-[8rem]`} />
+      </Campo>
+    </div>
+  )
+}
+
+function PerguntaEditor({ n, pergunta, onChange, onRemove }: { n: number; pergunta: PerguntaQuiz; onChange: (p: PerguntaQuiz) => void; onRemove: () => void }) {
+  function patch(p: Partial<PerguntaQuiz>) { onChange({ ...pergunta, ...p }) }
+  function setOpcao(i: number, v: string) { patch({ opcoes: pergunta.opcoes.map((o, j) => (j === i ? v : o)) }) }
+  function addOpcao() { patch({ opcoes: [...pergunta.opcoes, ''] }) }
+  function removeOpcao(i: number) {
+    const opcoes = pergunta.opcoes.filter((_, j) => j !== i)
+    const correta = pergunta.correta === i ? 0 : pergunta.correta > i ? pergunta.correta - 1 : pergunta.correta
+    patch({ opcoes, correta: Math.min(correta, Math.max(0, opcoes.length - 1)) })
+  }
+  return (
+    <div className="rounded-lg border border-borda bg-white p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-2 text-xs font-semibold text-tinta-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-marca-clara text-[0.6875rem] font-bold text-marca-texto">{n}</span>
+          {pergunta.simnao ? 'Sim ou não' : 'Múltipla escolha'}
+        </span>
+        <button type="button" onClick={onRemove} title="Remover pergunta" className="rounded p-1.5 text-tinta-3 hover:text-critico"><Trash2 size={14} /></button>
+      </div>
+      <Campo rotulo="Pergunta"><textarea value={pergunta.texto} onChange={(e) => patch({ texto: e.target.value })} rows={2} className={ENTRADA} placeholder="Digite a pergunta." /></Campo>
+      <div className="mt-2"><ImagemCampo rotulo="Imagem da pergunta (opcional)" valor={pergunta.imagem} onChange={(v) => patch({ imagem: v })} /></div>
+      <p className="mb-1.5 mt-2 text-xs font-semibold text-tinta-2">Opções (marque a correta)</p>
+      <div className="space-y-2">
+        {pergunta.opcoes.map((o, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="radio" checked={pergunta.correta === i} onChange={() => patch({ correta: i })} title="Correta" className="h-4 w-4 flex-none accent-[var(--color-marca)]" />
+            {pergunta.simnao
+              ? <span className="flex-1 rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta">{o}</span>
+              : <input value={o} onChange={(e) => setOpcao(i, e.target.value)} className={ENTRADA} placeholder={`Opção ${i + 1}`} />}
+            {!pergunta.simnao && pergunta.opcoes.length > 2 && (
+              <button type="button" onClick={() => removeOpcao(i)} title="Remover opção" className="rounded p-1.5 text-tinta-3 hover:text-critico"><Trash2 size={14} /></button>
+            )}
+          </div>
+        ))}
+      </div>
+      {!pergunta.simnao && (
+        <button type="button" onClick={addOpcao} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-2.5 py-1.5 text-xs font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Plus size={13} aria-hidden /> Adicionar opção</button>
+      )}
+      <div className="mt-2"><Campo rotulo="Explicação (aparece ao responder)"><input value={pergunta.explicacao} onChange={(e) => patch({ explicacao: e.target.value })} className={ENTRADA} placeholder="Por que esta é a resposta certa." /></Campo></div>
     </div>
   )
 }

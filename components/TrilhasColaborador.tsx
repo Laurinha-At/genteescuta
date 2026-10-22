@@ -6,18 +6,20 @@
 // =============================================================
 import { useEffect, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
-import { Trophy, Lock, Check, Play, ArrowLeft, Star, Loader2, PartyPopper } from 'lucide-react'
+import { Trophy, Lock, Check, X, Play, ArrowLeft, Star, Loader2, PartyPopper, Medal } from 'lucide-react'
 import { observarLogin } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 import {
   listarTrilhasDevAtivas, listarAtividades, getProgressoUsuario, concluirAtividade,
-  type TrilhaDev, type Atividade, type ProgressoUsuario,
+  listarRankingTrilhas,
+  type TrilhaDev, type Atividade, type ProgressoUsuario, type RankingItem,
 } from '@/lib/fb/trilhasDev'
 
 export function TrilhasColaborador() {
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined)
   const [trilhas, setTrilhas] = useState<TrilhaDev[] | null>(null)
   const [progresso, setProgresso] = useState<ProgressoUsuario>({ trilhas: {}, pontos_total: 0 })
+  const [ranking, setRanking] = useState<RankingItem[]>([])
   const [aberta, setAberta] = useState<TrilhaDev | null>(null)
 
   useEffect(() => {
@@ -25,15 +27,26 @@ export function TrilhasColaborador() {
       if (!u) { setPerfil(null); return }
       const p = await perfilAtual().catch(() => null)
       setPerfil(p)
-      const [ts, pr] = await Promise.all([listarTrilhasDevAtivas().catch(() => []), p ? getProgressoUsuario(p.uid).catch(() => ({ trilhas: {}, pontos_total: 0 })) : Promise.resolve({ trilhas: {}, pontos_total: 0 })])
+      const [ts, pr, rk] = await Promise.all([
+        listarTrilhasDevAtivas().catch(() => []),
+        p ? getProgressoUsuario(p.uid).catch(() => ({ trilhas: {}, pontos_total: 0 })) : Promise.resolve({ trilhas: {}, pontos_total: 0 }),
+        listarRankingTrilhas().catch(() => []),
+      ])
       setTrilhas(ts)
       setProgresso(pr)
+      setRanking(rk)
     })
     return off
   }, [])
 
   async function recarregarProgresso() {
-    if (perfil) setProgresso(await getProgressoUsuario(perfil.uid).catch(() => progresso))
+    if (!perfil) return
+    const [pr, rk] = await Promise.all([
+      getProgressoUsuario(perfil.uid).catch(() => progresso),
+      listarRankingTrilhas().catch(() => ranking),
+    ])
+    setProgresso(pr)
+    setRanking(rk)
   }
 
   if (perfil === undefined) return <p className="text-sm text-tinta-3">Carregando…</p>
@@ -61,13 +74,45 @@ export function TrilhasColaborador() {
         <Tabuleiro
           trilha={aberta}
           uid={perfil.uid}
+          nome={perfil.nome}
           progresso={progresso}
           aoVoltar={() => setAberta(null)}
           aoProgredir={recarregarProgresso}
         />
       ) : (
-        <ListaTrilhas trilhas={trilhas} progresso={progresso} aoAbrir={setAberta} />
+        <>
+          <ListaTrilhas trilhas={trilhas} progresso={progresso} aoAbrir={setAberta} />
+          <Ranking itens={ranking} meuUid={perfil.uid} />
+        </>
       )}
+    </div>
+  )
+}
+
+// Ranking: top por pontos, destaque do usuário logado e medalha no top 3.
+function Ranking({ itens, meuUid }: { itens: RankingItem[]; meuUid: string }) {
+  if (itens.length === 0) return null
+  const CORES = ['#d4af37', '#9aa3ad', '#b87333'] // ouro, prata, bronze
+  return (
+    <div className="cartao-g p-5 sm:p-6">
+      <h2 className="flex items-center gap-2 text-base font-semibold text-tinta"><Trophy size={18} className="text-marca" aria-hidden /> Ranking</h2>
+      <p className="mt-0.5 text-xs text-tinta-3">Soma dos pontos de todas as trilhas concluídas.</p>
+      <ol className="mt-3 space-y-1.5">
+        {itens.map((r, i) => {
+          const eu = r.uid === meuUid
+          return (
+            <li key={r.uid} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${eu ? 'bg-marca-clara' : 'bg-superficie-2'}`}>
+              <span className="flex h-6 w-6 flex-none items-center justify-center">
+                {i < 3
+                  ? <Medal size={18} aria-hidden style={{ color: CORES[i] }} />
+                  : <span className="text-xs font-semibold text-tinta-3 tabular">{i + 1}</span>}
+              </span>
+              <span className={`min-w-0 flex-1 truncate text-sm ${eu ? 'font-semibold text-tinta' : 'text-tinta-2'}`}>{r.nome}{eu ? ' (você)' : ''}</span>
+              <span className="inline-flex flex-none items-center gap-1 text-sm font-semibold text-marca-texto tabular"><Star size={12} className="fill-current" aria-hidden /> {r.pontos}</span>
+            </li>
+          )
+        })}
+      </ol>
     </div>
   )
 }
@@ -101,7 +146,7 @@ function ListaTrilhas({ trilhas, progresso, aoAbrir }: { trilhas: TrilhaDev[] | 
   )
 }
 
-function Tabuleiro({ trilha, uid, progresso, aoVoltar, aoProgredir }: { trilha: TrilhaDev; uid: string; progresso: ProgressoUsuario; aoVoltar: () => void; aoProgredir: () => Promise<void> }) {
+function Tabuleiro({ trilha, uid, nome, progresso, aoVoltar, aoProgredir }: { trilha: TrilhaDev; uid: string; nome: string; progresso: ProgressoUsuario; aoVoltar: () => void; aoProgredir: () => Promise<void> }) {
   const [atividades, setAtividades] = useState<Atividade[] | null>(null)
   const [jogando, setJogando] = useState<Atividade | null>(null)
   const [festa, setFesta] = useState<number | null>(null)
@@ -114,7 +159,7 @@ function Tabuleiro({ trilha, uid, progresso, aoVoltar, aoProgredir }: { trilha: 
 
   async function concluir(a: Atividade, resposta: unknown) {
     const total = atividades?.length ?? 0
-    const r = await concluirAtividade(uid, { id: trilha.id, pontos: trilha.pontos }, a.id, total, resposta)
+    const r = await concluirAtividade(uid, { id: trilha.id, pontos: trilha.pontos }, a.id, total, resposta, { nome })
     setJogando(null)
     await aoProgredir()
     if (r.creditou) setFesta(trilha.pontos)
@@ -180,6 +225,106 @@ function Tabuleiro({ trilha, uid, progresso, aoVoltar, aoProgredir }: { trilha: 
 }
 
 function AtividadeModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; aoFechar: () => void; aoConcluir: (a: Atividade, resposta: unknown) => Promise<void> }) {
+  if (atividade.tipo === 'quiz') return <QuizModal atividade={atividade} aoFechar={aoFechar} aoConcluir={aoConcluir} />
+
+  return <RespostaModal atividade={atividade} aoFechar={aoFechar} aoConcluir={aoConcluir} />
+}
+
+// Quiz: responde, corrige, mostra explicação e só conclui se atingir a nota mínima.
+function QuizModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; aoFechar: () => void; aoConcluir: (a: Atividade, resposta: unknown) => Promise<void> }) {
+  const perguntas = atividade.perguntas ?? []
+  const [sel, setSel] = useState<number[]>(perguntas.map(() => -1))
+  const [verificado, setVerificado] = useState(false)
+  const [pendente, setPendente] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  const minimo = atividade.notaMinima > 0 ? Math.min(atividade.notaMinima, perguntas.length) : perguntas.length
+  const acertos = sel.reduce((n, s, i) => n + (s === perguntas[i]?.correta ? 1 : 0), 0)
+  const passou = acertos >= minimo
+  const respondeuTudo = sel.every((s) => s >= 0)
+
+  function escolher(qi: number, oi: number) {
+    if (verificado) return
+    setSel((s) => s.map((x, j) => (j === qi ? oi : x)))
+  }
+
+  function verificar() {
+    if (!respondeuTudo) { setErro('Responda todas as perguntas.'); return }
+    setErro(null); setVerificado(true)
+  }
+  function tentarDeNovo() { setVerificado(false); setErro(null) }
+
+  async function concluir() {
+    setPendente(true); setErro(null)
+    try { await aoConcluir(atividade, { quiz: sel, acertos, total: perguntas.length }) }
+    catch { setErro('Não consegui registrar. Tente de novo.'); setPendente(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={aoFechar}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl sm:p-6" onClick={(e) => e.stopPropagation()}>
+        <p className="text-base font-semibold text-tinta">{atividade.titulo}</p>
+        {atividade.enunciado && <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-tinta-2">{atividade.enunciado}</p>}
+        <p className="mt-1 text-xs text-tinta-3">{perguntas.length} pergunta(s) · nota mínima {minimo} de {perguntas.length}</p>
+
+        <div className="mt-4 space-y-4">
+          {perguntas.map((p, qi) => (
+            <div key={qi}>
+              <p className="text-sm font-medium text-tinta">{qi + 1}. {p.texto}</p>
+              {p.imagem && <img src={p.imagem} alt="" className="mt-2 max-h-48 w-full rounded-lg object-cover" />}
+              <div className="mt-2 space-y-1.5">
+                {p.opcoes.map((o, oi) => {
+                  const escolhida = sel[qi] === oi
+                  const correta = p.correta === oi
+                  let cls = escolhida ? 'border-marca bg-marca-clara' : 'border-borda-forte bg-white hover:border-marca'
+                  if (verificado) {
+                    if (correta) cls = 'border-[#16A34A] bg-[#eff8ef]'
+                    else if (escolhida) cls = 'border-critico bg-[#fdeaea]'
+                    else cls = 'border-borda-forte bg-white'
+                  }
+                  return (
+                    <label key={oi} className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${verificado ? 'cursor-default' : 'cursor-pointer'} ${cls}`}>
+                      <input type="radio" name={`q${qi}`} checked={escolhida} onChange={() => escolher(qi, oi)} disabled={verificado} className="h-4 w-4 accent-[var(--color-marca)]" />
+                      <span className="flex-1 text-tinta">{o}</span>
+                      {verificado && correta && <Check size={15} className="text-[#16A34A]" aria-hidden />}
+                      {verificado && escolhida && !correta && <X size={15} className="text-critico" aria-hidden />}
+                    </label>
+                  )
+                })}
+              </div>
+              {verificado && p.explicacao && (
+                <p className="mt-1.5 rounded-lg bg-superficie-2 px-3 py-2 text-xs leading-5 text-tinta-2">{p.explicacao}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {verificado && (
+          <div className={`mt-4 rounded-lg px-4 py-3 text-sm font-semibold ${passou ? 'bg-[#eff8ef] text-[#0b5d0b]' : 'bg-[#fdeaea] text-[#8a1f1f]'}`}>
+            {passou ? `Você acertou ${acertos} de ${perguntas.length}. Aprovado!` : `Você acertou ${acertos} de ${perguntas.length}. Precisa de ${minimo}. Revise e tente de novo.`}
+          </div>
+        )}
+        {erro && <p className="mt-3 text-sm text-critico">{erro}</p>}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={aoFechar} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-tinta-2 hover:bg-superficie-2">Cancelar</button>
+          {!verificado ? (
+            <button type="button" onClick={verificar} className="botao-gradiente inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold"><Check size={15} aria-hidden /> Verificar respostas</button>
+          ) : passou ? (
+            <button type="button" onClick={concluir} disabled={pendente} className="botao-gradiente inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60">
+              {pendente ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Registrando…</> : <><Check size={15} aria-hidden /> Concluir atividade</>}
+            </button>
+          ) : (
+            <button type="button" onClick={tentarDeNovo} className="botao-gradiente inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold">Tentar de novo</button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Atividades sem correção (assinalar, responder, listar): só registra a resposta.
+function RespostaModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; aoFechar: () => void; aoConcluir: (a: Atividade, resposta: unknown) => Promise<void> }) {
   const [sel, setSel] = useState<number[]>([])
   const [texto, setTexto] = useState('')
   const [campos, setCampos] = useState<string[]>(atividade.campos.map(() => ''))

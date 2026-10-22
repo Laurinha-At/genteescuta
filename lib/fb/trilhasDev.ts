@@ -12,12 +12,33 @@ import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } fro
 import { db } from '../firebase'
 import { registrarLog } from './usuarios'
 
-export type TipoAtividade = 'assinalar' | 'responder' | 'listar'
+export type TipoAtividade = 'quiz' | 'assinalar' | 'responder' | 'listar'
 
 export const TIPO_LABEL: Record<TipoAtividade, string> = {
-  assinalar: 'Assinalar (marcar a correta)',
+  quiz: 'Quiz (perguntas com correção)',
+  assinalar: 'Assinalar (marcar a correta, sem corrigir)',
   responder: 'Responder (texto aberto)',
   listar: 'Listar (preencher campos)',
+}
+
+/** Uma pergunta de quiz: múltipla escolha ou sim/não, com explicação. */
+export interface PerguntaQuiz {
+  texto: string
+  imagem: string
+  explicacao: string
+  /** true = opções fixas Sim/Não; false = múltipla escolha. */
+  simnao: boolean
+  opcoes: string[]
+  /** índice da opção correta. */
+  correta: number
+}
+
+export function perguntaVazia(simnao = false): PerguntaQuiz {
+  return {
+    texto: '', imagem: '', explicacao: '', simnao,
+    opcoes: simnao ? ['Sim', 'Não'] : ['', ''],
+    correta: 0,
+  }
 }
 
 export interface TrilhaDev {
@@ -42,6 +63,10 @@ export interface Atividade {
   corretas: number[]
   /** listar: rótulos dos campos a preencher. */
   campos: string[]
+  /** quiz: perguntas com correção. */
+  perguntas: PerguntaQuiz[]
+  /** quiz: mínimo de acertos para concluir a atividade (0 = todas). */
+  notaMinima: number
 }
 
 export interface ProgressoTrilha {
@@ -116,8 +141,26 @@ export function trilhaDevVazia(ordem: number): TrilhaDev {
 }
 
 // ---------------- Atividades ----------------
+function normPerguntas(v: unknown): PerguntaQuiz[] {
+  if (!Array.isArray(v)) return []
+  return v.map((p) => {
+    const o = (p ?? {}) as Record<string, unknown>
+    const simnao = o.simnao === true
+    const opcoes = Array.isArray(o.opcoes) ? o.opcoes.map((x) => String(x)) : (simnao ? ['Sim', 'Não'] : [])
+    const correta = Number(o.correta)
+    return {
+      texto: String(o.texto ?? ''),
+      imagem: String(o.imagem ?? ''),
+      explicacao: String(o.explicacao ?? ''),
+      simnao,
+      opcoes,
+      correta: Number.isFinite(correta) && correta >= 0 && correta < opcoes.length ? correta : 0,
+    }
+  })
+}
+
 function normAtividade(d: Record<string, unknown>, id: string): Atividade {
-  const tipo = d.tipo === 'responder' || d.tipo === 'listar' ? d.tipo : 'assinalar'
+  const tipo = d.tipo === 'quiz' || d.tipo === 'responder' || d.tipo === 'listar' ? d.tipo : 'assinalar'
   const strArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)) : [])
   const numArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [])
   return {
@@ -130,6 +173,8 @@ function normAtividade(d: Record<string, unknown>, id: string): Atividade {
     opcoes: strArr(d.opcoes),
     corretas: numArr(d.corretas),
     campos: strArr(d.campos),
+    perguntas: normPerguntas(d.perguntas),
+    notaMinima: typeof d.notaMinima === 'number' ? d.notaMinima : 0,
   }
 }
 
@@ -140,6 +185,25 @@ export async function listarAtividades(trilhaId: string): Promise<Atividade[]> {
 }
 
 export async function salvarAtividade(trilhaId: string, a: Atividade): Promise<void> {
+  // Perguntas do quiz: limpa opções vazias e reposiciona o índice da correta.
+  const perguntas = (a.perguntas ?? []).map((p) => {
+    const simnao = !!p.simnao
+    const opcoesBrutas = simnao ? ['Sim', 'Não'] : (p.opcoes ?? [])
+    const mantidas: string[] = []
+    let novaCorreta = 0
+    opcoesBrutas.forEach((o, i) => {
+      const txt = String(o ?? '').trim()
+      if (simnao || txt) { if (i === p.correta) novaCorreta = mantidas.length; mantidas.push(simnao ? String(o) : txt) }
+    })
+    return {
+      texto: String(p.texto ?? '').trim(),
+      imagem: String(p.imagem ?? '').trim(),
+      explicacao: String(p.explicacao ?? '').trim(),
+      simnao,
+      opcoes: mantidas,
+      correta: Math.min(novaCorreta, Math.max(0, mantidas.length - 1)),
+    }
+  }).filter((p) => p.texto && p.opcoes.length >= 2)
   await setDoc(doc(db(), COL, trilhaId, 'atividades', a.id), {
     ordem: a.ordem,
     tipo: a.tipo,
@@ -149,6 +213,8 @@ export async function salvarAtividade(trilhaId: string, a: Atividade): Promise<v
     opcoes: (a.opcoes ?? []).map((s) => String(s).trim()).filter(Boolean),
     corretas: (a.corretas ?? []).filter((n) => Number.isFinite(n)),
     campos: (a.campos ?? []).map((s) => String(s).trim()).filter(Boolean),
+    perguntas,
+    notaMinima: Math.max(0, Math.round(Number(a.notaMinima) || 0)),
   })
 }
 
@@ -159,11 +225,62 @@ export async function excluirAtividade(trilhaId: string, atividadeId: string): P
 export function novoIdAtividade(): string {
   return 'a_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
-export function atividadeVazia(ordem: number, tipo: TipoAtividade = 'assinalar'): Atividade {
+export function atividadeVazia(ordem: number, tipo: TipoAtividade = 'quiz'): Atividade {
   return {
     id: novoIdAtividade(), ordem, tipo, titulo: '', enunciado: '', imagem: '',
     opcoes: tipo === 'assinalar' ? ['', ''] : [], corretas: [], campos: tipo === 'listar' ? [''] : [],
+    perguntas: tipo === 'quiz' ? [perguntaVazia(false)] : [], notaMinima: 0,
   }
+}
+
+// ---------------- Semear a trilha de Onboarding (exemplo editável) ----------------
+/**
+ * Cria (ou atualiza) a trilha "Integração (Onboarding)" com as casas 1 a 4 do
+ * documento, como PONTO DE PARTIDA para o RH editar. Idempotente: usa ids fixos,
+ * então semear de novo não duplica. A casa 5 (caça-palavras) fica para a Fase 2.
+ */
+export async function semearOnboarding(): Promise<void> {
+  const id = 't_onboarding'
+  await setDoc(doc(db(), COL, id), {
+    titulo: 'Integração (Onboarding)',
+    descricao: 'Trilha de boas-vindas: manual, conferência de cadastro e acessos. Edite as perguntas conforme a Soulan.',
+    capa: '', pontos: 200, ordem: 0, ativa: false,
+  })
+  const casas: Atividade[] = [
+    {
+      id: 'a_onb_1', ordem: 1, tipo: 'responder', titulo: 'Integração Institucional',
+      enunciado: 'Boas-vindas! Leia o manual de integração e, ao terminar, escreva uma palavra que resuma a cultura da Soulan para você.',
+      imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0,
+    },
+    {
+      id: 'a_onb_2', ordem: 2, tipo: 'quiz', titulo: 'Quiz do Manual',
+      enunciado: 'Responda às perguntas sobre o manual. (Exemplo: adicione as suas 10 perguntas e ajuste a nota mínima.)',
+      imagem: '', opcoes: [], corretas: [], campos: [], notaMinima: 1,
+      perguntas: [{
+        texto: 'Qual é a senha padrão do notebook e do celular corporativo?',
+        imagem: '', explicacao: 'A senha padrão é soulan@ para os dois.', simnao: false,
+        opcoes: ['soulan@', 'thomas@', 'soulan123', 'gentecultura@'], correta: 0,
+      }],
+    },
+    {
+      id: 'a_onb_3', ordem: 3, tipo: 'quiz', titulo: 'Conferência de Cadastro e Acessos',
+      enunciado: 'Confirme cada item. Qualquer "Não" segura a conclusão: resolva com o RH antes de seguir.',
+      imagem: '', opcoes: [], corretas: [], campos: [], notaMinima: 4,
+      perguntas: [
+        { texto: 'Seu cartão Flash (VR e VA) já está ativo?', imagem: '', explicacao: '', simnao: true, opcoes: ['Sim', 'Não'], correta: 0 },
+        { texto: 'Você recebeu os equipamentos (notebook e celular)?', imagem: '', explicacao: '', simnao: true, opcoes: ['Sim', 'Não'], correta: 0 },
+        { texto: 'Seu e-mail está no padrão da empresa?', imagem: '', explicacao: '', simnao: true, opcoes: ['Sim', 'Não'], correta: 0 },
+        { texto: 'Seu WhatsApp corporativo está no padrão?', imagem: '', explicacao: '', simnao: true, opcoes: ['Sim', 'Não'], correta: 0 },
+      ],
+    },
+    {
+      id: 'a_onb_4', ordem: 4, tipo: 'responder', titulo: 'Conclusão',
+      enunciado: 'Confirme que o seu cadastro e os seus acessos estão corretos. Escreva "Confirmado" para encerrar a integração.',
+      imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0,
+    },
+  ]
+  for (const c of casas) await salvarAtividade(id, c)
+  await registrarLog('trilha_dev_semear', 'onboarding')
 }
 
 // ---------------- Progresso do usuário ----------------
@@ -188,6 +305,7 @@ export async function concluirAtividade(
   atividadeId: string,
   totalAtividades: number,
   resposta?: unknown,
+  pessoa?: { nome: string },
 ): Promise<{ progresso: ProgressoUsuario; creditou: boolean }> {
   const atual = await getProgressoUsuario(uid)
   const tr: ProgressoTrilha = atual.trilhas[trilha.id] ?? { concluidas: [], concluida: false, pontos: 0, respostas: {} }
@@ -207,5 +325,28 @@ export async function concluirAtividade(
   const pontos_total = Object.values(trilhas).reduce((s, t) => s + (t.concluida ? (t.pontos || 0) : 0), 0)
 
   await setDoc(doc(db(), PROG, uid), { trilhas, pontos_total }, { merge: false })
+  // Projeção pública para o ranking (nome + pontos). Best-effort: não quebra o fluxo.
+  if (pessoa?.nome) {
+    await setDoc(doc(db(), RANKING, uid), { nome: pessoa.nome, pontos: pontos_total, atualizado_em: new Date().toISOString() }, { merge: true }).catch(() => {})
+  }
   return { progresso: { trilhas, pontos_total }, creditou }
+}
+
+// ---------------- Ranking (projeção pública: nome + pontos) ----------------
+const RANKING = 'trilhas_dev_ranking'
+
+export interface RankingItem { uid: string; nome: string; pontos: number }
+
+/** Top do ranking por pontos (desc). Ordena no cliente para dispensar índice. */
+export async function listarRankingTrilhas(limite = 20): Promise<RankingItem[]> {
+  const snap = await getDocs(collection(db(), RANKING)).catch(() => null)
+  if (!snap) return []
+  return snap.docs
+    .map((d) => {
+      const x = d.data() as Record<string, unknown>
+      return { uid: d.id, nome: String(x.nome ?? '').trim(), pontos: Number(x.pontos) || 0 }
+    })
+    .filter((r) => r.pontos > 0 && r.nome)
+    .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome))
+    .slice(0, limite)
 }
