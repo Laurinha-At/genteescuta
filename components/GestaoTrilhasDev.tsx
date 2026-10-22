@@ -5,9 +5,10 @@
 // dentro de cada trilha, CRUD de atividades com editor por tipo.
 // =============================================================
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Save, Loader2, ChevronUp, ChevronDown, Pencil, Eye, EyeOff, X, ListChecks, Image as ImageIcon, Star, Upload, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Save, Loader2, ChevronUp, ChevronDown, Pencil, Eye, EyeOff, X, ListChecks, Image as ImageIcon, Star, Upload, Sparkles, FileText } from 'lucide-react'
 import { Cartao, Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
 import { comprimirImagem } from '@/lib/imagem'
+import { lerDocumentoDataURL } from '@/lib/arquivo'
 import {
   listarTrilhasDev, salvarTrilhaDev, excluirTrilhaDev, trilhaDevVazia,
   listarAtividades, salvarAtividade, excluirAtividade, atividadeVazia,
@@ -224,7 +225,7 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
           <div className="flex flex-wrap items-center gap-2 px-3 py-2">
             <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-marca-clara text-xs font-bold text-marca-texto">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-tinta">{a.titulo || '(sem título)'}</span>
-            <Chip faixa="neutro">{a.tipo === 'quiz' ? 'Quiz' : a.tipo === 'assinalar' ? 'Assinalar' : a.tipo === 'responder' ? 'Responder' : 'Listar'}</Chip>
+            <Chip faixa="neutro">{a.tipo === 'material' ? 'Material' : a.tipo === 'quiz' ? 'Quiz' : a.tipo === 'assinalar' ? 'Assinalar' : a.tipo === 'responder' ? 'Responder' : 'Listar'}</Chip>
             <div className="flex items-center gap-0.5">
               <BtnIcone title="Subir" onClick={() => mover(a, 'up')} disabled={i === 0}><ChevronUp size={15} /></BtnIcone>
               <BtnIcone title="Descer" onClick={() => mover(a, 'down')} disabled={i === itens.length - 1}><ChevronDown size={15} /></BtnIcone>
@@ -236,13 +237,14 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
             <div className="space-y-3 border-t border-borda px-3 py-3">
               <Campo rotulo="Tipo de atividade">
                 <select value={draft.tipo} onChange={(e) => patch({ tipo: e.target.value as TipoAtividade })} className={ENTRADA}>
-                  {(['quiz', 'assinalar', 'responder', 'listar'] as TipoAtividade[]).map((tp) => <option key={tp} value={tp}>{TIPO_LABEL[tp]}</option>)}
+                  {(['material', 'quiz', 'assinalar', 'responder', 'listar'] as TipoAtividade[]).map((tp) => <option key={tp} value={tp}>{TIPO_LABEL[tp]}</option>)}
                 </select>
               </Campo>
               <Campo rotulo="Título"><input value={draft.titulo} onChange={(e) => patch({ titulo: e.target.value })} className={ENTRADA} placeholder="Ex.: Quiz do Manual" /></Campo>
               <Campo rotulo="Enunciado"><textarea value={draft.enunciado} onChange={(e) => patch({ enunciado: e.target.value })} rows={2} className={ENTRADA} placeholder="O que a pessoa deve fazer." /></Campo>
               {draft.tipo !== 'quiz' && <ImagemCampo rotulo="Imagem (opcional)" valor={draft.imagem} onChange={(v) => patch({ imagem: v })} />}
 
+              {draft.tipo === 'material' && <EditorMaterial draft={draft} patch={patch} />}
               {draft.tipo === 'quiz' && <EditorQuiz draft={draft} patch={patch} />}
               {draft.tipo === 'assinalar' && <EditorAssinalar draft={draft} patch={patch} />}
               {draft.tipo === 'responder' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Resposta aberta em texto. A resposta é apenas registrada (sem correção automática).</p>}
@@ -259,6 +261,41 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
       <button type="button" onClick={adicionar} className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-3 py-1.5 text-xs font-medium text-tinta-2 transition-colors hover:border-marca hover:text-marca-texto">
         <Plus size={14} aria-hidden /> Adicionar atividade
       </button>
+    </div>
+  )
+}
+
+// Editor de material: link externo e/ou documento anexado (data URL).
+function EditorMaterial({ draft, patch }: { draft: Atividade; patch: (p: Partial<Atividade>) => void }) {
+  const [erro, setErro] = useState<string | null>(null)
+  const [carregando, setCarregando] = useState(false)
+  async function anexar(file: File | null) {
+    if (!file) return
+    setErro(null); setCarregando(true)
+    try { const { dados, nome } = await lerDocumentoDataURL(file); patch({ arquivo: dados, arquivoNome: nome }) }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui anexar o arquivo.') }
+    setCarregando(false)
+  }
+  return (
+    <div className="space-y-3">
+      <Campo rotulo="Link (opcional)" ajuda="Manual, vídeo, pasta do Drive, etc. Abre em uma nova aba.">
+        <input value={draft.link} onChange={(e) => patch({ link: e.target.value })} className={ENTRADA} placeholder="https://..." />
+      </Campo>
+      <Campo rotulo="Documento (opcional)" ajuda="PDF, Word ou planilha de até ~700 KB. Para arquivos maiores, use um link do Drive.">
+        <div className="flex flex-wrap items-center gap-2">
+          {draft.arquivo
+            ? <span className="inline-flex items-center gap-1.5 rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta"><FileText size={14} aria-hidden /> {draft.arquivoNome || 'documento'}</span>
+            : <span className="text-xs text-tinta-3">Nenhum documento anexado.</span>}
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta transition-colors hover:border-marca hover:text-marca-texto">
+            {carregando ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
+            {draft.arquivo ? 'Trocar' : 'Anexar documento'}
+            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx" className="hidden" onChange={(e) => anexar(e.target.files?.[0] ?? null)} />
+          </label>
+          {draft.arquivo && <button type="button" onClick={() => patch({ arquivo: '', arquivoNome: '' })} title="Remover" className="rounded p-1.5 text-tinta-3 hover:text-critico"><Trash2 size={14} /></button>}
+        </div>
+      </Campo>
+      {erro && <p className="text-xs text-critico">{erro}</p>}
+      <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">A pessoa abre o link e/ou o documento e marca a casa como lida para seguir.</p>
     </div>
   )
 }

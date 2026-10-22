@@ -6,7 +6,7 @@
 // =============================================================
 import { useEffect, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
-import { Trophy, Lock, Check, X, Play, ArrowLeft, Star, Loader2, PartyPopper, Medal } from 'lucide-react'
+import { Trophy, Lock, Check, X, Play, ArrowLeft, Star, Loader2, PartyPopper, Medal, Link2, FileText } from 'lucide-react'
 import { observarLogin } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
 import {
@@ -337,7 +337,7 @@ function RespostaModal({ atividade, aoFechar, aoConcluir }: { atividade: Ativida
     if (atividade.tipo === 'assinalar') return sel.length > 0
     if (atividade.tipo === 'responder') return texto.trim().length > 0
     if (atividade.tipo === 'listar') return campos.some((c) => c.trim().length > 0)
-    return true
+    return true // material: só marcar como lido
   }
 
   async function enviar() {
@@ -346,7 +346,8 @@ function RespostaModal({ atividade, aoFechar, aoConcluir }: { atividade: Ativida
     const resposta =
       atividade.tipo === 'assinalar' ? { opcoes: sel }
         : atividade.tipo === 'responder' ? { texto: texto.trim() }
-          : { campos: atividade.campos.map((rot, i) => ({ rotulo: rot, valor: campos[i] ?? '' })) }
+          : atividade.tipo === 'listar' ? { campos: atividade.campos.map((rot, i) => ({ rotulo: rot, valor: campos[i] ?? '' })) }
+            : { lido: true }
     try { await aoConcluir(atividade, resposta) }
     catch { setErro('Não consegui registrar. Tente de novo.'); setPendente(false) }
   }
@@ -359,6 +360,21 @@ function RespostaModal({ atividade, aoFechar, aoConcluir }: { atividade: Ativida
         {atividade.imagem && <img src={atividade.imagem} alt="" className="mt-3 max-h-56 w-full rounded-lg object-cover" />}
 
         <div className="mt-4 space-y-2">
+          {atividade.tipo === 'material' && (
+            <div className="space-y-2">
+              {atividade.link && (
+                <a href={atividade.link} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm font-medium text-marca-texto transition-colors hover:border-marca hover:bg-marca-clara">
+                  <Link2 size={16} aria-hidden /> Abrir o link do material
+                </a>
+              )}
+              {atividade.arquivo && (
+                <a href={atividade.arquivo} download={atividade.arquivoNome || 'material'} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg border border-borda-forte bg-white px-3.5 py-2.5 text-sm font-medium text-marca-texto transition-colors hover:border-marca hover:bg-marca-clara">
+                  <FileText size={16} aria-hidden /> {atividade.arquivoNome || 'Abrir o documento'}
+                </a>
+              )}
+              {!atividade.link && !atividade.arquivo && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta-3">Leia o conteúdo acima e marque como lido.</p>}
+            </div>
+          )}
           {atividade.tipo === 'assinalar' && atividade.opcoes.map((o, i) => (
             <label key={i} className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${sel.includes(i) ? 'border-marca bg-marca-clara' : 'border-borda-forte bg-white hover:border-marca'}`}>
               <input type="checkbox" checked={sel.includes(i)} onChange={() => toggleSel(i)} className="h-4 w-4 accent-[var(--color-marca)]" />
@@ -381,7 +397,7 @@ function RespostaModal({ atividade, aoFechar, aoConcluir }: { atividade: Ativida
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={aoFechar} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-tinta-2 hover:bg-superficie-2">Cancelar</button>
           <button type="button" onClick={enviar} disabled={pendente} className="botao-gradiente inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60">
-            {pendente ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Registrando…</> : <><Check size={15} aria-hidden /> Concluir atividade</>}
+            {pendente ? <><Loader2 size={15} className="animate-spin" aria-hidden /> Registrando…</> : <><Check size={15} aria-hidden /> {atividade.tipo === 'material' ? 'Marcar como lido' : 'Concluir atividade'}</>}
           </button>
         </div>
       </div>

@@ -12,9 +12,10 @@ import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } fro
 import { db } from '../firebase'
 import { registrarLog } from './usuarios'
 
-export type TipoAtividade = 'quiz' | 'assinalar' | 'responder' | 'listar'
+export type TipoAtividade = 'material' | 'quiz' | 'assinalar' | 'responder' | 'listar'
 
 export const TIPO_LABEL: Record<TipoAtividade, string> = {
+  material: 'Material (link e/ou documento para ler)',
   quiz: 'Quiz (perguntas com correção)',
   assinalar: 'Assinalar (marcar a correta, sem corrigir)',
   responder: 'Responder (texto aberto)',
@@ -67,6 +68,11 @@ export interface Atividade {
   perguntas: PerguntaQuiz[]
   /** quiz: mínimo de acertos para concluir a atividade (0 = todas). */
   notaMinima: number
+  /** material: link externo (manual, vídeo, Drive). */
+  link: string
+  /** material: documento anexado (data URL) e o nome do arquivo. */
+  arquivo: string
+  arquivoNome: string
 }
 
 export interface ProgressoTrilha {
@@ -160,7 +166,7 @@ function normPerguntas(v: unknown): PerguntaQuiz[] {
 }
 
 function normAtividade(d: Record<string, unknown>, id: string): Atividade {
-  const tipo = d.tipo === 'quiz' || d.tipo === 'responder' || d.tipo === 'listar' ? d.tipo : 'assinalar'
+  const tipo = d.tipo === 'material' || d.tipo === 'quiz' || d.tipo === 'responder' || d.tipo === 'listar' ? d.tipo : 'assinalar'
   const strArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)) : [])
   const numArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [])
   return {
@@ -175,6 +181,9 @@ function normAtividade(d: Record<string, unknown>, id: string): Atividade {
     campos: strArr(d.campos),
     perguntas: normPerguntas(d.perguntas),
     notaMinima: typeof d.notaMinima === 'number' ? d.notaMinima : 0,
+    link: String(d.link ?? ''),
+    arquivo: String(d.arquivo ?? ''),
+    arquivoNome: String(d.arquivoNome ?? ''),
   }
 }
 
@@ -215,6 +224,9 @@ export async function salvarAtividade(trilhaId: string, a: Atividade): Promise<v
     campos: (a.campos ?? []).map((s) => String(s).trim()).filter(Boolean),
     perguntas,
     notaMinima: Math.max(0, Math.round(Number(a.notaMinima) || 0)),
+    link: String(a.link ?? '').trim(),
+    arquivo: String(a.arquivo ?? '').trim(),
+    arquivoNome: String(a.arquivoNome ?? '').trim(),
   })
 }
 
@@ -230,6 +242,7 @@ export function atividadeVazia(ordem: number, tipo: TipoAtividade = 'quiz'): Ati
     id: novoIdAtividade(), ordem, tipo, titulo: '', enunciado: '', imagem: '',
     opcoes: tipo === 'assinalar' ? ['', ''] : [], corretas: [], campos: tipo === 'listar' ? [''] : [],
     perguntas: tipo === 'quiz' ? [perguntaVazia(false)] : [], notaMinima: 0,
+    link: '', arquivo: '', arquivoNome: '',
   }
 }
 
@@ -246,16 +259,17 @@ export async function semearOnboarding(): Promise<void> {
     descricao: 'Trilha de boas-vindas: manual, conferência de cadastro e acessos. Edite as perguntas conforme a Soulan.',
     capa: '', pontos: 200, ordem: 0, ativa: false,
   })
+  const base = { imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0, link: '', arquivo: '', arquivoNome: '' }
   const casas: Atividade[] = [
     {
-      id: 'a_onb_1', ordem: 1, tipo: 'responder', titulo: 'Integração Institucional',
-      enunciado: 'Boas-vindas! Leia o manual de integração e, ao terminar, escreva uma palavra que resuma a cultura da Soulan para você.',
-      imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0,
+      ...base, id: 'a_onb_1', ordem: 1, tipo: 'material', titulo: 'Integração Institucional',
+      enunciado: 'Boas-vindas! Leia o manual de integração para conhecer a Soulan. Cole aqui o link do manual (ou anexe o PDF) e depois clique em concluir.',
+      link: '',
     },
     {
-      id: 'a_onb_2', ordem: 2, tipo: 'quiz', titulo: 'Quiz do Manual',
+      ...base, id: 'a_onb_2', ordem: 2, tipo: 'quiz', titulo: 'Quiz do Manual',
       enunciado: 'Responda às perguntas sobre o manual. (Exemplo: adicione as suas 10 perguntas e ajuste a nota mínima.)',
-      imagem: '', opcoes: [], corretas: [], campos: [], notaMinima: 1,
+      notaMinima: 1,
       perguntas: [{
         texto: 'Qual é a senha padrão do notebook e do celular corporativo?',
         imagem: '', explicacao: 'A senha padrão é soulan@ para os dois.', simnao: false,
@@ -263,9 +277,9 @@ export async function semearOnboarding(): Promise<void> {
       }],
     },
     {
-      id: 'a_onb_3', ordem: 3, tipo: 'quiz', titulo: 'Conferência de Cadastro e Acessos',
+      ...base, id: 'a_onb_3', ordem: 3, tipo: 'quiz', titulo: 'Conferência de Cadastro e Acessos',
       enunciado: 'Confirme cada item. Qualquer "Não" segura a conclusão: resolva com o RH antes de seguir.',
-      imagem: '', opcoes: [], corretas: [], campos: [], notaMinima: 4,
+      notaMinima: 4,
       perguntas: [
         { texto: 'Seu cartão Flash (VR e VA) já está ativo?', imagem: '', explicacao: '', simnao: true, opcoes: ['Sim', 'Não'], correta: 0 },
         { texto: 'Você recebeu os equipamentos (notebook e celular)?', imagem: '', explicacao: '', simnao: true, opcoes: ['Sim', 'Não'], correta: 0 },
@@ -274,9 +288,8 @@ export async function semearOnboarding(): Promise<void> {
       ],
     },
     {
-      id: 'a_onb_4', ordem: 4, tipo: 'responder', titulo: 'Conclusão',
+      ...base, id: 'a_onb_4', ordem: 4, tipo: 'responder', titulo: 'Conclusão',
       enunciado: 'Confirme que o seu cadastro e os seus acessos estão corretos. Escreva "Confirmado" para encerrar a integração.',
-      imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0,
     },
   ]
   for (const c of casas) await salvarAtividade(id, c)
