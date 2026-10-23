@@ -4,11 +4,12 @@
 // Admin das Trilhas de Desenvolvimento (Fase 1). CRUD de trilhas e,
 // dentro de cada trilha, CRUD de atividades com editor por tipo.
 // =============================================================
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2, Save, Loader2, ChevronUp, ChevronDown, Pencil, Eye, EyeOff, X, ListChecks, Image as ImageIcon, Star, Upload, Sparkles, FileText } from 'lucide-react'
 import { Cartao, Campo, ENTRADA, Botao, Aviso, Chip } from '@/components/ui'
 import { comprimirImagem } from '@/lib/imagem'
 import { lerDocumentoDataURL } from '@/lib/arquivo'
+import { gerarCaca, DIRECAO_LABEL, type DirecaoCaca } from '@/lib/caca'
 import {
   listarTrilhasDev, salvarTrilhaDev, excluirTrilhaDev, trilhaDevVazia,
   listarAtividades, salvarAtividade, excluirAtividade, atividadeVazia,
@@ -243,6 +244,7 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
                     const extra: Partial<Atividade> = {}
                     if (TIPOS_COM_OPCOES.includes(novo) && (!draft.opcoes || draft.opcoes.length === 0)) extra.opcoes = ['', '']
                     if (novo === 'quiz' && (!draft.perguntas || draft.perguntas.length === 0)) extra.perguntas = [perguntaVazia(false)]
+                    if (novo === 'caca' && (!draft.cacaDirecoes || draft.cacaDirecoes.length === 0)) extra.cacaDirecoes = ['horizontal', 'vertical']
                     patch({ tipo: novo, ...extra })
                   }}
                   className={ENTRADA}
@@ -257,6 +259,7 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
               {/* Configuração por tipo */}
               {TIPOS_COM_OPCOES.includes(draft.tipo) && <EditorOpcoesSimples draft={draft} patch={patch} tipo={draft.tipo} />}
               {draft.tipo === 'quiz' && <EditorQuiz draft={draft} patch={patch} />}
+              {draft.tipo === 'caca' && <EditorCaca draft={draft} patch={patch} />}
               {draft.tipo === 'curta' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Resposta curta (uma linha). O colaborador escreve e segue.</p>}
               {draft.tipo === 'paragrafo' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Parágrafo (texto longo). O colaborador escreve e segue.</p>}
               {draft.tipo === 'material' && <p className="rounded-lg bg-superficie-2 px-3 py-2 text-xs text-tinta-3">Só leitura: adicione os materiais de apoio abaixo. A pessoa abre e marca como lido.</p>}
@@ -284,7 +287,7 @@ function EditorAtividades({ trilhaId }: { trilhaId: string }) {
 // Rótulo curto do tipo para o chip da lista.
 const CHIP_TIPO: Record<TipoAtividade, string> = {
   multipla_uma: 'Múltipla', caixas: 'Seleção', suspensa: 'Lista', curta: 'Curta', paragrafo: 'Parágrafo',
-  material: 'Material', quiz: 'Quiz', assinalar: 'Assinalar', responder: 'Responder', listar: 'Listar',
+  material: 'Material', quiz: 'Quiz', caca: 'Caça-palavras', assinalar: 'Assinalar', responder: 'Responder', listar: 'Listar',
 }
 
 // Opções de múltipla escolha / caixas / lista suspensa (sem marcar correta).
@@ -307,6 +310,98 @@ function EditorOpcoesSimples({ draft, patch, tipo }: { draft: Atividade; patch: 
         ))}
       </div>
       <button type="button" onClick={addOpcao} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-2.5 py-1.5 text-xs font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Plus size={13} aria-hidden /> Adicionar opção</button>
+    </div>
+  )
+}
+
+// Editor de caça-palavras: lista de palavras, direções e tabuleiro gerado.
+const DIRECOES_CACA: DirecaoCaca[] = ['horizontal', 'vertical', 'diagonal', 'invertidas']
+
+function EditorCaca({ draft, patch }: { draft: Atividade; patch: (p: Partial<Atividade>) => void }) {
+  const [palavras, setPalavras] = useState<string[]>(draft.cacaPalavras.length ? draft.cacaPalavras : [''])
+  const [aviso, setAviso] = useState<string | null>(null)
+  const direcoes = (draft.cacaDirecoes.length ? draft.cacaDirecoes : ['horizontal', 'vertical']) as DirecaoCaca[]
+  const chaveNorm = useMemo(() => palavras.map((p) => p.trim()).filter(Boolean).join('|').toUpperCase(), [palavras])
+  const refInit = useRef(true)
+
+  function gerar() {
+    const res = gerarCaca(palavras, direcoes)
+    patch({
+      cacaPalavras: res.palavras,
+      cacaGrade: res.grade.map((r) => r.join('')),
+      cacaCols: res.tamanho,
+      cacaPos: res.posicoes,
+    })
+    setAviso(res.naoCouberam.length
+      ? `Não couberam: ${res.naoCouberam.join(', ')}. Tente gerar de novo, reduzir palavras ou habilitar mais direções.`
+      : null)
+  }
+
+  // Regenera quando as palavras ou direções mudam (mantém o tabuleiro válido).
+  useEffect(() => {
+    if (refInit.current) { refInit.current = false; if (draft.cacaGrade.length > 0) return }
+    gerar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveNorm, direcoes.join('|')])
+
+  function setPalavra(i: number, v: string) { setPalavras((ps) => ps.map((p, j) => (j === i ? v : p))) }
+  function addPalavra() { setPalavras((ps) => [...ps, '']) }
+  function removePalavra(i: number) { setPalavras((ps) => (ps.length > 1 ? ps.filter((_, j) => j !== i) : ps)) }
+  function toggleDir(d: DirecaoCaca) {
+    const nova = direcoes.includes(d) ? direcoes.filter((x) => x !== d) : [...direcoes, d]
+    patch({ cacaDirecoes: nova.length ? nova : ['horizontal'] })
+  }
+
+  const cols = draft.cacaCols
+  const grade = draft.cacaGrade
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-tinta-2">Palavras (viram MAIÚSCULAS, sem espaços e sem acentos)</p>
+        <div className="space-y-2">
+          {palavras.map((p, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input value={p} onChange={(e) => setPalavra(i, e.target.value)} className={ENTRADA} placeholder={`Palavra ${i + 1} (ex.: Day off)`} />
+              {palavras.length > 1 && <button type="button" onClick={() => removePalavra(i)} title="Remover palavra" className="rounded p-1.5 text-tinta-3 hover:text-critico"><Trash2 size={14} /></button>}
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addPalavra} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-borda-forte px-2.5 py-1.5 text-xs font-medium text-tinta-2 hover:border-marca hover:text-marca-texto"><Plus size={13} aria-hidden /> Adicionar palavra</button>
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-tinta-2">Direções</p>
+        <div className="flex flex-wrap gap-3">
+          {DIRECOES_CACA.map((d) => (
+            <label key={d} className="flex items-center gap-2 text-sm text-tinta">
+              <input type="checkbox" checked={direcoes.includes(d)} onChange={() => toggleDir(d)} className="h-4 w-4 accent-[var(--color-marca)]" />
+              {DIRECAO_LABEL[d]}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={gerar} className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta transition-colors hover:border-marca hover:text-marca-texto">
+          <Sparkles size={15} aria-hidden /> {grade.length ? 'Gerar novo tabuleiro' : 'Pré-visualizar tabuleiro'}
+        </button>
+      </div>
+
+      {aviso && <Aviso tom="erro">{aviso}</Aviso>}
+
+      {grade.length > 0 && cols > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-tinta-2">Prévia ({cols} x {cols})</p>
+          <div className="overflow-x-auto">
+            <div className="mx-auto grid w-max gap-0.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+              {grade.flatMap((linha, r) => linha.split('').map((letra, c) => (
+                <span key={`${r}-${c}`} className="flex h-6 w-6 items-center justify-center rounded bg-superficie-2 text-[0.65rem] font-semibold text-tinta-2">{letra}</span>
+              )))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

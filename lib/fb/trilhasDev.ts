@@ -14,7 +14,7 @@ import { registrarLog } from './usuarios'
 
 export type TipoAtividade =
   | 'multipla_uma' | 'caixas' | 'suspensa' | 'curta' | 'paragrafo'
-  | 'material' | 'quiz'
+  | 'material' | 'quiz' | 'caca'
   // legados (ainda renderizam; não aparecem mais no seletor):
   | 'assinalar' | 'responder' | 'listar'
 
@@ -26,6 +26,7 @@ export const TIPO_LABEL: Record<TipoAtividade, string> = {
   paragrafo: 'Parágrafo',
   material: 'Material (só ler e seguir)',
   quiz: 'Quiz (perguntas com correção)',
+  caca: 'Caça-palavras',
   assinalar: 'Assinalar (legado)',
   responder: 'Responder (legado)',
   listar: 'Listar (legado)',
@@ -34,7 +35,7 @@ export const TIPO_LABEL: Record<TipoAtividade, string> = {
 /** Tipos com lista de opções (sem correção: só coleta a resposta). */
 export const TIPOS_COM_OPCOES: TipoAtividade[] = ['multipla_uma', 'caixas', 'suspensa']
 /** Tipos oferecidos no seletor do admin (os legados ficam de fora). */
-export const TIPOS_SELECIONAVEIS: TipoAtividade[] = ['multipla_uma', 'caixas', 'suspensa', 'curta', 'paragrafo', 'material', 'quiz']
+export const TIPOS_SELECIONAVEIS: TipoAtividade[] = ['multipla_uma', 'caixas', 'suspensa', 'curta', 'paragrafo', 'material', 'quiz', 'caca']
 
 /** Uma pergunta de quiz: múltipla escolha ou sim/não, com explicação. */
 export interface PerguntaQuiz {
@@ -89,6 +90,15 @@ export interface Atividade {
   arquivoNome: string
   /** vídeo para incorporar (YouTube, Vimeo ou Google Drive). */
   video: string
+  /** caça-palavras: palavras normalizadas, direções e o tabuleiro gerado. */
+  cacaPalavras: string[]
+  cacaDirecoes: string[]
+  /** grade do tabuleiro, uma string por linha (reconstruída em string[][]). */
+  cacaGrade: string[]
+  /** colunas/linhas do tabuleiro (quadrado). */
+  cacaCols: number
+  /** posição de cada palavra: índices planos (linha*cols + coluna). */
+  cacaPos: Record<string, number[]>
 }
 
 export interface ProgressoTrilha {
@@ -203,6 +213,13 @@ function normAtividade(d: Record<string, unknown>, id: string): Atividade {
     arquivo: String(d.arquivo ?? ''),
     arquivoNome: String(d.arquivoNome ?? ''),
     video: String(d.video ?? ''),
+    cacaPalavras: strArr(d.cacaPalavras),
+    cacaDirecoes: strArr(d.cacaDirecoes),
+    cacaGrade: strArr(d.cacaGrade),
+    cacaCols: typeof d.cacaCols === 'number' ? d.cacaCols : 0,
+    cacaPos: (d.cacaPos && typeof d.cacaPos === 'object' && !Array.isArray(d.cacaPos))
+      ? Object.fromEntries(Object.entries(d.cacaPos as Record<string, unknown>).map(([k, v]) => [k, Array.isArray(v) ? v.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : []]))
+      : {},
   }
 }
 
@@ -247,6 +264,11 @@ export async function salvarAtividade(trilhaId: string, a: Atividade): Promise<v
     arquivo: String(a.arquivo ?? '').trim(),
     arquivoNome: String(a.arquivoNome ?? '').trim(),
     video: String(a.video ?? '').trim(),
+    cacaPalavras: (a.cacaPalavras ?? []).map((s) => String(s)).filter(Boolean),
+    cacaDirecoes: (a.cacaDirecoes ?? []).map((s) => String(s)).filter(Boolean),
+    cacaGrade: (a.cacaGrade ?? []).map((s) => String(s)),
+    cacaCols: Math.max(0, Math.round(Number(a.cacaCols) || 0)),
+    cacaPos: a.cacaPos && typeof a.cacaPos === 'object' ? a.cacaPos : {},
   })
 }
 
@@ -264,6 +286,7 @@ export function atividadeVazia(ordem: number, tipo: TipoAtividade = 'multipla_um
     opcoes: comOpcoes ? ['', ''] : (tipo === 'assinalar' ? ['', ''] : []), corretas: [], campos: tipo === 'listar' ? [''] : [],
     perguntas: tipo === 'quiz' ? [perguntaVazia(false)] : [], notaMinima: 0,
     link: '', arquivo: '', arquivoNome: '', video: '',
+    cacaPalavras: [], cacaDirecoes: tipo === 'caca' ? ['horizontal', 'vertical'] : [], cacaGrade: [], cacaCols: 0, cacaPos: {},
   }
 }
 
@@ -280,7 +303,7 @@ export async function semearOnboarding(): Promise<void> {
     descricao: 'Trilha de boas-vindas: manual, conferência de cadastro e acessos. Edite as perguntas conforme a Soulan.',
     capa: '', pontos: 200, ordem: 0, ativa: false,
   })
-  const base = { imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0, link: '', arquivo: '', arquivoNome: '', video: '' }
+  const base = { imagem: '', opcoes: [], corretas: [], campos: [], perguntas: [], notaMinima: 0, link: '', arquivo: '', arquivoNome: '', video: '', cacaPalavras: [], cacaDirecoes: [], cacaGrade: [], cacaCols: 0, cacaPos: {} }
   const casas: Atividade[] = [
     {
       ...base, id: 'a_onb_1', ordem: 1, tipo: 'material', titulo: 'Integração Institucional',

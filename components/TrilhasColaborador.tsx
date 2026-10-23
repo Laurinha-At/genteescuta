@@ -4,7 +4,7 @@
 // Tela do colaborador: trilhas ativas com progresso, tabuleiro de
 // casinhas (progressão sequencial), atividade e saldo de pontos.
 // =============================================================
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
 import { Trophy, Lock, Check, X, Play, ArrowLeft, Star, Loader2, PartyPopper, Medal, Link2, FileText } from 'lucide-react'
 import { observarLogin } from '@/lib/fb/auth'
@@ -227,8 +227,111 @@ function Tabuleiro({ trilha, uid, nome, progresso, aoVoltar, aoProgredir }: { tr
 
 function AtividadeModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; aoFechar: () => void; aoConcluir: (a: Atividade, resposta: unknown) => Promise<void> }) {
   if (atividade.tipo === 'quiz') return <QuizModal atividade={atividade} aoFechar={aoFechar} aoConcluir={aoConcluir} />
+  if (atividade.tipo === 'caca') return <CacaModal atividade={atividade} aoFechar={aoFechar} aoConcluir={aoConcluir} />
 
   return <RespostaModal atividade={atividade} aoFechar={aoFechar} aoConcluir={aoConcluir} />
+}
+
+// Caça-palavras: clicar na primeira e na última letra; conclui quando acha todas.
+function CacaModal({ atividade, aoFechar, aoConcluir }: { atividade: Atividade; aoFechar: () => void; aoConcluir: (a: Atividade, resposta: unknown) => Promise<void> }) {
+  const cols = atividade.cacaCols || (atividade.cacaGrade[0]?.length ?? 0)
+  const grid = useMemo(() => atividade.cacaGrade.map((r) => r.split('')), [atividade])
+  const palavras = atividade.cacaPalavras
+  const posicoes = atividade.cacaPos || {}
+  const [inicio, setInicio] = useState<[number, number] | null>(null)
+  const [achadas, setAchadas] = useState<Set<string>>(new Set())
+  const [pendente, setPendente] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  const destaque = useMemo(() => {
+    const s = new Set<number>()
+    for (const w of achadas) (posicoes[w] || []).forEach((idx) => s.add(idx))
+    return s
+  }, [achadas, posicoes])
+
+  function linhaEntre(a: [number, number], b: [number, number]): number[] | null {
+    const [r0, c0] = a, [r1, c1] = b
+    const dr = Math.sign(r1 - r0), dc = Math.sign(c1 - c0)
+    const compR = Math.abs(r1 - r0), compC = Math.abs(c1 - c0)
+    if (!(r0 === r1 || c0 === c1 || compR === compC)) return null
+    const n = Math.max(compR, compC) + 1
+    const out: number[] = []
+    for (let k = 0; k < n; k++) out.push((r0 + dr * k) * cols + (c0 + dc * k))
+    return out
+  }
+
+  async function finalizar(nova: Set<string>) {
+    setPendente(true); setErro(null)
+    try { await aoConcluir(atividade, { caca: true, achadas: Array.from(nova) }) }
+    catch { setErro('Não consegui registrar. Tente de novo.'); setPendente(false) }
+  }
+
+  function clicar(r: number, c: number) {
+    if (pendente) return
+    if (!inicio) { setInicio([r, c]); return }
+    const linha = linhaEntre(inicio, [r, c]); setInicio(null)
+    if (!linha) return
+    const alvo = new Set(linha)
+    for (const w of palavras) {
+      if (achadas.has(w)) continue
+      const cel = posicoes[w] || []
+      if (cel.length === alvo.size && cel.every((x) => alvo.has(x))) {
+        const nova = new Set(achadas); nova.add(w); setAchadas(nova)
+        if (nova.size === palavras.length) finalizar(nova)
+        return
+      }
+    }
+  }
+
+  const semTabuleiro = grid.length === 0 || cols === 0 || palavras.length === 0
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={aoFechar}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl sm:p-6" onClick={(e) => e.stopPropagation()}>
+        <p className="text-base font-semibold text-tinta">{atividade.titulo}</p>
+        {atividade.enunciado && <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-tinta-2">{atividade.enunciado}</p>}
+        <div className="mt-3"><MateriaisApoio a={atividade} /></div>
+
+        {semTabuleiro ? (
+          <p className="mt-4 rounded-lg bg-superficie-2 px-3 py-2 text-sm text-tinta-3">Este caça-palavras ainda não foi configurado.</p>
+        ) : (
+          <>
+            <p className="mb-2 mt-4 text-xs text-tinta-3">Clique na <strong className="font-semibold text-tinta-2">primeira</strong> e depois na <strong className="font-semibold text-tinta-2">última</strong> letra de cada palavra.</p>
+            <div className="overflow-x-auto">
+              <div className="mx-auto grid w-max select-none gap-0.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+                {grid.flatMap((linha, r) => linha.map((letra, c) => {
+                  const idx = r * cols + c
+                  const marcada = destaque.has(idx)
+                  const ini = inicio && inicio[0] === r && inicio[1] === c
+                  return (
+                    <button key={idx} type="button" onClick={() => clicar(r, c)}
+                      className={`flex h-7 w-7 items-center justify-center rounded text-[0.7rem] font-semibold transition-colors sm:h-8 sm:w-8 sm:text-xs ${
+                        marcada ? 'bg-[#16A34A] text-white' : ini ? 'bg-marca text-white' : 'bg-superficie-2 text-tinta-2 hover:bg-marca-clara'
+                      }`}>
+                      {letra}
+                    </button>
+                  )
+                }))}
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {palavras.map((w) => {
+                const ok = achadas.has(w)
+                return <span key={w} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ok ? 'bg-[#eff8ef] text-[#0b5d0b] line-through' : 'bg-superficie-2 text-tinta-2'}`}>{ok && '✓ '}{w}</span>
+              })}
+            </div>
+            <p className="mt-3 text-sm text-tinta-3">{achadas.size} de {palavras.length} encontradas.</p>
+          </>
+        )}
+
+        {erro && <p className="mt-3 text-sm text-critico">{erro}</p>}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={aoFechar} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-tinta-2 hover:bg-superficie-2">Fechar</button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // Quiz: responde, corrige, mostra explicação e só conclui se atingir a nota mínima.
