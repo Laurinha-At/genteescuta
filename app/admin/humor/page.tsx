@@ -82,9 +82,9 @@ export default function HumorEquipe() {
   const [conta, setConta] = useState<Conta | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Admin/RH (Master/Super/Administrador) edita e vê tudo. O Gestor Aprovador
+  // Master Administrador (Master/Super) edita e vê tudo. O Gestor Aprovador
   // só ACOMPANHA (ver + exportar) os dados do seu centro de custo.
-  const ehAdminTotal = !!conta && conta.ativo && (conta.nivel === 'master' || conta.nivel === 'super' || ['adm', 'adm_principal', 'adm_master'].includes(conta.perfil))
+  const ehAdminTotal = !!conta && conta.ativo && (conta.nivel === 'master' || conta.nivel === 'super' || ['adm_principal', 'adm_master'].includes(conta.perfil))
   const ehGestorSo = !!conta && conta.ativo && !ehAdminTotal && conta.perfil === 'gestor'
   const podeEditar = ehAdminTotal
   // Só o Master apaga em massa (as Regras também exigem). Super/adm_* contam como Master do painel.
@@ -97,7 +97,7 @@ export default function HumorEquipe() {
       try {
         const c = await minhaConta().catch(() => null)
         setConta(c)
-        const admin = !!c && c.ativo && (c.nivel === 'master' || c.nivel === 'super' || ['adm', 'adm_principal', 'adm_master'].includes(c.perfil))
+        const admin = !!c && c.ativo && (c.nivel === 'master' || c.nivel === 'super' || ['adm_principal', 'adm_master'].includes(c.perfil))
         const gestor = !!c && c.ativo && !admin && c.perfil === 'gestor'
         const [regs, cls] = await Promise.all([
           gestor ? listarRegistrosHumorCentro(c!.centro_custo ?? '') : listarRegistrosHumor(),

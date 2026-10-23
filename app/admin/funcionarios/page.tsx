@@ -16,7 +16,7 @@ import {
   atualizarPapeisFuncionario,
   salvarPermissoesFuncionario,
   sincronizarAniversarios,
-  corrigirAdministradores,
+  migrarAdministradoresParaMaster,
 } from '@/lib/fb/funcionarios'
 import { CENTROS_CUSTO, TODOS_CENTROS, PAPEL_LABEL, PAPEL_DESC } from '@/lib/reembolso'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao, Campo, ENTRADA } from '@/components/ui'
@@ -25,11 +25,11 @@ import { PainelPermissoes } from '@/components/PainelPermissoes'
 import { analisarDataBR } from '@/lib/importarFuncionarios'
 
 // Papéis que dão acesso ao PAINEL (têm menu a personalizar).
-const PAPEIS_COM_MENU = ['master', 'administrador']
+const PAPEIS_COM_MENU = ['master']
 
 // Papéis que um FUNCIONÁRIO pode acumular (colaborador é sempre incluído).
-// "master" = admin completo (mesmo poder do e-mail semente).
-const PAPEIS_FUNC = ['master', 'administrador', 'gestor', 'financeiro'] as const
+// "master" = Master Administrador (acesso completo, mesmo poder do e-mail semente).
+const PAPEIS_FUNC = ['master', 'gestor', 'financeiro'] as const
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
 
@@ -96,18 +96,19 @@ export default function Funcionarios() {
   }, [todos, busca])
 
   const [corrigindo, setCorrigindo] = useState(false)
-  async function corrigirAcessos() {
+  async function migrarAdmins() {
+    if (!confirm('O papel Administrador foi removido. As contas que ainda tiverem esse papel passam a ser Master Administrador (acesso completo). Deseja migrar agora?')) return
     setErro(null); setAviso(null); setCorrigindo(true)
     try {
-      const r = await corrigirAdministradores()
+      const r = await migrarAdministradoresParaMaster()
       setAviso(
-        r.corrigidos > 0
-          ? `Pronto: ${r.corrigidos} conta(s) de administrador tiveram o acesso corrigido (papel preenchido).`
-          : 'Tudo certo: nenhuma conta ativa de administrador precisava de correção.',
+        r.migrados > 0
+          ? `Pronto: ${r.migrados} conta(s) de Administrador viraram Master Administrador.`
+          : 'Tudo certo: nenhuma conta com o papel Administrador para migrar.',
       )
       recarregar()
     } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Não consegui corrigir os acessos.')
+      setErro(e instanceof Error ? e.message : 'Não consegui migrar as contas.')
     }
     setCorrigindo(false)
   }
@@ -158,14 +159,14 @@ export default function Funcionarios() {
         {erro && <Aviso tom="erro">{erro}</Aviso>}
 
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-borda bg-white px-3 py-2.5">
-          <span className="text-xs text-tinta-3">Alguma conta de administrador ativa não consegue entrar no painel? Corrija o acesso (preenche o papel que estiver faltando).</span>
+          <span className="text-xs text-tinta-3">O papel Administrador foi removido. Migre as contas que ainda o tiverem para Master Administrador (acesso completo).</span>
           <button
             type="button"
-            onClick={corrigirAcessos}
+            onClick={migrarAdmins}
             disabled={corrigindo}
             className="inline-flex items-center gap-1.5 rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm font-medium text-tinta transition-colors hover:border-marca hover:text-marca-texto disabled:opacity-60"
           >
-            <ShieldCheck size={15} aria-hidden /> {corrigindo ? 'Corrigindo…' : 'Corrigir acessos de administradores'}
+            <ShieldCheck size={15} aria-hidden /> {corrigindo ? 'Migrando…' : 'Migrar Administrador para Master'}
           </button>
         </div>
 
@@ -348,9 +349,9 @@ export default function Funcionarios() {
             Funcionários entram pela opção <strong className="font-semibold text-tinta">“Acesso”</strong> no
             topo do site, com o e-mail e a senha padrão{' '}
             <strong className="rounded bg-superficie-2 px-1 font-mono text-tinta">{SENHA_PADRAO}</strong>, e criam a
-            própria senha no primeiro acesso. O perfil de acesso (Colaborador, Administrador, Gestor, Financeiro ou
-            Master) é definido pelos papéis de cada pessoa (ícone <strong className="font-semibold text-tinta">Papéis</strong>).
-            Para quem tem acesso ao painel (Administrador ou Master), o ícone <strong className="font-semibold text-tinta">Permissão de menu</strong> ajusta
+            própria senha no primeiro acesso. O perfil de acesso (Colaborador, Gestor Aprovador, Financeiro ou
+            Master Administrador) é definido pelos papéis de cada pessoa (ícone <strong className="font-semibold text-tinta">Papéis</strong>).
+            Para quem tem acesso ao painel (Master Administrador), o ícone <strong className="font-semibold text-tinta">Permissão de menu</strong> ajusta
             exatamente quais telas e ações a pessoa enxerga.
           </p>
         </div>
@@ -389,7 +390,9 @@ function EditorPapeis({
   onSalvo: (msg: string) => void
   setErro: (s: string | null) => void
 }) {
-  const iniciais: string[] = Array.isArray(usuario.papeis) ? usuario.papeis : []
+  // O papel legado "administrador" vira "master" (Master Administrador) ao abrir,
+  // para uma edição não rebaixar a conta por engano antes da migração.
+  const iniciais: string[] = (Array.isArray(usuario.papeis) ? usuario.papeis : []).map((p: string) => (p === 'administrador' ? 'master' : p))
   const [papeis, setPapeis] = useState<string[]>(PAPEIS_FUNC.filter((p) => iniciais.includes(p)))
   const [centro, setCentro] = useState<string>(usuario.centro_custo || '')
   const [centrosExtra, setCentrosExtra] = useState<string[]>(Array.isArray(usuario.centros_extra) ? usuario.centros_extra : [])

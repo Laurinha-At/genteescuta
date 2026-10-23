@@ -102,7 +102,6 @@ export type PerfilId =
   | 'colaborador'
   | 'gestor'
   | 'financeiro'
-  | 'adm'
   | 'adm_principal'
   | 'adm_master'
 
@@ -145,23 +144,6 @@ export const PERFIS: Perfil[] = [
     desc: 'Cuida da etapa financeira dos reembolsos (registrar pagamento).',
     base: {
       reembolsos: ['ver', 'aprovar'],
-    },
-  },
-  {
-    id: 'adm',
-    nome: 'Administrador',
-    desc: 'Edita, altera e adiciona conteúdo do dia a dia. Sem gerenciar usuários, configurações ou logs.',
-    base: {
-      visao: ['ver'],
-      canal: ['ver', 'aprovar'],
-      mural: todas('mural'),
-      moderacao: todas('moderacao'),
-      carrossel: todas('carrossel'),
-      informacoes: todas('informacoes'),
-      treinamento: todas('treinamento'),
-      trilhas_dev: todas('trilhas_dev'),
-      contato: todas('contato'),
-      institucional: todas('institucional'),
     },
   },
   {
@@ -233,8 +215,9 @@ export function perfilPadrao(entrada: {
   const papeis = Array.isArray(entrada.papeis) ? entrada.papeis : []
   if (entrada.nivel === 'super') return 'adm_principal'
   if (entrada.nivel === 'master' || papeis.includes('master')) return 'adm_principal'
-  if (papeis.includes('administrador')) return 'adm'
-  if (entrada.nivel === 'comum') return 'adm'
+  // O papel "administrador" foi removido: vira Master Administrador (acesso total).
+  if (papeis.includes('administrador')) return 'adm_principal'
+  if (entrada.nivel === 'comum') return 'adm_principal'
   if (papeis.includes('financeiro')) return 'financeiro'
   if (papeis.includes('gestor')) return 'gestor'
   return 'colaborador'

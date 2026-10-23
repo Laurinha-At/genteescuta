@@ -65,30 +65,46 @@ export async function salvarPermissoesFuncionario(
 }
 
 /**
- * Correção única: contas ATIVAS que já são admin por `perfil` (adm/adm_principal/
- * adm_master) ou por `permissoes` de painel, mas que não têm o papel correspondente
- * em `papeis`, recebem o papel "administrador". Isso libera o acesso ao painel e as
- * ações de conteúdo (as Regras do Firestore conferem o papel). Só Master/Super roda.
+ * Migração única: o papel "Administrador" foi removido. Toda conta que ainda
+ * tiver o papel "administrador" (ou o perfil salvo "adm") passa a ter "master"
+ * (Master Administrador), com acesso completo. Reescreve os dados em
+ * /funcionarios e /admins. Idempotente. Só Master/Super roda (Regras).
  */
-export async function corrigirAdministradores(): Promise<{ corrigidos: number; total: number }> {
+export async function migrarAdministradoresParaMaster(): Promise<{ migrados: number; total: number }> {
+  let migrados = 0, total = 0
+
   const funcs = await listarFuncionarios()
-  let corrigidos = 0
   for (const f of funcs) {
-    if ((f as any).ativo === false) continue
+    total++
     const papeis = Array.isArray(f.papeis) ? (f.papeis as string[]) : []
-    if (papeis.includes('master') || papeis.includes('administrador')) continue
-    const perfil = (f as any).perfil as string | undefined
-    const perfilAdmin = perfil === 'adm' || perfil === 'adm_principal' || perfil === 'adm_master'
-    const permissoes = (f as any).permissoes
-    const temPermissoes = permissoes && typeof permissoes === 'object'
-      && Object.values(permissoes as Record<string, unknown>).some((a) => Array.isArray(a) && a.length > 0)
-    if (!perfilAdmin && !temPermissoes) continue
-    const novos = Array.from(new Set(['colaborador', ...papeis, 'administrador']))
-    await updateDoc(doc(db(), 'funcionarios', f.uid), { papeis: novos })
-    corrigidos++
+    const temPapel = papeis.includes('administrador')
+    const temPerfil = (f as any).perfil === 'adm'
+    if (!temPapel && !temPerfil) continue
+    const novos = Array.from(new Set(['colaborador', ...papeis.filter((p) => p !== 'administrador'), 'master']))
+    const dados: Record<string, unknown> = { papeis: novos }
+    if (temPerfil) dados.perfil = 'adm_principal'
+    await updateDoc(doc(db(), 'funcionarios', f.uid), dados)
+    migrados++
   }
-  await registrarLog('corrigir_administradores', `${corrigidos} de ${funcs.length}`)
-  return { corrigidos, total: funcs.length }
+
+  // Administradores do sistema (/admins): raro ter o papel aqui, mas garante.
+  const adsnap = await getDocs(collection(db(), 'admins')).catch(() => null)
+  if (adsnap) for (const d of adsnap.docs) {
+    total++
+    const data = d.data() as Record<string, unknown>
+    const papeis = Array.isArray(data.papeis) ? (data.papeis as string[]) : []
+    const temPapel = papeis.includes('administrador')
+    const temPerfil = data.perfil === 'adm'
+    if (!temPapel && !temPerfil) continue
+    const novos = Array.from(new Set([...papeis.filter((p) => p !== 'administrador'), 'master']))
+    const dados: Record<string, unknown> = { papeis: novos }
+    if (temPerfil) dados.perfil = 'adm_principal'
+    await updateDoc(doc(db(), 'admins', d.id), dados)
+    migrados++
+  }
+
+  await registrarLog('migrar_admin_master', `${migrados} conta(s)`)
+  return { migrados, total }
 }
 
 export async function sincronizarAniversarios(): Promise<number> {
@@ -116,12 +132,23 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 export type PerfilTipo = 'admin' | 'funcionario' | 'nenhum'
 
-const PAPEIS_VALIDOS = ['master', 'administrador', 'gestor', 'financeiro', 'colaborador'] as const
+const PAPEIS_VALIDOS = ['master', 'gestor', 'financeiro', 'colaborador'] as const
 
-/** Normaliza o array de papéis vindo do banco (aceita só valores conhecidos). */
+/**
+ * Normaliza o array de papéis vindo do banco (aceita só valores conhecidos).
+ * O papel legado "administrador" foi removido do sistema: ao ler, ele é tratado
+ * como "master" (Master Administrador), para ninguém perder acesso antes da
+ * migração que reescreve os dados.
+ */
 function limparPapeis(v: unknown): string[] {
   if (!Array.isArray(v)) return []
-  return v.filter((p): p is string => typeof p === 'string' && (PAPEIS_VALIDOS as readonly string[]).includes(p))
+  const out: string[] = []
+  for (const p of v) {
+    if (typeof p !== 'string') continue
+    const papel = p === 'administrador' ? 'master' : p
+    if ((PAPEIS_VALIDOS as readonly string[]).includes(papel) && !out.includes(papel)) out.push(papel)
+  }
+  return out
 }
 
 /** Normaliza a lista de centros extra (strings não vazias, sem repetir). */
@@ -187,8 +214,8 @@ export async function perfilAtual(): Promise<Perfil | null> {
     // Todo funcionário é, no mínimo, colaborador.
     const papeis = Array.from(new Set(['colaborador', ...limparPapeis(d.papeis)]))
     return {
-      // Papel "master" (completo) ou "administrador" (limitado) = acesso ao painel.
-      tipo: (papeis.includes('master') || papeis.includes('administrador')) ? 'admin' : 'funcionario',
+      // Papel "master" (Master Administrador) = acesso completo ao painel.
+      tipo: papeis.includes('master') ? 'admin' : 'funcionario',
       uid: u.uid,
       email: (d.email as string) ?? u.email ?? '',
       nome: (d.nome as string) ?? '',

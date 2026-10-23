@@ -5,21 +5,19 @@
 // =============================================================
 
 // -------- Papéis de acesso (uma pessoa pode ter VÁRIOS) --------
-export type Papel = 'master' | 'administrador' | 'gestor' | 'financeiro' | 'colaborador'
+export type Papel = 'master' | 'gestor' | 'financeiro' | 'colaborador'
 
-export const PAPEIS: Papel[] = ['master', 'administrador', 'gestor', 'financeiro', 'colaborador']
+export const PAPEIS: Papel[] = ['master', 'gestor', 'financeiro', 'colaborador']
 
 export const PAPEL_LABEL: Record<Papel, string> = {
   master: 'Master Administrador',
-  administrador: 'Administrador',
   gestor: 'Gestor Aprovador',
   financeiro: 'Financeiro',
   colaborador: 'Colaborador',
 }
 
 export const PAPEL_DESC: Record<Papel, string> = {
-  master: 'Faz tudo, igual à equipe de Gente & Cultura (inclusive usuários e configurações).',
-  administrador: 'Pode editar, alterar e adicionar conteúdo do dia a dia. Sem gerenciar usuários, configurações ou logs.',
+  master: 'Faz tudo, igual à equipe de Gente & Cultura (inclusive usuários, configurações e logs).',
   gestor: 'Aprova reembolsos e baixa as planilhas do próprio centro de custo (área).',
   financeiro: 'Cuida da etapa financeira (pagamento) dos reembolsos.',
   colaborador: 'Base de todos: solicita reembolsos, faz manifestações e treinamentos.',

@@ -129,23 +129,24 @@ export async function minhaConta(): Promise<Conta | null> {
     }
   }
   // Sem doc em /admins: avalia o doc de /funcionarios. É admin do painel quem
-  // é ATIVO e tem um destes indicadores (tolerante a contas antigas e à
-  // mudança que introduziu os campos `perfil`/`permissoes`):
-  //  - papel "master" ou "administrador"; OU
-  //  - um `perfil` de admin salvo (adm / adm_principal / adm_master); OU
+  // é ATIVO e tem um destes indicadores (tolerante a contas antigas):
+  //  - papel "master" (ou o legado "administrador", que vira Master); OU
+  //  - um `perfil` de admin salvo (adm_principal / adm_master); OU
   //  - `permissoes` de painel já configuradas (tem ao menos uma ação liberada).
+  // O papel legado "administrador" é tratado como Master Administrador: o
+  // perfilPadrao mapeia "administrador" para adm_principal, então cai em ehMasterPainel.
   const fSnap = await getDoc(doc(db(), 'funcionarios', u.uid)).catch(() => null)
   if (fSnap && fSnap.exists()) {
     const d = fSnap.data() as Record<string, unknown>
     const ativo = d.ativo !== false
     const papeis = Array.isArray(d.papeis) ? (d.papeis as string[]) : []
-    const perfil = perfilDe(d, papeis.includes('master') ? 'master' : null)
+    const temMaster = papeis.includes('master') || papeis.includes('administrador')
+    const perfil = perfilDe(d, temMaster ? 'master' : null)
     const permissoes = permissoesEfetivas(d, perfil)
 
-    const perfilDeAdmin = perfil === 'adm' || perfil === 'adm_principal' || perfil === 'adm_master'
     const temPermissoesPainel = Object.values(permissoes).some((a) => Array.isArray(a) && a.length > 0)
-    const ehMasterPainel = papeis.includes('master') || perfil === 'adm_principal' || perfil === 'adm_master'
-    const ehAdminPainel = ehMasterPainel || papeis.includes('administrador') || perfilDeAdmin || temPermissoesPainel
+    const ehMasterPainel = temMaster || perfil === 'adm_principal' || perfil === 'adm_master'
+    const ehAdminPainel = ehMasterPainel || temPermissoesPainel
 
     if (ativo && ehAdminPainel) {
       return {

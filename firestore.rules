@@ -23,13 +23,17 @@ service cloud.firestore {
     function conta() {
       return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
     }
-    // Funcionário ATIVO com o papel "master" (Master = admin completo,
-    // definido na tela Funcionários — mesmo poder do e-mail semente).
+    // Funcionário ATIVO com o papel "master" (Master Administrador = admin
+    // completo, mesmo poder do e-mail semente). O papel legado "administrador"
+    // também conta como Master, para ninguém perder acesso antes da migração.
     function funcMasterAtivo() {
       return logado()
         && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
         && get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.ativo == true
-        && ('master' in get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.get('papeis', []));
+        && (
+          'master' in get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.get('papeis', [])
+          || 'administrador' in get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.get('papeis', [])
+        );
     }
     // Admin = e-mail semente OU conta ATIVA em /admins (master/super) OU
     // funcionário ativo com o papel "master".
@@ -40,18 +44,11 @@ service cloud.firestore {
         || funcMasterAtivo()
       );
     }
-    // Funcionário ATIVO com o papel "administrador" (acesso LIMITADO: só edita
-    // e adiciona CONTEÚDO; não mexe em usuários, configurações nem logs).
-    function funcAdministradorAtivo() {
-      return logado()
-        && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
-        && get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.ativo == true
-        && ('administrador' in get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.get('papeis', []));
-    }
-    // Pode gerir CONTEÚDO do site (mural, informações, treinamento, contato,
-    // sobre/missão) e tratar o Canal: admin completo OU administrador limitado.
+    // Gerir CONTEÚDO do site (mural, informações, treinamento, contato,
+    // sobre/missão) e tratar o Canal: só o Master Administrador. (O antigo papel
+    // "Administrador" foi removido; o acesso dele passou a ser do Master.)
     function podeConteudo() {
-      return admin() || funcAdministradorAtivo();
+      return admin();
     }
     // Super Admin = controle total (edita config, gerencia admins, cria níveis).
     function souSuper() {

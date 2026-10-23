@@ -195,8 +195,8 @@ export async function listarNotificacoes(perfil: Perfil): Promise<Notificacao[]>
   const consultas: Promise<Notificacao[]>[] = [rodar([where('alvo', '==', `u:${u.uid}`)])]
 
   const papeis = perfil.papeis ?? []
-  // "Master" para efeito de notificações = quem realmente tem o papel master
-  // (inclui /admins e o funcionário master). O Administrador NÃO é master.
+  // "Master" para efeito de notificações = quem tem o papel master (Master
+  // Administrador). O papel legado "administrador" já é lido como master.
   const ehMaster = papeis.includes('master')
   if (papeis.includes('financeiro')) consultas.push(rodar([where('alvo', '==', 'f')]))
   if (ehMaster) consultas.push(rodar([where('alvo', '==', 'm')]))

@@ -75,7 +75,7 @@ export default function Aniversariantes() {
     const off = observarLogin(async (u) => {
       if (!u) { setPodeGerenciar(false); return }
       const p = await perfilAtual().catch(() => null)
-      setPodeGerenciar(!!p && p.ativo && (p.tipo === 'admin' || p.papeis.some((x) => ['master', 'administrador', 'gestor', 'financeiro'].includes(x))))
+      setPodeGerenciar(!!p && p.ativo && (p.tipo === 'admin' || p.papeis.some((x) => ['master', 'gestor', 'financeiro'].includes(x))))
     })
     return off
   }, [])

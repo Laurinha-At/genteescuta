@@ -54,7 +54,7 @@ export function ReembolsoApp({ perfil }: { perfil: Perfil }) {
   // Rótulo da fila conforme o papel: Gestor = "Solicitações"; Financeiro/Master = "Fila de Solicitações".
   const filaLabel = (ehFinanceiro || ehMaster) ? 'Fila de Solicitações' : 'Solicitações'
 
-  // Todos podem solicitar (inclusive Administrador e Master). Aprovadores
+  // Todos podem solicitar (inclusive o Master Administrador). Aprovadores
   // começam na fila; os demais, na tela de solicitar.
   const [aba, setAba] = useState<Aba>(ehAprovador ? 'fila' : 'solicitar')
   const [minhas, setMinhas] = useState<Reembolso[]>([])

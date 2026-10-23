@@ -36,10 +36,10 @@ export interface OrientacaoDoc {
 
 export const COLECAO = 'orientacao_solicitacoes'
 
-// Papéis que enxergam os itens 'gestores_admin': gestor OU admin
-// (Administrador, ADM Principal, ADM Master). Usa os valores exatos de PerfilId.
+// Papéis que enxergam os itens 'gestores_admin': Gestor Aprovador OU Master
+// Administrador (ADM Principal, ADM Master). Usa os valores exatos de PerfilId.
 export function podeVerRestritos(conta: Conta | null): boolean {
-  return !!conta && conta.ativo && ['gestor', 'adm', 'adm_principal', 'adm_master'].includes(conta.perfil)
+  return !!conta && conta.ativo && ['gestor', 'adm_principal', 'adm_master'].includes(conta.perfil)
 }
 
 // Seed inicial: os 6 itens atuais, sem perder nada. Admissão Interna e
