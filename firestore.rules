@@ -392,11 +392,13 @@ service cloud.firestore {
       allow read: if admin() || (logado() && request.auth.uid == uid);
       allow write: if participante() && request.auth.uid == uid;
     }
-    // Ranking (projeção: nome + pontos). Participante logado LÊ (para o placar);
-    // cada pessoa grava só o próprio doc (id = uid).
-    match /trilhas_dev_ranking/{uid} {
+    // Mural de conquistas: cada conclusão de trilha vira um registro público
+    // (nome + trilha + setor + data). Participante logado LÊ; cada pessoa só
+    // grava a PRÓPRIA conquista (id = uid_trilhaId, com uid == quem escreve).
+    match /trilhas_dev_conquistas/{id} {
       allow read: if participante();
-      allow write: if participante() && request.auth.uid == uid;
+      allow create, update: if participante() && request.resource.data.uid == request.auth.uid;
+      allow delete: if admin();
     }
 
     // -------- Banco de Horas (planilha mensal por matrícula) --------

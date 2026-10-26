@@ -358,11 +358,11 @@ export async function getProgressoUsuario(uid: string): Promise<ProgressoUsuario
  */
 export async function concluirAtividade(
   uid: string,
-  trilha: { id: string; pontos: number },
+  trilha: { id: string; pontos: number; titulo?: string },
   atividadeId: string,
   totalAtividades: number,
   resposta?: unknown,
-  pessoa?: { nome: string },
+  pessoa?: { nome: string; setor?: string },
 ): Promise<{ progresso: ProgressoUsuario; creditou: boolean }> {
   const atual = await getProgressoUsuario(uid)
   const tr: ProgressoTrilha = atual.trilhas[trilha.id] ?? { concluidas: [], concluida: false, pontos: 0, respostas: {} }
@@ -382,28 +382,51 @@ export async function concluirAtividade(
   const pontos_total = Object.values(trilhas).reduce((s, t) => s + (t.concluida ? (t.pontos || 0) : 0), 0)
 
   await setDoc(doc(db(), PROG, uid), { trilhas, pontos_total }, { merge: false })
-  // Projeção pública para o ranking (nome + pontos). Best-effort: não quebra o fluxo.
-  if (pessoa?.nome) {
-    await setDoc(doc(db(), RANKING, uid), { nome: pessoa.nome, pontos: pontos_total, atualizado_em: new Date().toISOString() }, { merge: true }).catch(() => {})
+  // Registra a CONQUISTA quando a trilha é concluída (para o Mural). Best-effort.
+  if (creditou && pessoa?.nome) {
+    await setDoc(doc(db(), CONQUISTAS, `${uid}_${trilha.id}`), {
+      uid,
+      nome: pessoa.nome,
+      setor: String(pessoa.setor ?? '').trim(),
+      trilha_id: trilha.id,
+      trilha_titulo: String(trilha.titulo ?? '').trim(),
+      ts: Date.now(),
+    }, { merge: true }).catch(() => {})
   }
   return { progresso: { trilhas, pontos_total }, creditou }
 }
 
-// ---------------- Ranking (projeção pública: nome + pontos) ----------------
-const RANKING = 'trilhas_dev_ranking'
+// ---------------- Mural de conquistas (conclusões de trilha) ----------------
+const CONQUISTAS = 'trilhas_dev_conquistas'
 
-export interface RankingItem { uid: string; nome: string; pontos: number }
+export interface Conquista {
+  id: string
+  uid: string
+  nome: string
+  setor: string
+  trilhaId: string
+  trilhaTitulo: string
+  ts: number
+}
 
-/** Top do ranking por pontos (desc). Ordena no cliente para dispensar índice. */
-export async function listarRankingTrilhas(limite = 20): Promise<RankingItem[]> {
-  const snap = await getDocs(collection(db(), RANKING)).catch(() => null)
+/** Conquistas mais recentes primeiro (conclusões de trilha por pessoa). */
+export async function listarConquistas(limite = 50): Promise<Conquista[]> {
+  const snap = await getDocs(collection(db(), CONQUISTAS)).catch(() => null)
   if (!snap) return []
   return snap.docs
     .map((d) => {
       const x = d.data() as Record<string, unknown>
-      return { uid: d.id, nome: String(x.nome ?? '').trim(), pontos: Number(x.pontos) || 0 }
+      return {
+        id: d.id,
+        uid: String(x.uid ?? ''),
+        nome: String(x.nome ?? '').trim(),
+        setor: String(x.setor ?? '').trim(),
+        trilhaId: String(x.trilha_id ?? ''),
+        trilhaTitulo: String(x.trilha_titulo ?? '').trim(),
+        ts: Number(x.ts) || 0,
+      }
     })
-    .filter((r) => r.pontos > 0 && r.nome)
-    .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome))
+    .filter((c) => c.nome && c.trilhaTitulo && c.ts > 0)
+    .sort((a, b) => b.ts - a.ts)
     .slice(0, limite)
 }

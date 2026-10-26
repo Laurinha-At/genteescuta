@@ -6,21 +6,24 @@
 // =============================================================
 import { useEffect, useMemo, useState } from 'react'
 import Link from '@/components/LinkSemPrefetch'
-import { Trophy, Lock, Check, X, Play, ArrowLeft, Star, Loader2, PartyPopper, Medal, Link2, FileText } from 'lucide-react'
+import { Trophy, Lock, Check, X, Play, ArrowLeft, Star, Loader2, PartyPopper, Medal, Link2, FileText, Users, Award } from 'lucide-react'
 import { observarLogin } from '@/lib/fb/auth'
 import { perfilAtual, type Perfil } from '@/lib/fb/funcionarios'
+import { listarPessoasDiretorio, type PessoaDiretorio } from '@/lib/fb/aniversarios'
+import { normalizarSetor } from '@/lib/humor'
 import { urlParaEmbed } from '@/lib/embed'
 import {
   listarTrilhasDevAtivas, listarAtividades, getProgressoUsuario, concluirAtividade,
-  listarRankingTrilhas,
-  type TrilhaDev, type Atividade, type ProgressoUsuario, type RankingItem,
+  listarConquistas,
+  type TrilhaDev, type Atividade, type ProgressoUsuario, type Conquista,
 } from '@/lib/fb/trilhasDev'
 
 export function TrilhasColaborador() {
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined)
   const [trilhas, setTrilhas] = useState<TrilhaDev[] | null>(null)
   const [progresso, setProgresso] = useState<ProgressoUsuario>({ trilhas: {}, pontos_total: 0 })
-  const [ranking, setRanking] = useState<RankingItem[]>([])
+  const [conquistas, setConquistas] = useState<Conquista[]>([])
+  const [diretorio, setDiretorio] = useState<PessoaDiretorio[]>([])
   const [aberta, setAberta] = useState<TrilhaDev | null>(null)
 
   useEffect(() => {
@@ -28,26 +31,28 @@ export function TrilhasColaborador() {
       if (!u) { setPerfil(null); return }
       const p = await perfilAtual().catch(() => null)
       setPerfil(p)
-      const [ts, pr, rk] = await Promise.all([
+      const [ts, pr, cq, dir] = await Promise.all([
         listarTrilhasDevAtivas().catch(() => []),
         p ? getProgressoUsuario(p.uid).catch(() => ({ trilhas: {}, pontos_total: 0 })) : Promise.resolve({ trilhas: {}, pontos_total: 0 }),
-        listarRankingTrilhas().catch(() => []),
+        listarConquistas().catch(() => []),
+        listarPessoasDiretorio().catch(() => []),
       ])
       setTrilhas(ts)
       setProgresso(pr)
-      setRanking(rk)
+      setConquistas(cq)
+      setDiretorio(dir)
     })
     return off
   }, [])
 
   async function recarregarProgresso() {
     if (!perfil) return
-    const [pr, rk] = await Promise.all([
+    const [pr, cq] = await Promise.all([
       getProgressoUsuario(perfil.uid).catch(() => progresso),
-      listarRankingTrilhas().catch(() => ranking),
+      listarConquistas().catch(() => conquistas),
     ])
     setProgresso(pr)
-    setRanking(rk)
+    setConquistas(cq)
   }
 
   if (perfil === undefined) return <p className="text-sm text-tinta-3">Carregando…</p>
@@ -76,6 +81,7 @@ export function TrilhasColaborador() {
           trilha={aberta}
           uid={perfil.uid}
           nome={perfil.nome}
+          setor={perfil.centro_custo}
           progresso={progresso}
           aoVoltar={() => setAberta(null)}
           aoProgredir={recarregarProgresso}
@@ -83,37 +89,115 @@ export function TrilhasColaborador() {
       ) : (
         <>
           <ListaTrilhas trilhas={trilhas} progresso={progresso} aoAbrir={setAberta} />
-          <Ranking itens={ranking} meuUid={perfil.uid} />
+          <MuralConquistas conquistas={conquistas} diretorio={diretorio} meuUid={perfil.uid} />
         </>
       )}
     </div>
   )
 }
 
-// Ranking: top por pontos, destaque do usuário logado e medalha no top 3.
-function Ranking({ itens, meuUid }: { itens: RankingItem[]; meuUid: string }) {
-  if (itens.length === 0) return null
-  const CORES = ['#d4af37', '#9aa3ad', '#b87333'] // ouro, prata, bronze
+/** Tempo relativo em português: "hoje", "ontem", "há 2 dias", "há 3 semanas". */
+function tempoRelativo(ts: number): string {
+  const dia = 86400000
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+  const d = new Date(ts); d.setHours(0, 0, 0, 0)
+  const dias = Math.round((hoje.getTime() - d.getTime()) / dia)
+  if (dias <= 0) return 'hoje'
+  if (dias === 1) return 'ontem'
+  if (dias < 7) return `há ${dias} dias`
+  const semanas = Math.floor(dias / 7)
+  if (semanas < 5) return semanas === 1 ? 'há 1 semana' : `há ${semanas} semanas`
+  const meses = Math.floor(dias / 30)
+  if (meses < 12) return meses === 1 ? 'há 1 mês' : `há ${meses} meses`
+  const anos = Math.floor(dias / 365)
+  return anos === 1 ? 'há 1 ano' : `há ${anos} anos`
+}
+
+type ItemMural =
+  | { tipo: 'pessoa'; chave: string; nome: string; trilhaTitulo: string; ts: number }
+  | { tipo: 'equipe'; chave: string; setor: string; trilhaTitulo: string; ts: number }
+
+/**
+ * Conquistas de EQUIPE: quando 100% das pessoas ATIVAS de um setor concluíram a
+ * mesma trilha. Usa os nomes de setor canônicos e só celebra (nunca mostra quem
+ * falta). Calculado no cliente a partir do diretório + conquistas.
+ */
+function conquistasDeEquipe(conquistas: Conquista[], diretorio: PessoaDiretorio[]): ItemMural[] {
+  // Headcount ativo por setor canônico.
+  const totalPorSetor = new Map<string, number>()
+  for (const p of diretorio) {
+    const setor = normalizarSetor(p.setor)
+    if (setor === 'Outros' || setor === 'Não informado') continue
+    totalPorSetor.set(setor, (totalPorSetor.get(setor) ?? 0) + 1)
+  }
+  // Conclusões por (setor canônico, trilha): uids distintos + título + data mais recente.
+  const grupos = new Map<string, { setor: string; trilhaTitulo: string; uids: Set<string>; ts: number }>()
+  for (const c of conquistas) {
+    const setor = normalizarSetor(c.setor)
+    if (setor === 'Outros' || setor === 'Não informado') continue
+    const chave = `${setor}__${c.trilhaId}`
+    const g = grupos.get(chave) ?? { setor, trilhaTitulo: c.trilhaTitulo, uids: new Set<string>(), ts: 0 }
+    g.uids.add(c.uid); g.ts = Math.max(g.ts, c.ts); g.trilhaTitulo = c.trilhaTitulo
+    grupos.set(chave, g)
+  }
+  const out: ItemMural[] = []
+  for (const [chave, g] of grupos) {
+    const total = totalPorSetor.get(g.setor) ?? 0
+    if (total > 0 && g.uids.size >= total) {
+      out.push({ tipo: 'equipe', chave: `eq_${chave}`, setor: g.setor, trilhaTitulo: g.trilhaTitulo, ts: g.ts })
+    }
+  }
+  return out
+}
+
+// Mural de conquistas: celebra conclusões (pessoas e equipes). Sem ranking.
+function MuralConquistas({ conquistas, diretorio, meuUid }: { conquistas: Conquista[]; diretorio: PessoaDiretorio[]; meuUid: string }) {
+  const itens = useMemo<ItemMural[]>(() => {
+    const pessoas: ItemMural[] = conquistas.map((c) => ({ tipo: 'pessoa', chave: c.id, nome: c.nome, trilhaTitulo: c.trilhaTitulo, ts: c.ts }))
+    const equipes = conquistasDeEquipe(conquistas, diretorio)
+    return [...pessoas, ...equipes].sort((a, b) => b.ts - a.ts).slice(0, 60)
+  }, [conquistas, diretorio])
+
+  const meuNome = useMemo(() => conquistas.find((c) => c.uid === meuUid)?.nome ?? '', [conquistas, meuUid])
+
   return (
     <div className="cartao-g p-5 sm:p-6">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-tinta"><Trophy size={18} className="text-marca" aria-hidden /> Ranking</h2>
-      <p className="mt-0.5 text-xs text-tinta-3">Soma dos pontos de todas as trilhas concluídas.</p>
-      <ol className="mt-3 space-y-1.5">
-        {itens.map((r, i) => {
-          const eu = r.uid === meuUid
-          return (
-            <li key={r.uid} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${eu ? 'bg-marca-clara' : 'bg-superficie-2'}`}>
-              <span className="flex h-6 w-6 flex-none items-center justify-center">
-                {i < 3
-                  ? <Medal size={18} aria-hidden style={{ color: CORES[i] }} />
-                  : <span className="text-xs font-semibold text-tinta-3 tabular">{i + 1}</span>}
-              </span>
-              <span className={`min-w-0 flex-1 truncate text-sm ${eu ? 'font-semibold text-tinta' : 'text-tinta-2'}`}>{r.nome}{eu ? ' (você)' : ''}</span>
-              <span className="inline-flex flex-none items-center gap-1 text-sm font-semibold text-marca-texto tabular"><Star size={12} className="fill-current" aria-hidden /> {r.pontos}</span>
-            </li>
-          )
-        })}
-      </ol>
+      <h2 className="flex items-center gap-2 text-base font-semibold text-tinta"><Trophy size={18} className="text-marca" aria-hidden /> Mural de conquistas</h2>
+      <p className="mt-0.5 text-xs text-tinta-3">Cada trilha concluída vira uma conquista. As mais recentes aparecem primeiro.</p>
+
+      {itens.length === 0 ? (
+        <div className="mt-4 rounded-xl bg-superficie-2 px-4 py-6 text-center">
+          <Award size={28} className="mx-auto text-marca" aria-hidden />
+          <p className="mt-2 text-sm text-tinta-2">Ainda não há conquistas. Conclua uma trilha e comece a celebração!</p>
+        </div>
+      ) : (
+        <ul className="mt-4 space-y-2.5">
+          {itens.map((it) => {
+            const ehEquipe = it.tipo === 'equipe'
+            const eu = it.tipo === 'pessoa' && !!meuNome && it.nome === meuNome
+            return (
+              <li key={it.chave} className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 ${ehEquipe ? 'border-[#e7cf98] bg-[#fdf6e6]' : eu ? 'border-marca/40 bg-marca-clara' : 'border-borda bg-white'}`}>
+                <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${ehEquipe ? 'bg-[#f3e4bb] text-[#8a6d1f]' : 'bg-marca-clara text-marca'}`}>
+                  {ehEquipe ? <Users size={18} aria-hidden /> : <Medal size={18} aria-hidden />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {ehEquipe ? (
+                    <p className="text-sm leading-5 text-tinta">
+                      <strong className="font-semibold">Equipe {it.setor}</strong> concluiu 100% da trilha <strong className="font-semibold">{it.trilhaTitulo}</strong>. Parabéns!
+                    </p>
+                  ) : (
+                    <p className="text-sm leading-5 text-tinta">
+                      <strong className="font-semibold">{it.nome}{eu ? ' (você)' : ''}</strong> concluiu a trilha <strong className="font-semibold">{it.trilhaTitulo}</strong>.
+                    </p>
+                  )}
+                  <p className="mt-0.5 text-xs text-tinta-3">{tempoRelativo(it.ts)}</p>
+                </div>
+                <PartyPopper size={16} className="mt-0.5 flex-none text-marca" aria-hidden />
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
@@ -147,7 +231,7 @@ function ListaTrilhas({ trilhas, progresso, aoAbrir }: { trilhas: TrilhaDev[] | 
   )
 }
 
-function Tabuleiro({ trilha, uid, nome, progresso, aoVoltar, aoProgredir }: { trilha: TrilhaDev; uid: string; nome: string; progresso: ProgressoUsuario; aoVoltar: () => void; aoProgredir: () => Promise<void> }) {
+function Tabuleiro({ trilha, uid, nome, setor, progresso, aoVoltar, aoProgredir }: { trilha: TrilhaDev; uid: string; nome: string; setor?: string; progresso: ProgressoUsuario; aoVoltar: () => void; aoProgredir: () => Promise<void> }) {
   const [atividades, setAtividades] = useState<Atividade[] | null>(null)
   const [jogando, setJogando] = useState<Atividade | null>(null)
   const [festa, setFesta] = useState<number | null>(null)
@@ -160,7 +244,7 @@ function Tabuleiro({ trilha, uid, nome, progresso, aoVoltar, aoProgredir }: { tr
 
   async function concluir(a: Atividade, resposta: unknown) {
     const total = atividades?.length ?? 0
-    const r = await concluirAtividade(uid, { id: trilha.id, pontos: trilha.pontos }, a.id, total, resposta, { nome })
+    const r = await concluirAtividade(uid, { id: trilha.id, pontos: trilha.pontos, titulo: trilha.titulo }, a.id, total, resposta, { nome, setor })
     setJogando(null)
     await aoProgredir()
     if (r.creditou) setFesta(trilha.pontos)
