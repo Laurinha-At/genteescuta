@@ -170,12 +170,23 @@ export interface Manifestacao {
   resposta_privada?: string | null // resposta ao autor na reprovação
   triado_por?: string | null
   triado_em?: string | null
+  // -------- Análise (foi vista/tratada pelo RH?) --------
+  analise?: AnaliseStatus         // 'nao_analisada' por padrão
+  analise_por?: string | null
+  analise_em?: string | null
 }
 
 export const TRIAGEM_LABEL: Record<Triagem, string> = {
   pendente: 'Pendente',
   aprovada: 'Aprovada',
   reprovada: 'Reprovada',
+}
+
+/** Análise: a manifestação já foi vista/tratada pelo RH? (padrão: não analisada) */
+export type AnaliseStatus = 'nao_analisada' | 'analisada'
+export const ANALISE_LABEL: Record<AnaliseStatus, string> = {
+  nao_analisada: 'Não analisada',
+  analisada: 'Analisada',
 }
 
 export interface ManifestacaoUpdate {

@@ -145,6 +145,96 @@ export async function triarManifestacao(
   return { ok: true }
 }
 
+/** Marca a manifestação como analisada (vista/tratada pelo RH) ou não. */
+export async function marcarAnalise(id: string, analisada: boolean, autor: string) {
+  const ref = doc(db(), 'manifestacoes', id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Manifestação não encontrada.')
+  const atual = snap.data() as any
+  const agora = new Date().toISOString()
+  const updates = Array.isArray(atual.updates) ? [...atual.updates] : []
+  updates.push({
+    tipo: 'analise',
+    mensagem: analisada ? 'Marcada como analisada.' : 'Marcada como não analisada.',
+    autor,
+    visivel_ao_colaborador: false,
+    criado_em: agora,
+  })
+  await updateDoc(ref, {
+    analise: analisada ? 'analisada' : 'nao_analisada',
+    analise_por: analisada ? autor : null,
+    analise_em: analisada ? agora : null,
+    atualizado_em: agora,
+    updates,
+  })
+  return { ok: true }
+}
+
+/**
+ * Responder pelo portal: escreve uma mensagem que o colaborador IDENTIFICADO lê
+ * no portal (seção "Minhas manifestações"), registrada no histórico. Marca como
+ * analisada. Não funciona para anônimas (não há autor para receber).
+ */
+export async function responderPeloPortal(id: string, mensagem: string, autor: string) {
+  const texto = String(mensagem ?? '').trim()
+  if (texto.length < 3) throw new Error('Escreva a resposta ao colaborador.')
+  const ref = doc(db(), 'manifestacoes', id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Manifestação não encontrada.')
+  const atual = snap.data() as any
+  if (atual.anonima || !atual.autor_uid) throw new Error('Manifestação anônima: não há para quem responder.')
+  const agora = new Date().toISOString()
+  const updates = Array.isArray(atual.updates) ? [...atual.updates] : []
+  updates.push({
+    tipo: 'resposta',
+    mensagem: texto,
+    autor,
+    visivel_ao_colaborador: true, // aparece no portal, em "Minhas manifestações"
+    criado_em: agora,
+  })
+  await updateDoc(ref, {
+    analise: 'analisada',
+    analise_por: autor,
+    analise_em: atual.analise_em ?? agora,
+    atualizado_em: agora,
+    updates,
+  })
+  return { ok: true }
+}
+
+/** Exclui a manifestação (só admin pelas Regras). */
+export async function excluirManifestacao(id: string) {
+  await deleteDoc(doc(db(), 'manifestacoes', id))
+  return { ok: true }
+}
+
+/** Aprova um RECONHECIMENTO direto da lista: publica no mural e marca a triagem. */
+export async function aprovarReconhecimentoNaLista(m: any, autor: string) {
+  const titulo = String(m.titulo || m.reconhecer_nome || 'Reconhecimento').trim()
+  let corpo = String(m.descricao || m.reconhecer || '').trim()
+  if (corpo.length < 5) corpo = titulo // fallback para não bloquear a publicação
+  await aprovarReconhecimento(m.id, { titulo, corpo, area: m.area ?? null })
+  const ref = doc(db(), 'manifestacoes', m.id)
+  const atual = (await getDoc(ref)).data() as any ?? {}
+  const agora = new Date().toISOString()
+  const updates = Array.isArray(atual.updates) ? [...atual.updates] : []
+  updates.push({ tipo: 'triagem', triagem: 'aprovada', mensagem: 'Reconhecimento aprovado e publicado no mural.', autor, visivel_ao_colaborador: false, criado_em: agora })
+  await updateDoc(ref, { triagem: 'aprovada', analise: 'analisada', analise_por: autor, analise_em: atual.analise_em ?? agora, triado_por: autor, triado_em: agora, atualizado_em: agora, updates })
+  return { ok: true }
+}
+
+/** Reprova um RECONHECIMENTO direto da lista: não publica e marca a triagem. */
+export async function reprovarReconhecimentoNaLista(id: string, autor: string) {
+  await recusarReconhecimento(id) // mural_recusado = true
+  const ref = doc(db(), 'manifestacoes', id)
+  const atual = (await getDoc(ref)).data() as any ?? {}
+  const agora = new Date().toISOString()
+  const updates = Array.isArray(atual.updates) ? [...atual.updates] : []
+  updates.push({ tipo: 'triagem', triagem: 'reprovada', mensagem: 'Reconhecimento reprovado (não publicado no mural).', autor, visivel_ao_colaborador: false, criado_em: agora })
+  await updateDoc(ref, { triagem: 'reprovada', analise: 'analisada', analise_por: autor, analise_em: atual.analise_em ?? agora, triado_por: autor, triado_em: agora, atualizado_em: agora, updates })
+  return { ok: true }
+}
+
 /**
  * Muda rapidamente o status de uma manifestação (inativar = arquivar,
  * ativar = reabrir, repostar = voltar para nova análise) e registra no histórico.

@@ -180,6 +180,19 @@ function MinhasManifestacoes() {
                       <strong className="font-semibold text-tinta">Resposta da equipe:</strong> {m.resposta_privada}
                     </p>
                   )}
+                  {Array.isArray(m.updates) && m.updates.filter((u: any) => u?.visivel_ao_colaborador && u?.mensagem).length > 0 && (
+                    <div className="mt-2.5 space-y-1.5">
+                      {m.updates
+                        .filter((u: any) => u?.visivel_ao_colaborador && u?.mensagem)
+                        .sort((a: any, b: any) => (b.criado_em ?? '').localeCompare(a.criado_em ?? ''))
+                        .map((u: any, i: number) => (
+                          <div key={i} className="rounded-lg border border-borda bg-superficie-2 px-3 py-2 text-sm leading-6 text-tinta-2">
+                            <strong className="font-semibold text-tinta">Mensagem da equipe:</strong> {u.mensagem}
+                            <span className="ml-1 text-xs text-tinta-3">· {fmtData(u.criado_em)}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
