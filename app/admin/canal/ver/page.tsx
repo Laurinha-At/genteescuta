@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Mail, UserX, MapPin, Calendar, User, Building2, CheckCircle2, XCircle } from 'lucide-react'
-import { getManifestacao, triarManifestacao, mudarStatusManifestacao } from '@/lib/fb/admin'
+import { Mail, UserX, MapPin, Calendar, User, Building2, CheckCircle2, XCircle, MessageSquare } from 'lucide-react'
+import { getManifestacao, triarManifestacao, responderPeloPortal } from '@/lib/fb/admin'
 import { usuarioAtual } from '@/lib/fb/auth'
 import { CabecalhoPagina, Cartao, Chip, Aviso, Botao } from '@/components/ui'
 import { LinhaDoTempo, StatusChip } from '@/components/StatusManifestacao'
@@ -80,15 +80,15 @@ function Detalhe() {
           </Cartao>
 
           <PainelTriagem m={m} aoSalvar={recarregar} />
-          <AcoesManifestacao m={m} aoSalvar={recarregar} />
+          <ResponderParticular m={m} aoSalvar={recarregar} />
 
           {m.anonima && (
             <Aviso tom="alerta" titulo="Manifestação anônima">
-              Nome e setor não foram gravados. A área <strong>{m.categoria ?? m.area}</strong> ficou registrada: use ela para direcionar. O retorno só chega à pessoa pelo mural.
+              Nome e setor não foram gravados. A área <strong>{m.categoria ?? m.area}</strong> ficou registrada: use ela para direcionar. Não há como responder a pessoa diretamente.
             </Aviso>
           )}
 
-          <FormMural m={m} aoSalvar={recarregar} />
+          {m.tipo === 'reconhecimento' && <FormMural m={m} aoSalvar={recarregar} />}
         </div>
 
         <div className="space-y-4">
@@ -194,36 +194,54 @@ function PainelTriagem({ m, aoSalvar }: { m: any; aoSalvar: () => void }) {
   )
 }
 
-function AcoesManifestacao({ m, aoSalvar }: { m: any; aoSalvar: () => void }) {
-  const [busy, setBusy] = useState('')
-  const arquivada = m.status === 'arquivada'
+// Responder particular: mensagem interna direta ao autor (aparece no portal).
+function ResponderParticular({ m, aoSalvar }: { m: any; aoSalvar: () => void }) {
+  const [texto, setTexto] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+  const anonima = !!m.anonima || !m.autor_uid
 
-  async function acao(status: string, msg: string, chave: string) {
-    setBusy(chave)
+  async function enviar() {
+    setErro(null); setBusy(true)
     try {
-      await mudarStatusManifestacao(m.id, status, usuarioAtual()?.email ?? 'Equipe', msg)
-      aoSalvar()
-    } catch { /* silencioso */ }
-    setBusy('')
+      await responderPeloPortal(m.id, texto, usuarioAtual()?.email ?? 'Equipe')
+      setTexto(''); setOk(true); aoSalvar()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui enviar a resposta.')
+    }
+    setBusy(false)
   }
 
   return (
-    <Cartao titulo="Ações rápidas" apoio="Inativar (arquivar), reativar ou repostar para nova análise.">
-      <div className="flex flex-wrap gap-2">
-        {arquivada ? (
-          <Botao type="button" variante="secundario" onClick={() => acao('em_analise', 'Manifestação reativada.', 'a')} disabled={!!busy}>
-            <CheckCircle2 size={15} aria-hidden /> Ativar (reabrir)
-          </Botao>
-        ) : (
-          <Botao type="button" variante="secundario" onClick={() => acao('arquivada', 'Manifestação arquivada.', 'i')} disabled={!!busy}>
-            <XCircle size={15} aria-hidden /> Inativar (arquivar)
-          </Botao>
-        )}
-        <Botao type="button" variante="secundario" onClick={() => acao('recebida', 'Manifestação reposta para nova análise.', 'r')} disabled={!!busy}>
-          <CheckCircle2 size={15} aria-hidden /> Repostar (nova análise)
-        </Botao>
-      </div>
-      <p className="mt-2 text-xs text-tinta-3">Para editar o conteúdo/tratativa, use os campos abaixo. Cada ação fica registrada no histórico.</p>
+    <Cartao titulo="Responder particular" apoio="Mensagem interna direto para quem enviou. Aparece no portal da pessoa (Minhas manifestações) e fica no histórico. Não publica no mural.">
+      {anonima ? (
+        <Aviso tom="alerta" titulo="Sem destinatário">
+          Esta manifestação é anônima: não há para quem responder. Dê o retorno pelo mural, quando aplicável.
+        </Aviso>
+      ) : (
+        <div className="space-y-2">
+          {ok && (
+            <p className="rounded-lg border border-[#cfe6b8] bg-[#f4faec] px-3 py-2 text-sm text-verde-escuro">
+              Resposta enviada. {m.nome ?? 'A pessoa'} vê no portal, em "Minhas manifestações".
+            </p>
+          )}
+          {erro && <p className="text-xs font-medium text-critico">{erro}</p>}
+          <textarea
+            value={texto}
+            onChange={(e) => { setTexto(e.target.value); setOk(false) }}
+            rows={3}
+            placeholder="Escreva a resposta para quem enviou…"
+            className="block w-full rounded-lg border border-borda-forte bg-white px-3 py-2 text-sm text-tinta focus:border-marca focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-marca"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-tinta-3">Fica registrada no histórico.</p>
+            <Botao type="button" onClick={enviar} disabled={busy || texto.trim().length < 3}>
+              <MessageSquare size={15} aria-hidden /> {busy ? 'Enviando…' : 'Enviar resposta'}
+            </Botao>
+          </div>
+        </div>
+      )}
     </Cartao>
   )
 }
